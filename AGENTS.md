@@ -2,7 +2,7 @@
 
 Several AIs work on this repository: Codex and one or more Claude sessions. They
 cannot talk to each other. **The repository is the only channel between them.**
-If it is not written in the files below and pushed to `main`, the next AI does
+If it is not written in the files below and pushed (finished work reaches `main`), the next AI does
 not know it.
 
 ## 1. The files that carry the project
@@ -43,9 +43,9 @@ Be as efficient with tokens as you can, in what you read, run and write. This ne
 
 ## 3. Every task, in this order
 
-1. **Start fresh.** `git pull` on `main`, then read as in section 2.
+1. **Start fresh.** `git pull` on `main`, create your feature branch (section 6), then read as in section 2.
 2. **Claim long work.** If the task will take more than one sitting, add a row to *Claimed* in `NOW.md` and push that first. Stay out of files someone else has claimed.
-3. **Work in small, finished steps.** Commit and push each step to `main` once its tests pass. Never leave work unpushed.
+3. **Work in small, finished steps.** Commit and push each step to your branch once its tests pass. Never leave work unpushed.
 4. **Test.** Run the tests for what you changed. For any change a user can see, also run Mohab's test (`tests/test_mohab_year.py`; section 5 says what it checks) and check the screen against A16 above.
 5. **Write it down.** Add a changelog entry at the top of `Unreleased`: `2026-10-03 · Claude:` or `2026-10-03 · Codex:`, with the date from `date`. Update the files from section 1 that your change touches.
 6. **Hand off.** In `NOW.md`, remove or update your *Claimed* row, take finished items out of *Next*, and add new ones, each with a **Read:** line. Add a *Messages* line only for what another AI must know that your commit doesn't say. Owner items go in `OWNER.md`. Then push. No "last done": the commit log says it.
@@ -69,7 +69,9 @@ Be as efficient with tokens as you can, in what you read, run and write. This ne
 
 ## 6. Git (owner rule)
 
-- Work directly on `main` and push to `origin main`. Do not create branches.
-- If a separate branch is truly needed, give it a distinctive, descriptive name, merge it into `main` and push `main` as soon as the work is finished.
+- Every AI works on its own branch, not on `main`.
+- Name the branch after the feature you are building, in lowercase words joined by hyphens: `arabic-type-and-numbers`, `bank-sms-import`. Never a random or session-generated name (`claude/peaceful-hamilton-5s6qbx`) and never a vague one (`fixes`, `work`). If the session hands you a random name, create the descriptive branch and push that instead.
+- One feature per branch. Push the branch after every tested step.
+- When the feature is finished and its tests pass, merge it into `main` and push `main` (`git pull --rebase origin main` first). Push every finished branch, none stays behind.
 - Never leave a branch unpushed, and never leave finished work on a branch that has not reached `main`.
 - This rule overrides any session or tool default that assigns a different working branch.
