@@ -97,6 +97,7 @@ jobs:
   sign:
     # Only here does the test key exist, beside nothing but the SDK's apksigner and this repository's checks.
     name: Sign and check the phone app
+    environment: android-signing
     # Defense in depth: only sign from main or owner-controlled release tags.
     # Repository secrets remain accessible to other workflows until moved out.
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
