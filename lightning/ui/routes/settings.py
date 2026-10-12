@@ -16,7 +16,6 @@ from lightning.categories.domain import Movement, CategoryFamily
 from lightning.core.dates import month_of
 from lightning.workflows.ai_analysis import AIAnalysisService
 from ..periods import parse_period
-from lightning.database.currencies import CurrencyRegistry
 
 router = APIRouter(prefix="/settings")
 
@@ -83,7 +82,7 @@ async def settings_page(request: Request):
         ai_preview = ai_snapshot["preview"]
         ai_filename = f"lightning-analysis-{ai_period.start_text}-to-{ai_period.end_text}.xlsx"
         ai_prompt = ai_service.prompt(ai_period, ai_filename, ai_snapshot)
-    currency_registry = CurrencyRegistry(c.db)
+    currency_registry = c.currencies
     currency_suggestions = currency_registry.suggestions()
     currency_tab = "rates" if request.query_params.get("tab") == "rates" else "currencies"
     fx_history = ([row for row in c.reevaluations.history() if row["price_source"] == "FX"]
@@ -119,7 +118,7 @@ async def settings_page(request: Request):
 async def save_currency(request: Request):
     c = container(request)
     form = await request.form()
-    registry = CurrencyRegistry(c.db)
+    registry = c.currencies
     try:
         action = str(form.get("action", "base"))
         if action == "register":

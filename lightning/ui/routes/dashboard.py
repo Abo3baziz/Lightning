@@ -12,8 +12,6 @@ from lightning.core.dates import fmt_date, month_of, parse_date, parse_month, to
 from lightning.core.errors import LightningError, ValidationError
 from lightning.core.figures import FIGURES, label
 from lightning.core.money import ZERO, fmt as _fmt, to_decimal
-from lightning.database.currencies import CurrencyRegistry
-from lightning.database.seed import CASH_ASSETS
 
 
 def fmt(value, places: int = 0, signed: bool = False) -> str:
@@ -103,7 +101,7 @@ async def dashboard(request: Request):
     accounts = c.accounts.list()
     if not accounts:
         from lightning.samples.profiles import sample_stories
-        return render(request, "dashboard/welcome.html", base=c.base_currency, currencies=CASH_ASSETS,
+        return render(request, "dashboard/welcome.html", base=c.base_currency, currencies=c.profile_currencies,
                       sample_stories=sample_stories())
     # Every position figure comes from one calculation; see lightning/planning/position.py.
     period_position = c.position.at(as_of)
@@ -233,11 +231,11 @@ async def set_welcome_currency(request: Request):
     """Set the base while the first-account screen is still empty and safe to change."""
     c = container(request)
     code = str((await request.form()).get("currency", "")).strip().upper()
-    allowed = {currency for currency, _ in CASH_ASSETS}
+    allowed = {currency for currency, _ in c.profile_currencies}
     if c.accounts.list() or code not in allowed:
         return redirect("/", "Choose the profile currency before adding an account.")
     try:
-        CurrencyRegistry(c.db).register(code)
+        c.currencies.register(code)
         c.set_profile_currency(code)
     except (ValueError, LightningError) as exc:
         message = exc.message if isinstance(exc, LightningError) else str(exc)

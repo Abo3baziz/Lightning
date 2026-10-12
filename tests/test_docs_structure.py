@@ -2,6 +2,7 @@
 
 import importlib.util
 import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -29,6 +30,15 @@ def test_the_hand_off_is_short_and_has_its_parts():
     assert not old_parts, f"NOW.md has no lanes: claims go in Claimed, owner items in OWNER.md (AGENTS.md section 3): {old_parts}"
     overview = (DOCS / "PROJECT_OVERVIEW.md").read_text(encoding="utf-8")
     assert "## Now and next" not in overview, "the hand-off lives in NOW.md only"
+
+
+def test_no_message_to_all_is_older_than_seven_days():
+    text = (ROOT / "NOW.md").read_text(encoding="utf-8")
+    old = []
+    for who, day in re.findall(r"^- \*\*To all, from ([^,]+?),? (\d{4}-\d{2}-\d{2}):\*\*", text, re.M):
+        if (date.today() - date.fromisoformat(day)).days > 7:
+            old.append(f"{who} {day}")
+    assert not old, f"a message to all stays seven days (AGENTS.md section 3); its author removes it: {old}"
 
 
 def test_every_next_step_says_what_to_read():

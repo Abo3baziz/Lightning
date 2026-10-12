@@ -6,7 +6,6 @@ from lightning.accounts.domain import DEFAULT_CASH_CLASS, OFFERED_TYPES, TYPE_LA
 from lightning.core.dates import fmt_date, parse_date, today
 from lightning.core.errors import LightningError, ValidationError
 from lightning.core.money import to_decimal
-from lightning.database.currencies import CurrencyRegistry
 
 from . import register
 from ..web import container, redirect, render
@@ -23,7 +22,7 @@ def _form_context(request: Request, values: dict, account=None, error: Lightning
     return dict(
         values=values,
         account=account,
-        currencies=CurrencyRegistry(c.db).list(),
+        currencies=c.currencies.list(),
         base=c.base_currency,
         types=sorted(((t.value, TYPE_LABELS[t]) for t in OFFERED_TYPES), key=lambda row: row[1].casefold()),
         # where each type shows up in "What your wealth is made of", in plain words

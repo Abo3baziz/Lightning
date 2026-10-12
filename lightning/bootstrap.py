@@ -25,6 +25,7 @@ from lightning.database.audit import AuditLog
 from lightning.database.backup import backup, list_backups
 from lightning.database.connection import Database
 from lightning.database.currencies import CurrencyRegistry
+from lightning.database.seed import CASH_ASSETS
 from lightning.database.migrator import inspect_schema, migrate
 from lightning.database.seed import seed
 from lightning.database.settings import SettingsStore
@@ -81,6 +82,16 @@ class Container:
     @property
     def base_currency(self) -> str:
         return self.settings.base_currency
+
+    @property
+    def currencies(self) -> CurrencyRegistry:
+        """The profile's currency registry, so the UI need not import the database layer."""
+        return CurrencyRegistry(self.db)
+
+    @property
+    def profile_currencies(self) -> list[tuple[str, str]]:
+        """Currencies a profile may start in, as (code, name)."""
+        return CASH_ASSETS
 
     def set_profile_currency(self, code: str) -> None:
         """Change an unused profile's base and refresh the live service graph."""
