@@ -27,7 +27,7 @@
 
 ## Next
 
-1. **Arabic release acceptance:** inspect PC/phone on real devices; run the full suite and Mohab's year; ship matching builds. **Read:** Architecture › UI contract and release; Mohab year/phone tests; A/C guidelines.
+1. **Arabic release acceptance:** PC/phone type, dates, charts to A06.2 (`style.css` sets Tahoma under rtl); check devices, full suite, Mohab; ship builds. **Read:** `tools/guideline.py --ar A06`; Architecture › UI contract.
 2. **HIGH PRIORITY: Expand listed shares beyond EGX to Nasdaq, leading European exchanges and all GCC markets.** Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
 3. **Multi-currency conversion and foreign returns:** profile setup now selects its starting base currency. Add conversion amounts, fees/spread and realized FX; separate FX and price returns for foreign holdings. **Read:** Architecture › Persistence; Overview #15–16; transaction and reevaluation services.
 4. **Multi-currency phone/import:** check foreign entry, reporting, FX and bank imports. **Read:** Architecture › UI contract; phone test; bank import route.
