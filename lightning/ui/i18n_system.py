@@ -1612,6 +1612,7 @@ DEVICES = {
     "This PC is not paired with this profile.": "الكمبيوتر ده مش مربوط بالملف ده.",
     "A PC is sending or fetching the ledger right now. Try again in a minute.": "فيه كمبيوتر بيبعت أو بيجيب السجل دلوقتي. جرّب تاني بعد دقيقة.",
     "The ledger is lent to another PC.": "السجل معار لكمبيوتر تاني.",
+    "The ledger is lent to {name}.": "السجل معار لـ{name}.",
     "The phone is still taking in the last copy. Try again in a minute.": "الموبايل لسه بيستلم آخر نسخة. جرّب تاني بعد دقيقة.",
     "The phone has not received that copy.": "الموبايل ما استلمش النسخة دي.",
     "The phone took the ledger back; this copy will not go in.": "الموبايل استرجع السجل؛ والنسخة دي مش هتتدخل.",

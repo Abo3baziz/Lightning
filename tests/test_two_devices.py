@@ -276,9 +276,12 @@ def test_3_a_form_left_open_never_saves_over_the_other_devices_work(mohab):
 def test_3b_a_save_on_a_lent_phone_says_who_has_the_ledger_and_where_to_go(mohab):
     phone, pc = mohab
     moved(phone, pc)
+    wallet = phone.b.go("Accounts", "Wallet")  # the sheet is open before the PC borrows
+    add = next(l.href for l in wallet.links if l.attrs.get("aria-label") == "Add transaction")
     borrow(pc)
-    wallet = phone.b.go("Accounts", "Wallet")
-    phone.b.open(next(l.href for l in wallet.links if l.attrs.get("aria-label") == "Add transaction"))
+    assert not any(l.attrs.get("aria-label") == "Add transaction" for l in phone.b.go("Accounts", "Wallet").links)
+    assert not any(l.attrs.get("aria-label") == "Add transaction" for l in phone.b.go("Accounts").links)
+    phone.b.open(add)
     refused = phone.b.submit({"kind": "out", "date": "2026-10-04", "counterparty": "Cafe", "amount": "40",
                               "category_id": screens.Choose("Food & Groceries")}, button="Save", expect=403)
     assert 'class="phone-appbar"' in refused.html            # a phone page, not bare text
@@ -403,7 +406,7 @@ def test_7_a_second_pc_waits_its_turn_and_a_wrong_password_borrows_nothing(mohab
         wrong = borrow(home, password="not my password", expect=400)
         assert wrong.shows("The password is incorrect. It is the profile's password, the same as on the phone.")
         busy = borrow(home, expect=400)
-        assert busy.shows("The ledger is lent to another PC.")
+        assert busy.shows("The ledger is lent to Office PC.")
         assert phone.b.open("/profiles/devices").shows("Office PC", "Has the ledger", "Home laptop")
 
         # The office PC hands back; that evening the home laptop borrows and has the office's edit.

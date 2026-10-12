@@ -200,7 +200,9 @@ class HomeNode:
                     return Checkpoint(home.active.grant.base_checkpoint_id, home.lineage_id,
                                       home.active.grant.base_sha256, path.stat().st_size,
                                       home.compatibility.ledger_schema), path
-                raise ProtocolError("ALREADY_LENT", "The ledger is lent to another PC.")
+                holder = self.store.peer(home.active.grant.borrower_id) if home.active is not None else None
+                raise ProtocolError("ALREADY_LENT", f"The ledger is lent to {holder.name}." if holder else
+                                    "The ledger is lent to another PC.")
             key = self._key()
             from lightning.database.connection import Database
             from lightning.database.snapshot import export_snapshot
