@@ -22,6 +22,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-12 · Claude: bank SMS reads are one transaction (staging, seen, cursor); inbox messages are known by text plus time, with a 10-minute overlap; phone hides Add transaction while lent, loads `session.js?v=4`, and the second PC's refusal names the PC.
 - 2026-10-12 · Claude: workflow tooling: UI reads currencies through the container (import contract passes again); `tools/claims.py` warns on files claimed in `NOW.md`; older releases moved to `CHANGELOG-archive.md`; NOW.md tests reject expired messages to all.
   Logs migrations `0050_cash_at_hand.sql`, `0051_adjustment_category.sql`, `0052_system_categories.sql`, missing here.
 - 2026-10-12 · Claude: Arabic type now follows A06.2: Readex Pro and IBM Plex Sans Arabic bundled (replace Tahoma), taller lines, no letter spacing or italics, charts unmirrored. Signed amounts keep the minus on the left of the digits.`, which is always the first section: `- yyyy-mm-dd · Claude:` or `· Codex:`, then what changed. Take the date from `date`, never a guess.
