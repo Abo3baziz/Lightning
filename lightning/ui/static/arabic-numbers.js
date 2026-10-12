@@ -5,16 +5,16 @@
   const isoDate = /^\d{4}-\d{2}(?:-\d{2})?$/;
   const protectedSelector = "script,style,textarea,input,code,pre,kbd,samp,[contenteditable='true']";
 
-  // A signed value reads left to right, so the minus stays on the left of its digits (A06.2): without the
-  // isolate, Arabic digits pull a bare sign to their right.
-  const isolate = (value) => /^[+\-−]/.test(value) ? "\u2066" + value + "\u2069" : value;
+  // Every figure and date reads left to right as one unit (A06.2): the isolate keeps a minus on the left of its
+  // digits, an amount's grouping in order and a yyyy-mm-dd date from flipping inside the Arabic line.
+  const isolate = (value) => "\u2066" + value + "\u2069";
 
   function localizeNumericText(text) {
     return String(text).split(/(\s+)/).map((token) => {
       if (!token) return token;
       // Keep ISO date separators, while using Arabic grouping/decimal marks for values.
       if (/^\d{4}-\d{2}(?:-\d{2})?$/.test(token)) {
-        return token.replace(/[0-9]/g, (digit) => digitMap[digit]);
+        return isolate(token.replace(/[0-9]/g, (digit) => digitMap[digit]));
       }
       // Compact financial values use the app's k/M suffixes (for example 9.7k).
       const compact = token.match(/^([+\-−]?\d+(?:[,.]\d+)?)([kM])$/);
