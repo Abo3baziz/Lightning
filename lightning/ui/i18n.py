@@ -6,9 +6,12 @@ Custom names, financial values and user-entered data remain unchanged.
 from __future__ import annotations
 
 from dataclasses import replace
+from functools import lru_cache
+import html
 import re
 
 from lightning.core.figures import FIGURES
+from lightning.ui.i18n_system import FULL_MONTHS, MONTHS, SYSTEM_TEXT, WEEKDAYS
 
 ARABIC_UI = {
     'Overview': 'نظرة عامة',
@@ -1574,6 +1577,67 @@ ARABIC_UI = {
 }
 
 
+for _key, _value in SYSTEM_TEXT.items():
+    ARABIC_UI.setdefault(_key, _value)
+
+_DATE_WORDS = {**MONTHS, **FULL_MONTHS}
+_MONTH_YEAR = re.compile(r"(" + "|".join(sorted(_DATE_WORDS, key=len, reverse=True)) + r")( \d{4})?")
+_NUMERIC = {"n", "m", "x", "year"}
+_NUMBER = r"[-+\u2212]?[\d.,]+[kM]?%?"
+_PATTERNS: list[tuple[tuple[str, ...], re.Pattern, str]] | None = None
+_SEPARATORS = re.compile(r"( · | › | — |: )")
+
+
+def _patterns():
+    """Every `{name}` entry, compiled once: its literal chunks (a cheap pre-check) and its regex."""
+    global _PATTERNS
+    if _PATTERNS is None:
+        compiled = []
+        for pattern, translated in ARABIC_UI.items():
+            names = re.findall(r"\{([a-z_]+)\}", pattern)
+            if not names:
+                continue
+            chunks = tuple(part for part in re.split(r"\{[a-z_]+\}", pattern) if part)
+            regex = "".join((f"(?P<{part[1:-1]}>" + (_NUMBER if part[1:-1] in _NUMERIC else ".+?") + ")") if re.fullmatch(r"\{[a-z_]+\}", part) else re.escape(part)
+                            for part in re.split(r"(\{[a-z_]+\})", pattern))
+            compiled.append((chunks, re.compile(regex, re.S), translated))
+        compiled.sort(key=lambda entry: -sum(len(chunk) for chunk in entry[0]))
+        _PATTERNS = compiled
+    return _PATTERNS
+
+
+def _translate_whole(value: str) -> str | None:
+    if value in ARABIC_UI and "{" not in value:
+        return ARABIC_UI[value]
+    for chunks, regex, translated in _patterns():
+        if all(chunk in value for chunk in chunks):
+            match = regex.fullmatch(value)
+            if match:
+                try:
+                    return translated.format(**{k: _translate_text(v) for k, v in match.groupdict().items()})
+                except (KeyError, IndexError):
+                    continue
+    return ARABIC_UI.get(value)
+
+
+@lru_cache(maxsize=20000)
+def _translate_text(value: str) -> str:
+    """One whole string, else each part of a `A · B`, `A › B`, `A — B` or `A: B` line on its own."""
+    whole = _translate_whole(value)
+    if whole is not None:
+        return whole
+    month = _MONTH_YEAR.fullmatch(value)
+    if month:
+        return _DATE_WORDS[month.group(1)] + (month.group(2) or "")
+    if value in WEEKDAYS:
+        return WEEKDAYS[value]
+    parts = _SEPARATORS.split(value)
+    if len(parts) > 1:
+        done = [part if index % 2 else _translate_text(part) for index, part in enumerate(parts)]
+        return "".join(done)
+    return value
+
+
 def translate(text: str, locale: str = "en", **values: object) -> str:
     value = str(text)
     if locale != "ar":
@@ -1581,17 +1645,38 @@ def translate(text: str, locale: str = "en", **values: object) -> str:
     if value in ARABIC_UI:
         translated = ARABIC_UI[value]
         return translated.format(**values) if values else translated
-    for pattern, translated in ARABIC_UI.items():
-        placeholders = set(re.findall(r"\{([a-z_]+)\}", pattern))
-        if not placeholders:
-            continue
-        regex = re.escape(pattern)
-        for name in placeholders:
-            regex = regex.replace(re.escape("{" + name + "}"), f"(?P<{name}>.+?)")
-        match = re.fullmatch(regex, value)
-        if match:
-            return translated.format(**match.groupdict())
-    return value
+    return _translate_text(value)
+
+
+_TAG = re.compile(r"(<script\b.*?</script>|<style\b.*?</style>|<textarea\b.*?</textarea>|<!--.*?-->|<[^>]+>|[^<]+)", re.S | re.I)
+_ATTRIBUTE = re.compile(r"""(\s(?:title|aria-label|placeholder|alt)=)(["'])(.*?)\2""", re.S | re.I)
+_LATIN = re.compile(r"[A-Za-z]{3}")
+
+
+def _translate_piece(raw: str) -> str:
+    plain = html.unescape(raw)
+    if not _LATIN.search(plain):
+        return raw
+    stripped = re.sub(r"\s+", " ", plain.strip())
+    translated = _translate_text(stripped)
+    if translated == stripped:
+        return raw
+    lead, tail = plain[:len(plain) - len(plain.lstrip())], plain[len(plain.rstrip()):]
+    return html.escape(lead + translated + tail, quote=True)
+
+
+def localize_html(page: str) -> str:
+    """The Arabic page's last pass: any visible text, title, aria-label or placeholder that a template or a Python
+    sentence left in English is translated here from the same table. Data (names, refs, codes) has no entry, so it stays."""
+    out = []
+    for token in _TAG.findall(page):
+        if token.startswith("<"):
+            if token[:2] not in ("<!", "</") and token.lower()[:7] not in ("<script", "<style>", "<textar"):
+                token = _ATTRIBUTE.sub(lambda m: m.group(1) + m.group(2) + _translate_piece(m.group(3)) + m.group(2), token)
+            out.append(token)
+        else:
+            out.append(_translate_piece(token))
+    return "".join(out)
 
 
 def localized_figures(locale: str):

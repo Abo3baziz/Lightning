@@ -1858,9 +1858,9 @@ document.querySelectorAll("[data-month-picker]").forEach((picker) => {
         + `<div class="month-popup-grid">${MONTHS.map((name, i) => {
           const value = `${year}-${String(i + 1).padStart(2, "0")}`;
           const disabled = max && value > max;
-          return `<button type="button" data-value="${value}" class="${value === input.value ? "selected" : ""}" ${disabled ? "disabled" : ""}>${name}</button>`;
+          return `<button type="button" data-value="${value}" class="${value === input.value ? "selected" : ""}" ${disabled ? "disabled" : ""}>${t(name)}</button>`;
         }).join("")}</div>`
-        + (input.required || input.closest("[data-month-picker]") ? "" : `<button type="button" class="month-popup-clear" data-value="">Any month</button>`);
+        + (input.required || input.closest("[data-month-picker]") ? "" : `<button type="button" class="month-popup-clear" data-value="">${t("Any month")}</button>`);
     };
     render();
     pop.addEventListener("click", (event) => {

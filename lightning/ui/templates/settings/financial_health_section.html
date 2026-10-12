@@ -8,7 +8,7 @@
       <input type="hidden" name="key" value="{{ limit.key }}">
       <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
       <label class="health-limit-name" for="health-limit-{{ limit.key }}">{{ fig[limit.key].label }}<small>{{ 'At least' if limit.direction == 'minimum' else 'At most' }}</small></label>
-      <span class="health-limit-input"><input id="health-limit-{{ limit.key }}" name="value" type="number" min="0" step="0.1" value="{{ limit.value if limit.value is not none else '' }}" aria-label="{{ fig[limit.key].label }} limit"><i>{{ limit.unit }}</i></span>
+      <span class="health-limit-input"><input id="health-limit-{{ limit.key }}" name="value" type="number" min="0" step="0.1" value="{{ limit.value if limit.value is not none else '' }}" aria-label="{{ 'Limit for {label}'|tr(locale, label=fig[limit.key].label) }}"><i>{{ limit.unit }}</i></span>
       {% if limit.supports_no_limit %}<label class="health-limit-none"><input type="checkbox" name="no_limit" value="1" {{ 'checked' if limit.no_limit }}>{{ "No limit"|tr(locale) }}</label>{% endif %}
       <div class="health-limit-actions"><button class="btn small" type="submit" name="action" value="save">{{ 'Save'|tr(locale) }}</button><button class="btn small" type="submit" name="action" value="reset">{{ "Restore default"|tr(locale) }}</button></div>
     </form>

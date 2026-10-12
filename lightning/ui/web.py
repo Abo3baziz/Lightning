@@ -25,7 +25,7 @@ from lightning.core.memo import request_cache
 from lightning.core.money import ZERO, fmt, to_decimal
 from lightning.workflows import live_prices
 from lightning.ui import sections
-from lightning.ui.i18n import ARABIC_UI, localized_figures, translate
+from lightning.ui.i18n import ARABIC_UI, localize_html, localized_figures, translate
 
 UI_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(UI_DIR / "templates"))
@@ -267,7 +267,7 @@ def _render(request, name, status_code, c, total, owned_total, groups, context) 
 def _render_page(request, name, status_code, c, total, owned_total, groups, context) -> HTMLResponse:
     locale = c.settings.get("locale") if c is not None else "en"
     locale = locale if locale in ("en", "ar") else "en"
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         name,
         {
@@ -290,6 +290,10 @@ def _render_page(request, name, status_code, c, total, owned_total, groups, cont
         },
         status_code=status_code,
     )
+    if locale == "ar":
+        response.body = localize_html(response.body.decode("utf-8")).encode("utf-8")
+        response.headers["content-length"] = str(len(response.body))
+    return response
 
 
 def redirect(url: str, msg: str = "") -> RedirectResponse:
