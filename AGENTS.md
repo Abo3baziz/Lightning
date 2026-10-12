@@ -69,6 +69,8 @@ Be as efficient with tokens as you can, in what you read, run and write. This ne
 
 ## 6. Git (owner rule)
 
+Recorded in [Project Overview](docs/PROJECT_OVERVIEW.md) › Product decisions that must hold.
+
 - Every AI works on its own branch, not on `main`.
 - Name the branch `who/feature`: the AI that does the work, then the feature in lowercase words joined by hyphens: `claude/arabic-type-and-numbers`, `codex/restore-safety`, `luna/promotion-durability`. Never a random or session-generated suffix (`claude/peaceful-hamilton-5s6qbx`) and never a vague feature (`claude/fixes`). If the session hands you a random name, create the right one and push that instead.
 - One feature per branch. Push the branch after every tested step.
