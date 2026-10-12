@@ -1,12 +1,12 @@
 """Print one brand guideline section as plain text, so an AI never has to read the whole HTML file.
 
     python tools/guideline.py            # list the sections: number, title, size as text
-    python tools/guideline.py A16        # one section (A01-A16 the PC app, B01-B11 the website, C01-C12 the phone)
+    python tools/guideline.py A16        # one section (A01-A16 the PC app, B01-B12 the website, C01-C12 the phone)
     python tools/guideline.py A03 A12    # several sections
     python tools/guideline.py --dir ../Lightning_website/guideline B05
     python tools/guideline.py --ar A06    # the Egyptian Arabic copy (app-ar.html, website-ar.html, phone-ar.html)
 
-The guideline is three documents in guideline/: app.html (A01-A16), website.html (B01-B11), phone.html (C01-C12).
+The guideline is three documents in guideline/: app.html (A01-A16), website.html (B01-B12), phone.html (C01-C12).
 Together they are about 540 KB (roughly 95,000 tokens), mostly inline drawings; the words are about a tenth of that.
 A section printed here is a few hundred tokens. The letter picks the file. Standard library only.
 """
