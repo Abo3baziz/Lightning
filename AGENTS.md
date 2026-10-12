@@ -29,7 +29,7 @@ Never at the cost of a test, a required check, or a read you need.
 - **Start:** `NOW.md` + `git log --oneline -15`. A *Next* item's **Read:** line names the rest.
 - **Read sections, not files:** `grep -n '^## ' <file>`, then read that range. Guideline: never open whole; `python tools/guideline.py` lists sections, `python tools/guideline.py A12` prints one.
 - **Grep before reading.** Don't re-read what you just edited or read code you aren't changing.
-- **Skip unless needed:** `OWNER.md`, old changelog sections, `docs/proposals/`, `user feedback/`, `Claude outputs/`, the Glossary's figures table.
+- **Skip unless needed:** `OWNER.md`, `CHANGELOG-archive.md` (0.5.0b1 and older), `docs/proposals/`, `user feedback/`, `Claude outputs/`, the Glossary's figures table.
 - **Tests:** changed areas with `-q`, failures only; full suite once before pushing: `-n auto --dist loadfile`.
 - **Write short:** changelog entry ≤ 3 lines; `NOW.md` < 4,500 bytes.
 - **CI minutes cost money** (2,000/month, Windows ×2): pushes run Linux only; run Windows/Android workflows by hand only when your change needs that evidence now. Push finished steps, not every edit.
@@ -43,7 +43,8 @@ Never at the cost of a test, a required check, or a read you need.
 3. **Small finished steps:** commit and push each once its tests pass.
 4. **Test.** For visible changes also run Mohab (`tests/test_mohab_year.py`) and check A16.
 5. **Record:** changelog entry atop `Unreleased` (`2026-10-03 · Claude:` / `· Codex:`, date from `date`); update the §1 files you touched.
-6. **Hand off:** update/remove your claim, drop finished *Next* items, add new ones with **Read:**. Messages only for what your commit doesn't say; owner items in `OWNER.md`. Push.
+6. **Check claims:** `python tools/claims.py --me <Claude|Codex|Luna>` lists changed files someone else claimed; leave them or ask the owner.
+7. **Hand off:** update/remove your claim, drop finished *Next* items, add new ones with **Read:**. Messages only for what your commit doesn't say; owner items in `OWNER.md`. Push.
 
 - **Claims and messages belong to their author.** Never edit another AI's, except deleting a message to you once handled (to all: keep seven days). Make each claim's *Work* distinguish parallel sessions. A helper (Codex's Luna) gets its own rows, written by its AI.
 - **Push rejected?** `git pull --rebase`, keep both sides in changelog/`NOW.md`/`OWNER.md`, retest, push.
