@@ -25,7 +25,7 @@ from lightning.core.memo import request_cache
 from lightning.core.money import ZERO, fmt, to_decimal
 from lightning.workflows import live_prices
 from lightning.ui import sections
-from lightning.ui.i18n import ARABIC_UI, localize_html, localized_figures, translate
+from lightning.ui.i18n import BROWSER_UI, localize_html, localized_figures, translate
 
 UI_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(UI_DIR / "templates"))
@@ -274,7 +274,7 @@ def _render_page(request, name, status_code, c, total, owned_total, groups, cont
             "base": c.base_currency,
             "locale": locale,
             "fig": localized_figures(locale),
-            "arabic_translations": ARABIC_UI if locale == "ar" else {},
+            "arabic_translations": BROWSER_UI if locale == "ar" else {},
             "today": fmt_date(today()),
             "this_month": month_of(today()),
             "path": request.url.path,

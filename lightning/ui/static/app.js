@@ -116,7 +116,7 @@ const initOwnDataPickers = (root = document) => {
   const label = originalParent.querySelector(`label[for="${CSS.escape(select.id)}"]`);
   if (label) input.setAttribute("aria-labelledby", label.id || (label.id = `own-picker-label-${index}`));
   else if (select.getAttribute("aria-label")) input.setAttribute("aria-label", select.getAttribute("aria-label"));
-  else input.setAttribute("aria-label", select.name.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()));
+  else input.setAttribute("aria-label", t(select.name.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())));
   const list = document.createElement("div");
   list.className = "counterparty-results";
   list.id = `${select.id || `own-picker-${index}`}-options`;
@@ -1162,14 +1162,14 @@ if (categoryCatalogueNode) {
       [...groups.keys()].sort((a, b) => a.localeCompare(b)).forEach((parent) => {
         const heading = document.createElement("div");
         heading.className = "category-group-title";
-        heading.textContent = parent;
+        heading.textContent = t(parent);
         results.append(heading);
         groups.get(parent).sort((a, b) => (a.order || a.name).localeCompare(b.order || b.name)).forEach((item) => {
           const option = document.createElement("button");
           option.type = "button";
           option.className = "category-option" + (item.level === 3 ? " is-detail" : "");
           option.setAttribute("role", "option");
-          option.textContent = item.name;
+          option.textContent = t(item.name);
           option.addEventListener("mousedown", (event) => event.preventDefault());
           option.addEventListener("click", () => {
             input.value = item.name;

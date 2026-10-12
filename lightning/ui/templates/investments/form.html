@@ -71,7 +71,7 @@
       <div class="help">{{ "Enter the amount after any tax withheld."|tr(locale) }}</div>
     </div>
   </div>
-  <script nonce="{{ request.state.csp_nonce|default('') }}">const basis=document.getElementById('dividend-basis'),label=document.getElementById('dividend-amount-label');function syncDividendBasis(){label.textContent=basis.value==='per_share'?'Amount per unit ({{ base }})':'Amount ({{ base }})'}basis.addEventListener('change',syncDividendBasis);syncDividendBasis();</script>
+  <script nonce="{{ request.state.csp_nonce|default('') }}">const basis=document.getElementById('dividend-basis'),label=document.getElementById('dividend-amount-label');function syncDividendBasis(){label.textContent=window.lightningT(basis.value==='per_share'?'Amount per unit ({cur})':'Amount ({cur})',{cur:'{{ base }}'})}basis.addEventListener('change',syncDividendBasis);syncDividendBasis();</script>
   {% else %}
   <div class="row">
     {{ field('quantity', 'Units', values, error_field, attrs='inputmode="decimal" required') }}

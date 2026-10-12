@@ -7,7 +7,7 @@
   <input type="hidden" name="back" value="{{ back }}">
   <div class="row">
     <div class="field {{ err('kind') }}"><label for="kind">{{ 'Type'|tr(locale) }}</label><select id="kind" name="kind">{% for value, label in kinds %}<option value="{{ value }}" {{ 'selected' if values.kind == value }}>{{ label|tr(locale) }}</option>{% endfor %}</select></div>
-    <div class="field {{ err('name') }}"><label for="name">{{ 'Name'|tr(locale) }}</label><input id="name" name="name" value="{{ values.name }}" placeholder="{{ 'Car loan' if is_loan else 'WE Internet' }}" required></div>
+    <div class="field {{ err('name') }}"><label for="name">{{ 'Name'|tr(locale) }}</label><input id="name" name="name" value="{{ values.name }}" placeholder="{{ ('e.g. Car loan' if is_loan else 'e.g. WE Internet')|tr(locale) }}" required></div>
   </div>
   <div class="row">
     <div class="field {{ err('amount') }}"><label for="amount">Amount ({{ base }}){% if is_loan %} <span class="muted small">{{ "each payment"|tr(locale) }}</span>{% endif %}</label><input id="amount" name="amount" value="{{ values.amount }}" inputmode="decimal" class="money-input" placeholder="650.00" required></div>

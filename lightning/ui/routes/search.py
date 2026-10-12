@@ -19,6 +19,7 @@ from lightning.core.errors import LightningError
 from lightning.core.refs import parse_ref
 from lightning.transactions.tags import normalize as normal_tag
 
+from ..i18n import translate
 from ..web import container, privacy_on, render
 
 router = APIRouter()
@@ -145,5 +146,9 @@ async def search(request: Request):
     query = " ".join(str(request.query_params.get("q", "")).split())
     results = matches(c, query, privacy=privacy_on(request))
     if request.query_params.get("format") == "json":
+        if c.settings.get("locale") == "ar":
+            # Page, action and account-type words are the app's own; a name someone typed has no entry and stays.
+            results = [{**row, "label": translate(row["label"], "ar") if row["kind"] in ("Page", "Action", "Search", "Category") else row["label"],
+                        "context": translate(row.get("context", ""), "ar")} for row in results]
         return JSONResponse({"query": query, "results": results})
     return render(request, "search.html", query=query, results=results if query else [])

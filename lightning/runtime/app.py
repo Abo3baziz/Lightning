@@ -16,7 +16,7 @@ from lightning.database.backup import list_backups
 from lightning.database.seed import CASH_ASSETS
 from lightning.sync.state import ProtocolError
 from lightning.security.keys import SUGGESTED_QUESTIONS, suggest_password
-from lightning.ui.i18n import ARABIC_UI
+from lightning.ui.i18n import BROWSER_UI, localize_html
 from lightning.ui.web import create_app, templates
 
 from .http import (MARKET_IMPORT_PATH, MAX_IMPORT_CONFIRM_BODY, MAX_IMPORT_CONFIRM_FIELDS, MAX_MARKET_IMPORT_BODY,
@@ -252,13 +252,17 @@ def profile_app(credentials: Credentials, root: Path | str | None = None, device
                       active_name=session.name, notice="", suggestion="", chosen_password="",
                       questions=SUGGESTED_QUESTIONS, question="", new_recovery="", locale=locale,
                       profile_currencies=CASH_ASSETS, currency="EGP",
-                      arabic_translations=ARABIC_UI if locale == "ar" else {})
+                      arabic_translations=BROWSER_UI if locale == "ar" else {})
         if mode == "setup" and not context.get("suggestion"):
             values["suggestion"] = suggest_password()
         if mode == "manage":
             values["question"] = session.current_question()
         values.update(context)
-        return templates.TemplateResponse(request, "profiles.html", values, status_code=status)
+        response = templates.TemplateResponse(request, "profiles.html", values, status_code=status)
+        if locale == "ar":
+            response.body = localize_html(response.body.decode("utf-8")).encode("utf-8")
+            response.headers["content-length"] = str(len(response.body))
+        return response
 
     async def action(request, mode, operation, **context):
         try:

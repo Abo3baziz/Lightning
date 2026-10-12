@@ -5,8 +5,8 @@
 <form method="post" class="card" style="max-width:760px" {% if item %}data-popup-autosave{% endif %}>
   {% if error %}<p class="error">{{ error|tr(locale) }}</p>{% endif %}
   <div class="row">
-    <div class="field {{ 'has-error' if error_field == 'name' }}"><label for="name">{{ 'Name'|tr(locale) }}</label><input id="name" name="name" value="{{ values.name }}" placeholder="Gold ring" required></div>
-    <div class="field {{ 'has-error' if error_field == 'kind' }}"><label for="kind">{{ 'Type'|tr(locale) }}</label><input id="kind" name="kind" value="{{ values.kind }}" placeholder="Ring" required></div>
+    <div class="field {{ 'has-error' if error_field == 'name' }}"><label for="name">{{ 'Name'|tr(locale) }}</label><input id="name" name="name" value="{{ values.name }}" placeholder="{{ 'e.g. Gold ring'|tr(locale) }}" required></div>
+    <div class="field {{ 'has-error' if error_field == 'kind' }}"><label for="kind">{{ 'Type'|tr(locale) }}</label><input id="kind" name="kind" value="{{ values.kind }}" placeholder="{{ 'Ring, bar, coin'|tr(locale) }}" required></div>
   </div>
   <div class="row">
   <div class="field {{ 'has-error' if error_field == 'weight' }}"><label for="weight">{{ 'Net gold weight per piece (g)'|tr(locale) }}</label><input id="weight" name="weight" value="{{ values.weight }}" inputmode="decimal" placeholder="4.2" required><small class="muted">{{ "Excludes stones and non-gold components. Changing weight or karat changes the reference estimate; it does not rewrite cost or transactions."|tr(locale) }}</small></div>

@@ -6,6 +6,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 - Add one entry at the top of `## [Unreleased]
 
+- 2026-10-12 · Claude: the Arabic UI has no English system text on any PC or phone screen: an Arabic last pass over each page (`localize_html`) and ~1,500 new entries (system categories, asset kinds, currencies, months, sentences, errors) in `ui/i18n_system.py`, the glossary's Egyptian terms.
+  Test: `tests/test_arabic_no_english.py`.
 - Keep it to three lines at most: what changed for the user or the code, and where. The reasons and details belong in the doc that owns them (`AGENTS.md` lists which).
 - To catch up, read only the first entries here, or `git log --oneline -20`. Entries further down are history, not the current specification.
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.

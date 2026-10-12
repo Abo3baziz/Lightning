@@ -119,7 +119,7 @@
       if (!Number.isFinite(years) || years <= 0) return;
       const months = Math.round(years * 12);
       if (Math.abs(years * 12 - months) > 0.000001) {
-        term.setCustomValidity("Use three-month increments, such as 3, 3.25 or 3.5 years.");
+        term.setCustomValidity(window.lightningT("Use three-month increments, such as 3, 3.25 or 3.5 years."));
         return;
       }
       term.setCustomValidity("");

@@ -11,7 +11,7 @@ import html
 import re
 
 from lightning.core.figures import FIGURES
-from lightning.ui.i18n_system import FULL_MONTHS, MONTHS, SYSTEM_TEXT, WEEKDAYS
+from lightning.ui.i18n_system import FULL_MONTHS, MONTHS, SERVER_ONLY, SYSTEM_TEXT, WEEKDAYS
 
 ARABIC_UI = {
     'Overview': 'نظرة عامة',
@@ -121,9 +121,9 @@ ARABIC_UI = {
     'Backs up this database, sets it aside next to it under a dated name, and opens an empty one. Nothing is deleted.': 'بياخد نسخة احتياطية من قاعدة البيانات، ويحفظها جنبها باسم فيه التاريخ، ويفتح قاعدة بيانات فاضية. مفيش حاجة بتتمسح.',
     'Start a fresh database': 'ابدأ قاعدة بيانات جديدة',
     'Start a fresh, empty database? Your current one is backed up and kept as a separate file, but the app will open the empty one from now on.': 'تبدأ قاعدة بيانات جديدة وفاضية؟ هيتاخد نسخة احتياطية من الحالية وتتحفظ كملف منفصل، والتطبيق هيفتح الفاضية من دلوقتي.',
-    'This phone': 'الهاتف ده',
-    'This phone becomes its home': 'الهاتف ده هيبقى مكانه الأساسي',
-    'Your PCs borrow the ledger from this phone': 'أجهزة الكمبيوتر بتستعير السجل من الهاتف ده',
+    'This phone': 'الموبايل ده',
+    'This phone becomes its home': 'الموبايل ده هيبقى مكانه الأساسي',
+    'Your PCs borrow the ledger from this phone': 'أجهزة الكمبيوتر بتستعير السجل من الموبايل ده',
     'Paired with {name}': 'متصل بـ{name}',
     'Pair a PC': 'اربط كمبيوتر',
     'Check that the PC shows the same digits. If they differ, revoke it below.': 'اتأكد إن الكمبيوتر بيعرض نفس الأرقام. لو مختلفة، ألغِ الربط من تحت.',
@@ -131,7 +131,7 @@ ARABIC_UI = {
     'Paired PCs': 'أجهزة الكمبيوتر المرتبطة',
     'Has the ledger': 'معاه السجل',
     'Take the ledger back': 'استرجع السجل',
-    'Only when the PC is lost or broken. The phone keeps editing from its own copy; what was changed on the PC since it borrowed the ledger does not come back.': 'استخدم ده بس لو الكمبيوتر ضاع أو باظ. الهاتف هيكمل تعديل نسخته؛ التغييرات اللي اتعملت على الكمبيوتر من وقت ما استعار السجل مش هترجع.',
+    'Only when the PC is lost or broken. The phone keeps editing from its own copy; what was changed on the PC since it borrowed the ledger does not come back.': 'استخدم ده بس لو الكمبيوتر ضاع أو باظ. الموبايل هيكمل تعديل نسخته؛ التغييرات اللي اتعملت على الكمبيوتر من وقت ما استعار السجل مش هترجع.',
     'The PC’s changes since it borrowed the ledger will not come back': 'تغييرات الكمبيوتر من وقت ما استعار السجل مش هترجع',
     'The PC\'s changes since it borrowed the ledger will not come back': 'تغييرات الكمبيوتر من وقت ما استعار السجل مش هترجع',
     'The PC\'s copy from before will not come back': 'نسخة الكمبيوتر السابقة مش هترجع',
@@ -141,8 +141,8 @@ ARABIC_UI = {
     'Keep this page open; both devices on the same Wi-Fi. The code works once, for ten minutes.': 'سيب الصفحة مفتوحة وخلي الجهازين على نفس شبكة Wi-Fi. الرمز صالح مرة واحدة لمدة ١٠ دقايق.',
     'On the PC, open Lightning, choose': 'على الكمبيوتر افتح Lightning واختار',
     'and type:': 'واكتب:',
-    'If they differ, revoke this PC on the phone.': 'لو مختلفة، ألغِ ربط الكمبيوتر من الهاتف.',
-    'This phone\'s name': 'اسم الهاتف ده',
+    'If they differ, revoke this PC on the phone.': 'لو مختلفة، ألغِ ربط الكمبيوتر من الموبايل.',
+    'This phone\'s name': 'اسم الموبايل ده',
     'This PC\'s name': 'اسم الكمبيوتر ده',
     'This PC’s name': 'اسم الكمبيوتر ده',
     'Show a pairing code': 'اعرض رمز الربط',
@@ -163,11 +163,11 @@ ARABIC_UI = {
     'Open': 'افتح',
     'Finish handing back': 'كمّل إرجاع السجل',
     'Borrow': 'استعر',
-    'Edits made here since then did not go to the phone. Borrow again to work on the phone\'s ledger; this copy stays on this PC as a backup.': 'التعديلات اللي اتعملت هنا من وقتها ماوصلتش للهاتف. استعر السجل تاني عشان تشتغل على نسخة الهاتف؛ النسخة دي هتفضل على الكمبيوتر كنسخة احتياطية.',
+    'Edits made here since then did not go to the phone. Borrow again to work on the phone\'s ledger; this copy stays on this PC as a backup.': 'التعديلات اللي اتعملت هنا من وقتها ماوصلتش للهاتف. استعر السجل تاني عشان تشتغل على نسخة الموبايل؛ النسخة دي هتفضل على الكمبيوتر كنسخة احتياطية.',
     'Waiting for {name}': 'في انتظار {name}',
     'It arrived. It shows here once the PC confirms it kept its copy read only; keep Lightning open on the PC.': 'وصل الملف. هيظهر هنا لما الكمبيوتر يأكد إنه احتفظ بنسخته للقراءة فقط؛ سيب Lightning مفتوح على الكمبيوتر.',
     'Check again': 'تحقق تاني',
-    'It came from {name}, which now borrows it from this phone. Check that the PC shows': 'جاي من {name}، والكمبيوتر دلوقتي بيستعيره من الهاتف ده. اتأكد إن الكمبيوتر بيعرض',
+    'It came from {name}, which now borrows it from this phone. Check that the PC shows': 'جاي من {name}، والكمبيوتر دلوقتي بيستعيره من الموبايل ده. اتأكد إن الكمبيوتر بيعرض',
     'Unlock it': 'افتحه',
     'Type this on the PC': 'اكتب ده على الكمبيوتر',
     'On the PC: Profile settings, Move to your phone. Same Wi-Fi; keep this page open.': 'على الكمبيوتر افتح إعدادات الملف الشخصي ثم «انقل للهاتف». استخدموا نفس شبكة Wi-Fi وسيب الصفحة مفتوحة.',
@@ -180,7 +180,7 @@ ARABIC_UI = {
     'Close this copy': 'اقفل النسخة دي',
     'Lock profile': 'اقفل الملف الشخصي',
     'Move to your phone': 'انقل للهاتف',
-    'The phone becomes this profile\'s home and this PC borrows it from there. On the phone, open Lightning and choose Bring a profile from your PC.': 'الهاتف هيبقى المكان الأساسي للملف الشخصي، والكمبيوتر هيستعيره منه. على الهاتف افتح Lightning واختار «استقبل ملف من الكمبيوتر».',
+    'The phone becomes this profile\'s home and this PC borrows it from there. On the phone, open Lightning and choose Bring a profile from your PC.': 'الموبايل هيبقى المكان الأساسي للملف الشخصي، والكمبيوتر هيستعيره منه. على الموبايل افتح Lightning واختار «استقبل ملف من الكمبيوتر».',
     'Move to the phone': 'انقل للهاتف',
     'Your new recovery key': 'مفتاح الاستعادة الجديد',
     'Write it down. The old key keeps working until you save this one.': 'اكتبه واحتفظ بيه. المفتاح القديم هيفضل شغال لحد ما تحفظ الجديد.',
@@ -230,7 +230,7 @@ ARABIC_UI = {
     'Messages': 'الرسائل',
     'Read them': 'اقرأها',
     'Read bank SMS by itself': 'قراءة رسائل البنك مباشرة',
-    'Lightning reads the SMS your banks send and turns each payment, transfer and salary into a transaction you check. It reads messages from senders with a name or a short code, like CIB or NBE, never from people\'s numbers. The messages stay on this phone: nothing is sent anywhere. Nothing is posted until you check it.': 'Lightning بيقرأ رسائل البنك وبيحوّل كل دفعة وتحويل ومرتب لمعاملة تراجعها. بيقرأ الرسائل اللي جاية من اسم أو رمز قصير زي CIB أو NBE، ومش بيقرأ رسائل أرقام الأشخاص. الرسائل بتفضل على الهاتف ومش بتتبعت لأي مكان. مفيش حاجة بتتسجل غير بعد مراجعتك.',
+    'Lightning reads the SMS your banks send and turns each payment, transfer and salary into a transaction you check. It reads messages from senders with a name or a short code, like CIB or NBE, never from people\'s numbers. The messages stay on this phone: nothing is sent anywhere. Nothing is posted until you check it.': 'Lightning بيقرأ رسائل البنك وبيحوّل كل دفعة وتحويل ومرتب لمعاملة تراجعها. بيقرأ الرسائل اللي جاية من اسم أو رمز قصير زي CIB أو NBE، ومش بيقرأ رسائل أرقام الأشخاص. الرسائل بتفضل على الموبايل ومش بتتبعت لأي مكان. مفيش حاجة بتتسجل غير بعد مراجعتك.',
     'Allow reading SMS': 'اسمح بقراءة الرسائل',
     'Reads new bank messages when you open Overview or this page': 'بيقرأ رسائل البنك الجديدة لما تفتح نظرة عامة أو الصفحة دي',
     'Enter it': 'سجّلها',
@@ -1131,7 +1131,7 @@ ARABIC_UI = {
     'The account name is already in use.': 'اسم الحساب مستخدم بالفعل.',
     'An account name is required.': 'لازم تدخل اسم الحساب.',
     'Private profiles': 'ملفات شخصية خاصة',
-    'Your data, on this phone': 'بياناتك على الهاتف',
+    'Your data, on this phone': 'بياناتك على الموبايل',
     'Your data, on this computer': 'بياناتك على الكمبيوتر',
     'Choose a profile': 'اختار ملفًا شخصيًا',
     'Each profile keeps its financial data in a separate database.': 'كل ملف شخصي بيحفظ بياناته المالية في قاعدة بيانات منفصلة.',
@@ -1161,9 +1161,9 @@ ARABIC_UI = {
     'Choose one to continue.': 'اختار واحد عشان تكمّل.',
     'No profiles found here yet. Create one to get started.': 'مفيش ملفات شخصية هنا لسه. أنشئ واحد عشان تبدأ.',
     'From your PC': 'من الكمبيوتر',
-    'Already keep Lightning on a PC? Move that profile here. The phone becomes its home; the PC borrows it.': 'عندك Lightning على كمبيوتر؟ انقل الملف هنا. الهاتف هيبقى الجهاز الأساسي والكمبيوتر يستعيره.',
-    'From your phone': 'من الهاتف',
-    'Keep your ledger on your phone and borrow it here when you work on the PC.': 'خلي سجلك على الهاتف واستعيره هنا وقت الشغل على الكمبيوتر.',
+    'Already keep Lightning on a PC? Move that profile here. The phone becomes its home; the PC borrows it.': 'عندك Lightning على كمبيوتر؟ انقل الملف هنا. الموبايل هيبقى الجهاز الأساسي والكمبيوتر يستعيره.',
+    'From your phone': 'من الموبايل',
+    'Keep your ledger on your phone and borrow it here when you work on the PC.': 'خلي سجلك على الموبايل واستعيره هنا وقت الشغل على الكمبيوتر.',
     'Use another profile location': 'استخدم مكانًا تانيًا للملفات الشخصية',
     'Profiles folder': 'مجلد الملفات الشخصية',
     'Scan folder': 'افحص المجلد',
@@ -1201,17 +1201,17 @@ ARABIC_UI = {
     'Lightning checks the recorded operation and encrypted recovery copies before continuing. It will keep the profile locked if any evidence is missing or does not match.': 'Lightning بيراجع العملية المسجلة ونسخ الاستعادة المشفرة قبل ما يكمل. هيخلي الملف مقفول لو أي دليل ناقص أو مش مطابق.',
     'Check and resume this interrupted restore.': 'تحقق وكمل الاستعادة المتوقفة.',
     'Check and resume': 'تحقق وكمل',
-    'This phone’s name': 'اسم الهاتف ده',
-    'Phone address': 'عنوان الهاتف',
+    'This phone’s name': 'اسم الموبايل ده',
+    'Phone address': 'عنوان الموبايل',
     'Code': 'الرمز',
     'A PC’s copy from before will not come back': 'نسخة الكمبيوتر القديمة مش هترجع',
     'Check that the PC shows the same digits:': 'اتأكد إن الكمبيوتر بيعرض نفس الأرقام:',
     'Your phone keeps the ledger': 'السجل موجود على هاتفك',
-    'On the phone, open Lightning, then Profile settings, Devices, Pair a PC. Type what it shows. The profile opens here with its own password.': 'على الهاتف افتح Lightning ثم إعدادات الملف الشخصي ثم الأجهزة ثم اربط كمبيوتر. اكتب الرمز اللي يظهر. افتح الملف هنا بكلمة مروره.',
+    'On the phone, open Lightning, then Profile settings, Devices, Pair a PC. Type what it shows. The profile opens here with its own password.': 'على الموبايل افتح Lightning ثم إعدادات الملف الشخصي ثم الأجهزة ثم اربط كمبيوتر. اكتب الرمز اللي يظهر. افتح الملف هنا بكلمة مروره.',
     'Moving a profile from this PC to the phone instead? Unlock it here and choose Profile settings, Move to your phone.': 'عايز تنقل الملف من الكمبيوتر للهاتف؟ افتحه هنا واختار إعدادات الملف الشخصي ثم انقل للهاتف.',
-    'Check that the phone shows the same digits:': 'اتأكد إن الهاتف بيعرض نفس الأرقام:',
-    'Open Lightning on the phone, on the same Wi-Fi. While you work here, the phone only reads.': 'افتح Lightning على الهاتف وخلي الجهازين على نفس شبكة Wi-Fi. أثناء شغلك هنا، الهاتف هيعرض البيانات بس.',
-    'Edits made here since then did not go to the phone. Borrow again to work on the phone’s ledger; this copy stays on this PC as a backup.': 'التعديلات اللي اتعملت هنا ماوصلتش للهاتف. استعر السجل تاني لو عايز تشتغل على نسخة الهاتف؛ والنسخة دي هتفضل على الكمبيوتر كاحتياطي.',
+    'Check that the phone shows the same digits:': 'اتأكد إن الموبايل بيعرض نفس الأرقام:',
+    'Open Lightning on the phone, on the same Wi-Fi. While you work here, the phone only reads.': 'افتح Lightning على الموبايل وخلي الجهازين على نفس شبكة Wi-Fi. أثناء شغلك هنا، الموبايل هيعرض البيانات بس.',
+    'Edits made here since then did not go to the phone. Borrow again to work on the phone’s ledger; this copy stays on this PC as a backup.': 'التعديلات اللي اتعملت هنا ماوصلتش للهاتف. استعر السجل تاني لو عايز تشتغل على نسخة الموبايل؛ والنسخة دي هتفضل على الكمبيوتر كاحتياطي.',
     'Borrow again': 'استعر تاني',
     'Documents may sync between your devices. Do not open the same database on two computers at once.': 'مجلد المستندات ممكن يتزامن بين أجهزتك. ما تفتحش نفس قاعدة البيانات على كمبيوترين في نفس الوقت.',
     'Profile data is stored separately from the Lightning application ZIP.': 'بيانات الملف الشخصي محفوظة بعيد عن ملف تطبيق Lightning المضغوط.',
@@ -1577,15 +1577,22 @@ ARABIC_UI = {
 }
 
 
+_ORIGINAL = frozenset(ARABIC_UI)
 for _key, _value in SYSTEM_TEXT.items():
     ARABIC_UI.setdefault(_key, _value)
+# The page script (`lightningT`) only needs what the browser looks up; server-side sentences stay out of it.
+BROWSER_UI = {k: v for k, v in ARABIC_UI.items() if k in _ORIGINAL or k not in SERVER_ONLY}
 
 _DATE_WORDS = {**MONTHS, **FULL_MONTHS}
 _MONTH_YEAR = re.compile(r"(" + "|".join(sorted(_DATE_WORDS, key=len, reverse=True)) + r")( \d{4})?")
-_NUMERIC = {"n", "m", "x", "year"}
+_NUMERIC = {"n", "m", "x", "year", "amt", "amt2"}
+_MONEY = r"[-+\u2212]?[\d.,]+[kM]?%?(?: [A-Z]{3})?"
+_STAMP = r"\d{4}-\d\d(?:-\d\d)?"
 _NUMBER = r"[-+\u2212]?[\d.,]+[kM]?%?"
 _PATTERNS: list[tuple[tuple[str, ...], re.Pattern, str]] | None = None
-_SEPARATORS = re.compile(r"( · | › | — |: )")
+_SEPARATORS = (" · ", " › ", " — ", ": ", ", ")
+_SENTENCES = re.compile(r"(?<=[.؟?]) (?=[A-Z\u201c\"])")
+_NAME_NUMBER = re.compile(r"(.+?) ([-+\u2212]?[\d.,]+[kM]?%?)")
 
 
 def _patterns():
@@ -1598,8 +1605,19 @@ def _patterns():
             if not names:
                 continue
             chunks = tuple(part for part in re.split(r"\{[a-z_]+\}", pattern) if part)
-            regex = "".join((f"(?P<{part[1:-1]}>" + (_NUMBER if part[1:-1] in _NUMERIC else ".+?") + ")") if re.fullmatch(r"\{[a-z_]+\}", part) else re.escape(part)
-                            for part in re.split(r"(\{[a-z_]+\})", pattern))
+            seen: set[str] = set()
+            pieces = []
+            for part in re.split(r"(\{[a-z_]+\})", pattern):
+                if re.fullmatch(r"\{[a-z_]+\}", part):
+                    name = part[1:-1]
+                    if name in seen:
+                        pieces.append(f"(?P={name})")
+                    else:
+                        seen.add(name)
+                        pieces.append(f"(?P<{name}>" + (_MONEY if name.startswith("amt") else _NUMBER if name in _NUMERIC else ".+?") + ")")
+                else:
+                    pieces.append(re.escape(part))
+            regex = "".join(pieces)
             compiled.append((chunks, re.compile(regex, re.S), translated))
         compiled.sort(key=lambda entry: -sum(len(chunk) for chunk in entry[0]))
         _PATTERNS = compiled
@@ -1631,10 +1649,20 @@ def _translate_text(value: str) -> str:
         return _DATE_WORDS[month.group(1)] + (month.group(2) or "")
     if value in WEEKDAYS:
         return WEEKDAYS[value]
-    parts = _SEPARATORS.split(value)
-    if len(parts) > 1:
-        done = [part if index % 2 else _translate_text(part) for index, part in enumerate(parts)]
-        return "".join(done)
+    named = _NAME_NUMBER.fullmatch(value)
+    if named:
+        head = _translate_text(named.group(1))
+        if head != named.group(1):
+            return f"{head} {named.group(2)}"
+    sentences = _SENTENCES.split(value)
+    if len(sentences) > 1:
+        done = [_translate_text(part) for part in sentences]
+        if done != sentences:
+            return " ".join(done)
+    for separator in _SEPARATORS:
+        if separator in value:
+            done = [_translate_text(part) for part in value.split(separator)]
+            return separator.join(done)
     return value
 
 
@@ -1649,7 +1677,7 @@ def translate(text: str, locale: str = "en", **values: object) -> str:
 
 
 _TAG = re.compile(r"(<script\b.*?</script>|<style\b.*?</style>|<textarea\b.*?</textarea>|<!--.*?-->|<[^>]+>|[^<]+)", re.S | re.I)
-_ATTRIBUTE = re.compile(r"""(\s(?:title|aria-label|placeholder|alt)=)(["'])(.*?)\2""", re.S | re.I)
+_ATTRIBUTE = re.compile(r"""(\s(?:title|aria-label|placeholder|alt|data-tip|data-busy|data-watch-label|data-confirm-delete|data-confirm|data-label)=)(["'])(.*?)\2""", re.S | re.I)
 _LATIN = re.compile(r"[A-Za-z]{3}")
 
 
