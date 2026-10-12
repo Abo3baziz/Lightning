@@ -208,13 +208,16 @@ def test_flash_behavior_covers_errors_popups_and_late_insertions():
     assert "@media(prefers-reduced-motion:reduce)" in stylesheet
 
 
-def test_register_uses_two_line_rows_and_keeps_balance_under_amount():
+def test_register_is_a_spreadsheet_with_a_balance_column_after_the_amount():
     register = (ROOT / "lightning/ui/templates/register.html").read_text(encoding="utf-8")
     stylesheet = (ROOT / "lightning/ui/static/style.css").read_text(encoding="utf-8")
 
     assert '<div class="register-table-scroll"><table class="register-rows">' in register
-    assert "register-primary-line" in register and "register-meta-line" in register
-    assert "register-balance" in register
+    for column in ("register-date-cell", "register-counterparty-cell", "register-category-cell",
+                   "register-notes-cell", "register-row-action", "register-balance-cell"):
+        assert column in register
+    assert register.index("register-row-action") < register.index("register-balance-cell")
+    assert "register-meta-line" not in register  # one line per row since 0.5 spreadsheet register
     assert 'class="action-heading"' not in register
     assert 'money(False, 0)' in register
     scroll_rule = re.search(r"\.main \.register-table-scroll\s*\{([^}]*)\}", stylesheet)

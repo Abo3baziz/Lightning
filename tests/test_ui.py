@@ -195,7 +195,7 @@ def test_register_entry(client, c, setup):
     r = client.post(f"/accounts/{wallet.id}/register", data={"date": "2026-09-20", "counterparty": "Carrefour",
                     "counterparty_choice": "create", "category": "Personal › Food & Groceries",
                     "amount": "-150", "notes": "milk"})
-    assert "Saved OUT-2026-09-20-001" in r.text and 'title="Food &amp; Groceries · in Personal">Food &amp; Groceries<' in r.text
+    assert "Saved OUT-2026-09-20-001" in r.text and 'title="Personal › Food &amp; Groceries">Food &amp; Groceries<' in r.text
     assert c.reporting.account_balance(wallet.id) == 1200 - 150
 
     r = client.post(f"/accounts/{wallet.id}/register", data={"date": "2026-09-21", "counterparty": "CIB Current",
@@ -222,7 +222,7 @@ def test_register_entry(client, c, setup):
 
     # Counterparty remembers its category
     page = client.get(f"/accounts/{wallet.id}")
-    assert "Carrefour" in page.text and "Food &amp; Groceries · in Personal" in page.text
+    assert "Carrefour" in page.text and "Personal › Food &amp; Groceries" in page.text
 
 
 def test_account_form_has_no_class_picker(client):
@@ -278,7 +278,7 @@ def test_settings_saves_and_lists_dated_fx_rates(client, c):
     CurrencyRegistry(c.db).register("USD")
     response = client.post("/settings/fx-rate", data={"currency": "USD", "date": today().isoformat(), "rate": "31.5"})
     assert response.status_code == 200
-    page = client.get("/settings")
+    page = client.get("/settings?section=currencies&tab=rates")
     assert "USD" in page.text and "31.5" in page.text
 
 

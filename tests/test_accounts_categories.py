@@ -227,7 +227,7 @@ def test_categories_table_edits_in_place_and_keeps_flags_with_the_budget(c):
     from lightning.ui.web import create_app
     client = TestClient(create_app(c))
     page = client.get("/categories").text
-    assert "Personal" in page and "Loans &amp; held money" in page and 'class="cat-item level-2' in page
+    assert "Personal" in page and "System Categories" in page and 'class="cat-item level-2' in page
     assert "Personal ›" not in page  # names, never a breadcrumb list
     food = c.categories.get_by_code("EXP.PERSONAL.FOOD")
     r = client.post("/categories/add-row", data={"parent_id": food.id, "name": "Groceries", "direction": "OUT"})

@@ -38,6 +38,6 @@ def test_period_returns_keep_holdings_sold_out_in_the_period(c):
                 "instrument_key": f"asset:{comi.id}", "units": "100", "total": "8000", "trade_action": "sell"})
     page = client.get("/?period=month&month=2026-09").text
     # The Overview shows the period's result in one row (owner decision 2026-10-03); by class is on Investments.
-    returns = page[page.index('aria-label="Investments in this period"'):page.index("See investments")]
+    returns = page[page.index('aria-label="Investments in this period"'):page.index("Open investments")]
     assert "+1,000" in returns
 

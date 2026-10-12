@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Request
 
-from lightning.categories.domain import Movement
+from lightning.categories.domain import Direction, Movement
 from lightning.core.dates import fmt_date, parse_date, today
 from lightning.core.errors import LightningError
 from lightning.core.figures import label
@@ -32,7 +32,7 @@ def _category_options(c, movement: Movement) -> list[dict]:
     by_id = {cat.id: cat for cat in c.categories.tree()}
     options = []
     for cat in by_id.values():
-        if not cat.active or cat.is_system or cat.movement != movement or cat.depth != 2:
+        if not cat.active or cat.is_system or cat.depth != 2 or (cat.movement != movement and cat.direction != Direction.BOTH):
             continue
         parent = by_id.get(cat.parent_id)
         options.append({"id": cat.id, "label": f"{parent.name} › {cat.name}" if parent else cat.name})

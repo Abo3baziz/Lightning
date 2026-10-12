@@ -75,7 +75,8 @@ def test_profile_setup_sets_the_chosen_currency(tmp_path):
         assert 'name="currency"' in setup
         assert "USD — US Dollar" in setup
         create(browser, currency="USD")
-        assert app.session.container.base_currency == "USD"
+        # The encrypted ledger stays on the app's own thread, so read the currency through a screen, as the user does.
+        assert 'data-base-currency="USD"' in browser.get("/accounts").text
 
 
 def test_host_auth_origin_and_body_limits(tmp_path):
