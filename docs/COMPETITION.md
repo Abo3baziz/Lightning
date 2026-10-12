@@ -14,6 +14,7 @@ Who else helps people with their money, what their users love and hate, and what
 | International competitors | You are comparing a feature with the best apps |
 | Phone flow, words and icons | You design a phone screen, or choose between an icon and a word |
 | Where Lightning wins and loses | You write the website or plan the roadmap |
+| Selling points, stress-tested | You write a headline, a hero line or a claim about what only Lightning does |
 | Watch list | Every few months, or before a release |
 | Open source | You want source code to inspect before designing a finance feature |
 | Actual Budget code analysis | You plan a feature Actual already has, or want to know what to borrow and what to leave |
@@ -51,7 +52,7 @@ Who else helps people with their money, what their users love and hate, and what
 | **GnuCash** | Windows, Mac, Linux | Free, open source | Local file | Manual, import | Limited/direct import rather than consumer bank sync | Accounting budgets | **Deep accounting:** security lots, realized/unrealized gains, ROI/CAGR |
 | **Firefly III** | Self-host | Free | Your server | Manual, import | None | Budgets, rules | Accounts only |
 | **Lunch Money** | Web | Subscription | Cloud | Import, sync | Some | Flexible | Basic |
-| **Lightning** | Windows (phone planned) | Free so far | Your PC, encrypted profile | Manual, CSV, PDF statements | None yet | Rollover budgets, reserves, plans | Yes: gold, shares, funds, CDs, loans |
+| **Lightning** | Windows; Android beta (the phone holds the ledger, the PC borrows it) | Free so far | Your devices, encrypted, no server | Manual, CSV, PDF statements, bank SMS (Android beta) | None | Rollover budgets, reserves, plans | Yes: gold, shares, funds, CDs, loans |
 
 ## What users love, in every app
 
@@ -167,6 +168,38 @@ How the best money apps lay out a phone, read 2026-10-06 (Claude) for the phone 
 - Arabic and right-to-left not confirmed.
 - No community, reviews or ratings yet. Say has 2,128 ratings; Qershnat 592 in four months.
 - No gam'eya, zakat or WhatsApp entry, which Egyptian users already ask Qershnat for.
+
+## Selling points, stress-tested (2026-10-12)
+
+The owner's eight candidate points, tested against this file, the product docs and the code. "Mine only" and "no one else" claims fail often, because Qershnat, Moneydance, Banktivity and the local expense apps each cover part of the ground. The website never names other apps (B10), so a claim has to be true and provable on its own, never "only".
+
+| # | Point | What the evidence says | Verdict | Safe wording today |
+|---|---|---|---|---|
+| 1 | Phone and PC in sync | Moneydance syncs devices, Banktivity has optional encrypted sync, Actual has a sync server, every cloud app syncs through its server. The local Egyptian apps are phone only. Ours is Wi-Fi only, no server, **one device writes at a time**; the PC is Windows only; the Android APK is a debuggable beta. | **Unique as a combination** (sync with no server and no account, for Egypt), not as a bare feature | "One ledger on your phone, borrowed by your PC over your own Wi-Fi. No account, no server." |
+| 2 | Bank SMS | Say, Qershnat, Masareef and Masroofy all read SMS; Say also does voice and InstaPay. Qershnat users complain of wrong spends and ask to review before posting. | **Parity, not a point.** Our angle is real: every message waits in review, nothing posts until you say so | "Bank SMS wait in review." Not a headline |
+| 3 | Recognising a recurring bill | Say tracks subscriptions and bills; Masareef has recurring; Quicken matches. Ours is built (a payment finds its bill). | **Table stakes** | Keep as a detail under "less typing" |
+| 4 | Automatic prices | **Built:** EGX shares (Yahoo, one source), funds (Mubasher), FX (Banque Misr), on Update prices and on the first open after a month ends; a typed price wins. **Not built:** gold prices ("test source from home", `NOW.md`), silver (needs holdings), prices are not live or daily. Moneydance, Banktivity and Quicken also fetch prices, for other markets. Qershnat shows gold and silver prices. | **Do not claim "gold and silver".** Shares and funds revalue themselves: true and rare among Egyptian apps | "Your EGX shares and funds revalue themselves each month-end." Add gold when it ships |
+| 5 | Every type of asset | Built: cash, wallets, physical gold by piece and karat, certificates, EGX shares, funds, foreign cash, loans owed, money held for others. **Missing:** silver, property, vehicles, crypto, US and other foreign shares (planned #15 to #18), money lent out (receivables were archived in migration 0011). Qershnat has property, vehicles, silver and investments. | **Overclaim.** The Egyptian wealth set (gold, certificates, shares, funds) in one net worth is real and deep | "Gold, certificates, shares and funds, valued the way each one works." Never "every" |
+| 6 | Money in your account that is not yours, and money you lent out | Held for others is built and rigorous: left out of what you own, free cash, income and spending; an expense someone paid for you still counts. Qershnat also lists money held for another person and shared wallets, depth unknown. **Money lent out is not supported.** | **Half true.** Drop "lent out" or build it. Do not say "only" until Qershnat is tested | "Money you hold for family stays out of your numbers." |
+| 7 | Cash forecasting | Safe to spend until the next income, with bills, loan payments, certificate interest, goals and an emergency-fund top-up, plus three months ahead. Monarch and Quicken forecast; no local Egyptian app does. | **True and strong** for this market, and it answers the question every salaried user asks | "What you can spend until payday, and your next three months." |
+| 8 | Complete privacy | Not true that everyone else sends data to a server: Masarifi, Money Manager, Masrofi, Qershnat (offline-first), Actual, Moneydance and GnuCash are local. Cloud apps (Say, Wallet, Monarch, Copilot, YNAB) are not. Privacy alone is the Egyptian default (compass #2). | **A trust layer, not a differentiator alone.** It becomes unique with 1 and 5 | "No account, no server of ours. We can't see your money." |
+
+**What breaks "I have no idea who is using it":** the 7-day licence step (how it is checked is undocumented: if it calls a server, say so), the website's page-view counter (GoatCounter) and survey emails, price fetches (they go from the user's computer to the source, not to us), and builds that are unsigned or debuggable, which make a privacy promise harder to believe.
+
+### Recommended top three
+
+1. **Your phone and PC, one ledger, no server** (points 1 and 8 together). The only claim a rival cannot copy quickly, and it answers the privacy worry with something you can see.
+2. **The wealth Egyptians really hold, valued for you** (4 and 5, scoped): gold piece by piece, certificates the way banks write them, shares and funds that revalue themselves.
+3. **What you can spend until payday** (7 with 6): safe to spend, with money that isn't yours and bills already taken out.
+
+Points 2 and 3 of the original list are the "less typing" detail, not headlines.
+
+### To verify before the claims go live
+
+- Install Qershnat and test three things: does it value gold, silver and shares by itself, how it treats held-for-others money in net worth, and whether SMS waits for review.
+- Ship or drop gold prices; decide whether silver, property and vehicles come before a claim of "every asset" (Upcoming #13).
+- Document how the 7-day licence is checked.
+- Refresh the Qershnat and Say rows: both were read on 2026-10-04.
 
 ## Watch list
 
