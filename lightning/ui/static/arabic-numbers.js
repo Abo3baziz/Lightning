@@ -5,6 +5,10 @@
   const isoDate = /^\d{4}-\d{2}(?:-\d{2})?$/;
   const protectedSelector = "script,style,textarea,input,code,pre,kbd,samp,[contenteditable='true']";
 
+  // A signed value reads left to right, so the minus stays on the left of its digits (A06.2): without the
+  // isolate, Arabic digits pull a bare sign to their right.
+  const isolate = (value) => /^[+\-−]/.test(value) ? "\u2066" + value + "\u2069" : value;
+
   function localizeNumericText(text) {
     return String(text).split(/(\s+)/).map((token) => {
       if (!token) return token;
@@ -14,11 +18,11 @@
       }
       // Compact financial values use the app's k/M suffixes (for example 9.7k).
       const compact = token.match(/^([+\-−]?\d+(?:[,.]\d+)?)([kM])$/);
-      if (compact) return compact[1].replace(",", "٬").replace(".", "٫").replace(/[0-9]/g, (digit) => digitMap[digit]) + compact[2];
+      if (compact) return isolate(compact[1].replace(",", "٬").replace(".", "٫").replace(/[0-9]/g, (digit) => digitMap[digit]) + compact[2]);
       const number = token.match(/^([+\-−]?)(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(%?)$/);
       if (number) {
         const localized = number[1] + number[2].replaceAll(",", "٬") + (number[3] || "").replace(".", "٫") + number[4];
-        return localized.replace(/[0-9]/g, (digit) => digitMap[digit]);
+        return isolate(localized.replace(/[0-9]/g, (digit) => digitMap[digit]));
       }
       // Alphanumeric tokens are often tickers, version strings, filenames or transaction references.
       if (asciiLetter.test(token)) return token;

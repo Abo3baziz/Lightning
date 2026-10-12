@@ -4,7 +4,9 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 **How to log a change**
 
-- Add one entry at the top of `## [Unreleased]`, which is always the first section: `- yyyy-mm-dd · Claude:` or `· Codex:`, then what changed. Take the date from `date`, never a guess.
+- Add one entry at the top of `## [Unreleased]
+
+- 2026-10-12 · Claude: Arabic type now follows A06.2: Readex Pro and IBM Plex Sans Arabic bundled (replace Tahoma), taller lines, no letter spacing or italics, charts unmirrored. Signed amounts keep the minus on the left of the digits.`, which is always the first section: `- yyyy-mm-dd · Claude:` or `· Codex:`, then what changed. Take the date from `date`, never a guess.
 - Keep it to three lines at most: what changed for the user or the code, and where. The reasons and details belong in the doc that owns them (`AGENTS.md` lists which).
 - To catch up, read only the first entries here, or `git log --oneline -20`. Entries further down are history, not the current specification.
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
