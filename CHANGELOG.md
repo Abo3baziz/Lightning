@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-12 · Claude: website pages made concise (website repo): Home has one phone-and-PC section, four helpers and four FAQs; Features puts phone and PC second and drops group intros; Current Status merges first run and feedback; every changed page has a new release ID and archive.
 - 2026-10-12 · Claude: guideline 3.30: B06 gains Buttons (vivid, primary, secondary; heights 48/40/36) and "the signup band is the only gradient call-out"; its specimen now matches the live band. Website: one top bar and footer, one Arabic band wording, survey on the landing system (see the website repo).
 - 2026-10-12 · Claude: guideline 3.29: Muted is `#566E7E` (4.5:1 on the canvas and tints) in the guideline and the six app stylesheets; B01 CTA, radius and rounding notes; website audit fixes live in the website repo.
 - 2026-10-12 · Claude: guideline 3.28 after an audit: A02.2 files, A03.3 measured contrast and the link rule, A06.2 Arabic in English, B11 social and brand surfaces (Before it ships is now B12), `guideline/brand-voice.md`; A09 no longer shows "Monthly"; A05's phone paragraph points to C04. Copies kept identical in both repos.
