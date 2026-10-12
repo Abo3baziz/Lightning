@@ -6,13 +6,13 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 - Add one entry at the top of `## [Unreleased]
 
-- 2026-10-12 · Claude: Arabic type now follows A06.2: Readex Pro and IBM Plex Sans Arabic bundled (replace Tahoma), taller lines, no letter spacing or italics, charts unmirrored. Signed amounts keep the minus on the left of the digits.`, which is always the first section: `- yyyy-mm-dd · Claude:` or `· Codex:`, then what changed. Take the date from `date`, never a guess.
 - Keep it to three lines at most: what changed for the user or the code, and where. The reasons and details belong in the doc that owns them (`AGENTS.md` lists which).
 - To catch up, read only the first entries here, or `git log --oneline -20`. Entries further down are history, not the current specification.
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
 
+- 2026-10-12 · Claude: Arabic type now follows A06.2: Readex Pro and IBM Plex Sans Arabic bundled (replace Tahoma), taller lines, no letter spacing or italics, charts unmirrored. Signed amounts keep the minus on the left of the digits.`, which is always the first section: `- yyyy-mm-dd · Claude:` or `· Codex:`, then what changed. Take the date from `date`, never a guess.
 - 2026-10-12 · Claude: the Arabic guideline follows the English type again: Readex Pro and IBM Plex Sans Arabic at the English sizes and weights, no 600 cap. New A06.2: digits, yyyy-mm-dd dates in `bdo dir="ltr"`, currency, what mirrors. Sides, links, colour names and voice fixed; `tools/guideline.py --ar` reads it.
 - 2026-10-12 · Claude: the website's Arabic pages use the English type scale and weights in the Arabic faces (IBM Plex Sans Arabic 700 added), the hero gradient starts green on the right, each hero keeps its lines whole, and full dates read yyyy-mm-dd; the website repo owns the details.
 - 2026-10-10 · Codex: stress-audited all four sample stories through monthly cash-flow and spending reports; clarified each welcome-page question so it describes the scenario the ledger actually demonstrates.
