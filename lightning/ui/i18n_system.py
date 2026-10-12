@@ -718,6 +718,7 @@ TEMPLATES = {
     "Inflow": "إيداع / وارد",
     "Outflow": "سحب / صادر",
     "Import resultReview import": "نتيجة الاستيراد",
+    "Review import": "راجع الاستيراد",
     "{n} to fix": "{n} محتاج تصليح",
     "{n} possible duplicates": "{n} تكرار محتمل",
     "{n} possible duplicate": "{n} تكرار محتمل",
