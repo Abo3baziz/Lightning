@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-12 · Claude: guideline 3.28 after an audit: A02.2 files, A03.3 measured contrast and the link rule, A06.2 Arabic in English, B11 social and brand surfaces (Before it ships is now B12), `guideline/brand-voice.md`; A09 no longer shows "Monthly"; A05's phone paragraph points to C04. Copies kept identical in both repos.
 - 2026-10-12 · Claude: `docs/proposals/temp-better-features.md` split into one file per design (undo, import matching, month lock, merge, investment events/lots/splits/checks/returns, price source order); built sections were already in Architecture.
 - 2026-10-12 · Claude: Migrations 0051–0052 no longer collide on `EXP.SYSTEM.ADJUSTMENT` when a newer seed has it; screen tests name an icon button by its tooltip (the register Add button); roundtrip fixture rebuilt for schema 52 (`508597be…`). Suite: 145 failing → 13 (register/overview redesign tests, left for their author).
 - 2026-10-12 · Claude: `AGENTS.md` points to `tools/claims.py` before pushing and to `CHANGELOG-archive.md` in the skip list.
