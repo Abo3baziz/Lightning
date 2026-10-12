@@ -163,7 +163,9 @@ class _PageParser(HTMLParser):
         elif tag == "button" and self._button is not None:
             owner, a, parts = self._button
             if a.get("type", "submit").lower() == "submit":
-                entry = (" ".join(" ".join(parts).split()), a.get("name"), a.get("value", ""))
+                # An icon button is named by its tooltip, as the user sees it on hover
+                text = " ".join(" ".join(parts).split()) or a.get("title") or a.get("aria-label") or ""
+                entry = (text, a.get("name"), a.get("value", ""))
                 if isinstance(owner, Form):
                     owner.buttons.append(entry)
                 elif isinstance(owner, str):

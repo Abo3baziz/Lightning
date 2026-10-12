@@ -7,7 +7,8 @@ UPDATE categories
    SET code='EXP.SYSTEM.ADJUSTMENT',
        parent_id=(SELECT id FROM categories WHERE code='EXP.SYSTEM'),
        updated_at=datetime('now')
- WHERE code='EXP.PERSONAL.ADJUSTMENT';
+ WHERE code='EXP.PERSONAL.ADJUSTMENT'
+   AND NOT EXISTS (SELECT 1 FROM categories WHERE code='EXP.SYSTEM.ADJUSTMENT');
 
 INSERT INTO categories(code,name,parent_id,movement,scope,income_class,family,
                        default_reimbursable,is_system,active,sort_order,direction,created_at,updated_at)

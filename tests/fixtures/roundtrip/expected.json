@@ -1,7 +1,7 @@
 {
- "fingerprint": "15bc54a5bd7bae12",
+ "fingerprint": "508597be08ffe695",
  "lines": [
-  "schema: 49",
+  "schema: 52",
   "before net worth: 250565.290000",
   "before unvalued: 0",
   "before account CIB Payroll: 68892.790000",
@@ -39,7 +39,7 @@
   "rows budget_carryover_resets: 0",
   "rows budgets: 9",
   "rows cash_reserves: 1",
-  "rows categories: 39",
+  "rows categories: 42",
   "rows cd_certificates: 1",
   "rows cd_redemptions: 0",
   "rows cd_terms: 0",
@@ -52,7 +52,7 @@
   "rows investment_dividend_assets: 0",
   "rows investment_liquidation_factors: 0",
   "rows investment_targets: 0",
-  "rows ledger_entries: 73",
+  "rows ledger_entries: 81",
   "rows money_from_others: 0",
   "rows other_asset_valuations: 0",
   "rows ownership_migration_runs: 1",
@@ -63,18 +63,18 @@
   "rows planned_payments: 18",
   "rows price_history: 11",
   "rows profile_identity: 0",
-  "rows reevaluation_account_posts: 0",
-  "rows reevaluation_entries: 2",
-  "rows reevaluation_periods: 1",
+  "rows reevaluation_account_posts: 8",
+  "rows reevaluation_entries: 18",
+  "rows reevaluation_periods: 4",
   "rows reevaluation_suppressed_accounts: 0",
-  "rows registered_currencies: 6",
+  "rows registered_currencies: 1",
   "rows reserve_allocation_history: 2",
   "rows reserve_transaction_links: 0",
   "rows rule_actions: 0",
   "rows rule_conditions: 0",
   "rows rules: 0",
-  "rows schema_migrations: 49",
+  "rows schema_migrations: 52",
   "rows settings: 2",
-  "rows transactions: 61"
+  "rows transactions: 69"
  ]
 }
