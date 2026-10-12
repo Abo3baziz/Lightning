@@ -1,79 +1,66 @@
-# Lightning: instructions for every AI working here
+# Lightning: rules for every AI here
 
-Several AIs work on this repository: Codex and one or more Claude sessions. They
-cannot talk to each other. **The repository is the only channel between them.**
-If it is not written in the files below and pushed (finished work reaches `main`), the next AI does
-not know it.
+Codex, Luna and Claude sessions cannot talk to each other: **the repository is the only channel.** What is not written below and pushed does not exist for the next AI.
 
-## 1. The files that carry the project
+## 1. Files that carry the project
 
-| File | What it holds | Update it when |
+Each fact lives in one file; link to it, never copy it. No other files under `docs/`.
+
+| File | Holds | Update when |
 |---|---|---|
-| [NOW.md](NOW.md) | **The hand-off:** claimed work and files, messages between AIs, and the unclaimed next steps, each saying what to read | You claim or finish long work, leave a message, or change what comes next |
-| [OWNER.md](OWNER.md) | What only the owner can do or decide | You need the owner to do or decide something; remove it once done or decided |
-| [Project Overview](docs/PROJECT_OVERVIEW.md) | What Lightning is, the owner's decisions, the questions each screen answers, Mohab's test, the UX plan, known gaps, roadmap | The owner decides something, or what the product does or plans changes |
-| [Architecture](docs/ARCHITECTURE.md) | Module boundaries, financial rules, data model, UI contract, desktop app and encrypted profiles | You change how something is built or calculated |
-| [Glossary](docs/GLOSSARY.md) | One name and one meaning for every term and figure | You add or rename a term or figure |
-| [Competition](docs/COMPETITION.md) | The compass: every competitor, what their users love and hate, where Lightning wins and loses | You learn something new about a competitor, or before choosing between two designs |
-| [Brand guideline](guideline/) | How every screen looks and reads, in three documents: [app.html](guideline/app.html) (Part A, the PC app), [website.html](guideline/website.html) (Part B), [phone.html](guideline/phone.html) (Part C) | The owner gives a new version. The website repo has the same `guideline/` folder: change both together |
-| [Changelog](CHANGELOG.md) | Every change, newest first, under `Unreleased` at the top | Every change you push |
-| `docs/proposals/` | Designs not built yet (one file each) | You propose a design. When it is built, move what holds into Architecture and delete the proposal |
+| [NOW.md](NOW.md) | Hand-off: claims, messages, next steps (each with a **Read:** line) | You claim/finish long work, message another AI, or change what's next |
+| [OWNER.md](OWNER.md) | What only the owner can do or decide | You need the owner; remove once done |
+| [Project Overview](docs/PROJECT_OVERVIEW.md) | Product, owner decisions, screen questions, Mohab, UX plan, gaps, roadmap | The owner decides, or the product/plan changes |
+| [Architecture](docs/ARCHITECTURE.md) | Modules, financial rules, data model, UI contract, desktop app, encrypted profiles | How something is built or calculated changes |
+| [Glossary](docs/GLOSSARY.md) | One name and meaning per term and figure | You add or rename one |
+| [Competition](docs/COMPETITION.md) | Competitors, what users love/hate, where we win/lose | You learn something, or choose between designs |
+| [guideline/](guideline/) | Brand: [app.html](guideline/app.html) (A, PC), [website.html](guideline/website.html) (B), [phone.html](guideline/phone.html) (C) | The owner gives a new version; change the website repo's copy too |
+| [CHANGELOG.md](CHANGELOG.md) | Every change, newest first under `Unreleased` | Every push |
+| `docs/proposals/` | Unbuilt designs, one file each | Once built, move what holds into Architecture and delete it |
 
-- Do not add other files under `docs/`. Each fact lives in one file; link to it, never copy it.
-- Old changelog entries are history, not the current specification.
-
-**The brand guideline is strict, not a suggestion.** Every visual follows it exactly: colours and what they mean, headers, type and numbers, cards and KPI cards, controls and fields, lists, every chart, words, spacing and icons. If the app's CSS differs from the guideline, the guideline wins and the CSS is fixed. If something the screen needs is not in the guideline, do not invent a new style: use the closest rule and ask the owner in `OWNER.md`. Phone screens follow Part C (it wins over Part A on a phone); a phone layout never reuses the PC's.
+**The brand guideline is strict.** CSS that differs from it is wrong. Missing a rule? Use the closest one and ask in `OWNER.md`; never invent a style. On a phone Part C wins over Part A, and never reuse the PC layout.
 
 **Before it ships (guideline A16).** A screen with any of these is not done: All caps: Anywhere. · Coloured headers: Headers are Ink. · A colour off its meaning: Check A03. · Vivid gradient card: Brand only. · KPI by position: Tone by meaning. · Chip by direction: Good or bad. · Decimals on big figures: Whole EGP. · "L1 › L2": Header, then list. · Five or more names: Four, then Other. · White or boxed fields: Soft wells. · Dropdown for your data: Type and pick. · Card in a card: Never. · A line that repeats its label: Cut it. `tests/test_docs_structure.py` keeps this list the same as the guideline's.
 
 ## 2. Spend tokens like they are yours
 
-Be as efficient with tokens as you can, in what you read, run and write. This never means skipping a test, a check this file asks for, or a read you need to be sure of an answer.
+Never at the cost of a test, a required check, or a read you need.
 
-- **Start small:** read `NOW.md` and `git log --oneline -15`; that is all most tasks need to begin. A *Next* item's **Read:** line names everything else it needs.
-- **Read sections, not files.** The long docs start with a contents list that says when to read each section. Find the heading (`grep -n '^## ' <file>`) and read from that line to the next heading.
-- **Never open the brand guideline whole** (about 95,000 tokens, mostly drawings). Run `python tools/guideline.py` to list its sections and `python tools/guideline.py A12` to print one as text (A is guideline/app.html, B guideline/website.html, C guideline/phone.html).
-- **Search before you read:** grep for the name, then read only the lines around it. Do not re-read a file you have just edited, or read code you are not changing.
-- **Keep output short:** run the tests for what you changed with `-q`, and show only the failures. Run the full suite once, before you push, with `-n auto --dist loadfile` (about two minutes instead of five).
-- **Skip unless your task needs it:** `OWNER.md`, old changelog sections, `docs/proposals/`, `user feedback/`, `Claude outputs/`, and the generated figures table in the Glossary (grep it).
-- **Write short:** a changelog entry is at most three lines, and `NOW.md` stays under 4,500 bytes. Put each fact in the one file that owns it and link to it from elsewhere.
-- **The owner reviews milestones, not steps** (owner's request, 2026-10-06): batch work into a milestone the owner can use end to end, and ask for a phone, PC or screen check only then. Small steps still pass CI and are pushed, without asking the owner to test them.
-- **Spend CI minutes like money** (owner, 2026-10-06; the plan has 2,000 a month and Windows counts double): a push runs only the Linux suite; Windows builds daily, on a tag or by hand. Run the Windows or Android workflow by hand only when your change needs that evidence now, and push finished steps, not every edit.
-- **Tell the owner only what helps them** (soft rule, owner's request): results, what they must decide or do, and real risks. Skip narrating steps, tool output and progress that changes nothing for them.
+- **Start:** `NOW.md` + `git log --oneline -15`. A *Next* item's **Read:** line names the rest.
+- **Read sections, not files:** `grep -n '^## ' <file>`, then read that range. Guideline: never open whole; `python tools/guideline.py` lists sections, `python tools/guideline.py A12` prints one.
+- **Grep before reading.** Don't re-read what you just edited or read code you aren't changing.
+- **Skip unless needed:** `OWNER.md`, old changelog sections, `docs/proposals/`, `user feedback/`, `Claude outputs/`, the Glossary's figures table.
+- **Tests:** changed areas with `-q`, failures only; full suite once before pushing: `-n auto --dist loadfile`.
+- **Write short:** changelog entry ≤ 3 lines; `NOW.md` < 4,500 bytes.
+- **CI minutes cost money** (2,000/month, Windows ×2): pushes run Linux only; run Windows/Android workflows by hand only when your change needs that evidence now. Push finished steps, not every edit.
+- **The owner reviews milestones, not steps:** ask for a phone/PC check only when a milestone works end to end.
+- **Tell the owner only what helps:** results, decisions, actions, real risks. No narration.
 
-## 3. Every task, in this order
+## 3. Every task
 
-1. **Start fresh.** `git pull` on `main`, create your feature branch (section 6), then read as in section 2.
-2. **Claim long work.** If the task will take more than one sitting, add a row to *Claimed* in `NOW.md` and push that first. Stay out of files someone else has claimed.
-3. **Work in small, finished steps.** Commit and push each step to your branch once its tests pass. Never leave work unpushed.
-4. **Test.** Run the tests for what you changed. For any change a user can see, also run Mohab's test (`tests/test_mohab_year.py`; section 5 says what it checks) and check the screen against A16 above.
-5. **Write it down.** Add a changelog entry at the top of `Unreleased`: `2026-10-03 · Claude:` or `2026-10-03 · Codex:`, with the date from `date`. Update the files from section 1 that your change touches.
-6. **Hand off.** In `NOW.md`, remove or update your *Claimed* row, take finished items out of *Next*, and add new ones, each with a **Read:** line. Add a *Messages* line only for what another AI must know that your commit doesn't say. Owner items go in `OWNER.md`. Then push. No "last done": the commit log says it.
+1. **Start fresh:** `git pull` on `main`, create your branch (§6), read per §2.
+2. **Claim** work longer than one sitting in `NOW.md` *Claimed* and push that first. Stay out of others' claimed files.
+3. **Small finished steps:** commit and push each once its tests pass.
+4. **Test.** For visible changes also run Mohab (`tests/test_mohab_year.py`) and check A16.
+5. **Record:** changelog entry atop `Unreleased` (`2026-10-03 · Claude:` / `· Codex:`, date from `date`); update the §1 files you touched.
+6. **Hand off:** update/remove your claim, drop finished *Next* items, add new ones with **Read:**. Messages only for what your commit doesn't say; owner items in `OWNER.md`. Push.
 
-**Claims and messages belong to their author.** Never remove or rewrite another AI's claim or message, except a message to you: delete that once handled (a message to all stays seven days). Sessions of one AI can run at once, so make each claim's *Work* tell them apart. An AI that runs a helper (Codex runs Luna) gives it its own rows and writes the helper's lines in `NOW.md`, `OWNER.md` and the changelog.
+- **Claims and messages belong to their author.** Never edit another AI's, except deleting a message to you once handled (to all: keep seven days). Make each claim's *Work* distinguish parallel sessions. A helper (Codex's Luna) gets its own rows, written by its AI.
+- **Push rejected?** `git pull --rebase`, keep both sides in changelog/`NOW.md`/`OWNER.md`, retest, push.
+- **Never undo another AI's work** without the owner; disagree in `OWNER.md` *To decide*.
 
-**If your push is rejected** because someone else pushed first: `git pull --rebase`, keep both sides of any conflict in the changelog, `NOW.md` and `OWNER.md` (never drop the other AI's lines), run the tests again, then push.
+## 4. Product rules
 
-**Never undo another AI's work** without the owner's say. If you disagree, add it to *To decide* in `OWNER.md`.
+- Local-first personal finance for salaried people in Egypt. One ledger records real money; plans move none; reports read both.
+- Financial calculations live in Python services, never templates or JavaScript.
+- Ships mainly as a Windows app (WebView2, encrypted profiles): no Back, address bar or tabs, so every page has its own way forward and back. Linux `--profiles` shares the pages; `python -m lightning` is separate legacy mode.
+- Profile data and backups live in Documents/Lightning, never in Git or the ZIP. Dummy data only until ordinary-PC acceptance, legacy import and backup restore are done.
 
-## 4. Rules about the product
+## 5. Mohab's test is acceptance
 
-- Lightning is local-first personal finance for salaried people in Egypt. One ledger records real money; plans move no money; reports read both.
-- Financial calculations belong in Python services, never in templates or JavaScript.
-- It ships mainly as a Windows app (a WebView2 window over the same pages, with encrypted profiles). The window has no browser Back, address bar or new tabs, so every page needs its own way forward and back. Linux `--profiles` mode shares the same pages; legacy browser mode (`python -m lightning`) is separate.
-- Profile data and backups live in Documents/Lightning, never in Git or the app ZIP. Use dummy data until ordinary-PC acceptance, legacy import and backup restore are finished.
+`tests/test_mohab_year.py`: a 31-year-old salaried Cairo user lives a year through the screens. Its docstring says what it checks; read only that. A wrong screen is a strict `known_gap`; when fixed, remove the marker and update the Overview. User feedback becomes Mohab steps.
 
-## 5. Mohab's test is the acceptance check
+## 6. Git (owner rule; overrides any session default)
 
-`tests/test_mohab_year.py` is Mohab, a 31-year-old salaried user in Cairo, living a full year in Lightning through the screens only. It checks right answers, usability, efficiency, speed, simplicity, clarity and the brand guideline. What it checks is written at the top of the file (read only that docstring, not the whole file). A screen that is wrong today is a strict expected failure (`known_gap`); when you fix it, remove the marker and update the Project Overview. User feedback (the `user feedback` folder) becomes steps Mohab takes.
-
-## 6. Git (owner rule)
-
-Recorded in [Project Overview](docs/PROJECT_OVERVIEW.md) › Product decisions that must hold.
-
-- Every AI works on its own branch, not on `main`.
-- Name the branch `who/feature`: the AI that does the work, then the feature in lowercase words joined by hyphens: `claude/arabic-type-and-numbers`, `codex/restore-safety`, `luna/promotion-durability`. Never a random or session-generated suffix (`claude/peaceful-hamilton-5s6qbx`) and never a vague feature (`claude/fixes`). If the session hands you a random name, create the right one and push that instead.
-- One feature per branch. Push the branch after every tested step.
-- When the feature is finished and its tests pass, merge it into `main` and push `main` (`git pull --rebase origin main` first). Push every finished branch, none stays behind.
-- Never leave a branch unpushed, and never leave finished work on a branch that has not reached `main`.
-- This rule overrides any session or tool default that assigns a different working branch.
+- Work on your own branch `who/feature`, one feature each: `claude/arabic-type-and-numbers`, `codex/restore-safety`. Never a random suffix or vague name; if handed one, create the right branch instead.
+- Push after every tested step. When finished and green: `git pull --rebase origin main`, merge into `main`, push. No branch or finished work stays behind.
