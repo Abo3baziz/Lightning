@@ -25,11 +25,12 @@ from typing import Protocol
 from lightning.core.errors import ValidationError
 
 ENDINGS_KEY = "sms_account_endings"   # {"0285": account_id}
-SEEN_KEY = "sms_seen"                  # fingerprints of messages already read, newest last
+SEEN_KEY = "sms_seen"                  # messages already read, newest last: "fp" (text only) or "fp@ms" (inbox)
 WAITING_KEY = "sms_waiting"            # parsed messages whose account ending is not known yet
 UNREAD_KEY = "sms_unread"              # messages with an amount that no rule could read: never dropped unseen
 LAST_READ_KEY = "sms_last_read_ms"     # the phone's inbox is read from here on
 MAX_UNREAD = 200
+OVERLAP_MS = 10 * 60 * 1000            # the inbox is re-read this far before the cursor: late arrivals are not lost
 PAIR_MINUTES = 30                      # an own transfer's two messages arrive within this
 FIRST_LOOK_DAYS = 30                   # the first read goes this far back
 PERSON = re.compile(r"^\+?\d{7,}$")     # a phone number: a person, not a bank's sender name or short code
@@ -250,22 +251,28 @@ class SmsImportService:
             group["kinds"].add(item["kind"])
         return [dict(g, kinds=sorted(g["kinds"])) for g in groups.values()]
 
-    def read(self, messages: list[tuple[str, str, datetime]]) -> dict:
-        """New messages (sender, text, received) into review. Returns counts: staged rows by account, waiting,
-        skipped (not money, or read before)."""
+    def read(self, messages: list[tuple], cursor_ms: int | None = None) -> dict:
+        """New messages (sender, text, received[, inbox ms]) into review. Returns counts: staged rows by account,
+        waiting, skipped (not money, or read before). A pasted or shared message is known by its text; an inbox
+        one (with its ms) by text and time, so two equal purchases are both read. Staging, what was seen and the
+        inbox cursor commit together: a crash leaves nothing half-done to stage twice."""
         seen = self._json(SEEN_KEY, [])
-        known = set(seen)
+        exact = set(seen)
+        texts = {e for e in seen if "@" not in e}
+        stamped = {e.split("@")[0] for e in seen if "@" in e}
         endings = self.endings()
         waiting = self._json(WAITING_KEY, [])
         by_account: dict[int, list[SmsTransaction]] = {}
         skipped = 0
         unread = self._json(UNREAD_KEY, [])
-        for sender, text, received in messages:
-            mark = fingerprint(text)
-            if mark in known:
+        for sender, text, received, *extra in messages:
+            fp = fingerprint(text)
+            mark = f"{fp}@{extra[0]}" if extra and extra[0] is not None else fp
+            if (mark in exact or fp in texts) if mark != fp else (fp in texts or fp in stamped):
                 skipped += 1
                 continue
-            known.add(mark)
+            exact.add(mark)
+            (texts if mark == fp else stamped).add(fp)
             seen.append(mark)
             found = parse_sms(text, sender=sender, received=received)
             if found is None:
@@ -280,35 +287,44 @@ class SmsImportService:
                 waiting.append(_to_json(found))
             else:
                 by_account.setdefault(account_id, []).append(found)
-        transfers = self._pair_transfers(by_account, unread)
-        staged = {account_id: self._stage(account_id, rows, transfers) for account_id, rows in by_account.items()
-                  if rows}
         with self.db.transaction():
+            transfers = self._pair_transfers(by_account, unread)
+            staged = {account_id: self._stage(account_id, rows, transfers) for account_id, rows in by_account.items()
+                      if rows}
             self.settings.set(SEEN_KEY, json.dumps(seen[-MAX_SEEN:]))
             self.settings.set(WAITING_KEY, json.dumps(waiting))
             self.settings.set(UNREAD_KEY, json.dumps(unread[-MAX_UNREAD:]))
+            if cursor_ms is not None:
+                self.settings.set(LAST_READ_KEY, str(cursor_ms))
         return {"staged": staged, "waiting": len(waiting), "skipped": skipped, "unread": len(unread)}
 
     def read_source(self, source: SmsSource, now: datetime | None = None) -> dict | None:
-        """New messages from the phone: shared ones, and the inbox since the last read when allowed. Messages
-        from phone numbers are people, never read. Returns `read`'s counts, or None when there was nothing."""
+        """New messages from the phone: shared ones, and the inbox since the last read when allowed (from
+        OVERLAP_MS before the cursor, which only moves forward). Messages from phone numbers are people, never
+        read. Returns `read`'s counts, or None when there was nothing."""
         now = now or datetime.now()
         messages = [("Shared", text, now) for text in source.take_shared() if text and text.strip()]
         newest = None
         if source.permission() == "granted":
             stored = self.settings.get(LAST_READ_KEY)
             after = int(stored) if stored.isdigit() else int((now - timedelta(days=FIRST_LOOK_DAYS)).timestamp() * 1000)
-            for sender, body, received_ms in source.since(after):
+            for sender, body, received_ms in source.since(max(0, after - OVERLAP_MS) if stored.isdigit() else after):
                 newest = max(newest or 0, int(received_ms))
                 if not PERSON.match((sender or "").replace(" ", "")):
-                    messages.append((sender or "", body or "", datetime.fromtimestamp(int(received_ms) / 1000)))
+                    messages.append((sender or "", body or "", datetime.fromtimestamp(int(received_ms) / 1000),
+                                     int(received_ms)))
             if newest is None and not stored.isdigit():
                 newest = after  # the first look found nothing: start from there next time
-        result = self.read(messages) if messages else None
+            if newest is not None and stored.isdigit():
+                newest = max(newest, after)  # never backwards
+            if newest == after and stored.isdigit():
+                newest = None  # unchanged
+        if messages:
+            return self.read(messages, newest)
         if newest is not None:
             with self.db.transaction():
                 self.settings.set(LAST_READ_KEY, str(newest))
-        return result
+        return None
 
     def last_read(self) -> datetime | None:
         stored = self.settings.get(LAST_READ_KEY)
@@ -345,8 +361,8 @@ class SmsImportService:
         waiting = self._json(WAITING_KEY, [])
         mine = [_from_json(item) for item in waiting if item["ending"] == ending]
         rest = [item for item in waiting if item["ending"] != ending]
-        batch = self._stage(int(account.id), mine) if mine else None
-        with self.db.transaction():
+        with self.db.transaction():  # staging and leaving the waiting list commit together
+            batch = self._stage(int(account.id), mine) if mine else None
             self.settings.set(ENDINGS_KEY, json.dumps(endings))
             self.settings.set(WAITING_KEY, json.dumps(rest))
         return batch

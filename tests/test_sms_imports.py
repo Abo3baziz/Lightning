@@ -195,3 +195,93 @@ def test_a_transfer_between_your_banks_goes_to_review_once(c, setup):
     assert rows[0]["Category"] == "Transfer" and rows[0]["_transfer_target"] == "NBE Current"
     kept = c.sms_imports.unread()
     assert len(kept) == 1 and "other side of the transfer from CIB Current" in kept[0]["reason"]
+
+
+# --- safety of a read (task 21): crash, equal messages, overlap ------------------------------------------------
+
+NBE_BUY = next(s for s in SAMPLES["samples"] if s["bank"] == "NBE" and s["kind"] == "purchase")["text"]
+
+
+def _rows(c) -> int:
+    return c.db.scalar("SELECT COUNT(*) FROM bank_import_rows")
+
+
+def _known(c, setup, ending="2093"):
+    from lightning.sms_imports import ENDINGS_KEY
+    c.settings.set(ENDINGS_KEY, json.dumps({ending: setup[0]["cib"].id}))
+
+
+def test_a_crash_after_staging_leaves_nothing_half_written(c, setup, monkeypatch):
+    _known(c, setup)
+    messages = [("NBE", NBE_BUY.replace("147.87", f"{n}.00"), datetime(2026, 10, 6, 11, n)) for n in (10, 20)]
+    real = c.sms_imports._stage
+    state = {"hit": False}
+
+    def stage_then_crash(*args, **kwargs):
+        result = real(*args, **kwargs)
+        state["hit"] = True
+        raise RuntimeError("power cut")
+
+    monkeypatch.setattr(c.sms_imports, "_stage", stage_then_crash)
+    with pytest.raises(RuntimeError):
+        c.sms_imports.read(messages)
+    assert state["hit"] and _rows(c) == 0 and not c.settings.get("sms_seen")  # staged rows rolled back too
+    monkeypatch.undo()
+    assert c.sms_imports.read(messages)["staged"]
+    assert _rows(c) == 2
+    assert c.sms_imports.read(messages)["staged"] == {} and _rows(c) == 2
+
+
+def test_assign_stages_and_leaves_the_waiting_list_together(c, setup, monkeypatch):
+    c.sms_imports.read([("NBE", NBE_BUY, datetime(2026, 10, 6, 11, 14))])
+    assert c.sms_imports.waiting()
+    monkeypatch.setattr(c.settings, "set", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("power cut")))
+    with pytest.raises(RuntimeError):
+        c.sms_imports.assign("2093", setup[0]["cib"].id)
+    monkeypatch.undo()
+    assert _rows(c) == 0 and c.sms_imports.waiting()
+    assert c.sms_imports.assign("2093", setup[0]["cib"].id) and _rows(c) == 1
+
+
+def test_two_equal_purchases_in_the_inbox_are_both_read_but_a_repeat_is_not(c, setup):
+    _known(c, setup)
+    source = FakeSource([("NBE", NBE_BUY, _ms("2026-10-06T11:14")), ("NBE", NBE_BUY, _ms("2026-10-06T15:02"))])
+    assert c.sms_imports.read_source(source, now=datetime(2026, 10, 7, 9))["staged"]
+    assert _rows(c) == 2
+    source.inbox.append(("NBE", NBE_BUY, _ms("2026-10-06T15:02")))  # the same message again
+    c.sms_imports.read_source(source, now=datetime(2026, 10, 7, 10))
+    assert _rows(c) == 2
+
+
+def test_the_overlap_rereads_without_staging_twice_and_catches_a_late_message(c, setup):
+    from lightning.sms_imports import LAST_READ_KEY
+    _known(c, setup)
+    first = _ms("2026-10-06T11:14")
+    source = FakeSource([("NBE", NBE_BUY, first)])
+    c.sms_imports.read_source(source, now=datetime(2026, 10, 7, 9))
+    assert c.settings.get(LAST_READ_KEY) == str(first) and _rows(c) == 1
+    late = ("NBE", NBE_BUY.replace("147.87", "88.00"), first - 4 * 60 * 1000)  # delivered late, stamped earlier
+    source.inbox.append(late)
+    assert c.sms_imports.read_source(source, now=datetime(2026, 10, 7, 10)) is not None
+    assert _rows(c) == 2 and c.settings.get(LAST_READ_KEY) == str(first)  # cursor never moves back
+    assert c.sms_imports.read_source(source, now=datetime(2026, 10, 7, 11))["staged"] == {} and _rows(c) == 2  # overlap, all seen
+
+
+def test_a_pasted_message_and_the_same_one_from_the_inbox_are_read_once(c, setup):
+    _known(c, setup)
+    c.sms_imports.read([("", NBE_BUY, datetime(2026, 10, 6, 11, 14))])
+    assert _rows(c) == 1
+    c.sms_imports.read([("NBE", NBE_BUY, datetime(2026, 10, 6, 11, 14), _ms("2026-10-06T11:14"))])
+    assert _rows(c) == 1
+    other = NBE_BUY.replace("147.87", "9.00")  # inbox first, then pasted
+    c.sms_imports.read([("NBE", other, datetime(2026, 10, 6, 12), _ms("2026-10-06T12:00"))])
+    c.sms_imports.read([("", other, datetime(2026, 10, 7))])
+    assert _rows(c) == 2
+
+
+def test_an_old_format_seen_list_still_counts_as_text_read(c, setup):
+    from lightning.sms_imports import SEEN_KEY, fingerprint
+    _known(c, setup)
+    c.settings.set(SEEN_KEY, json.dumps([fingerprint(NBE_BUY)]))
+    result = c.sms_imports.read([("NBE", NBE_BUY, datetime(2026, 10, 6, 11, 14), _ms("2026-10-06T11:14"))])
+    assert result["staged"] == {} and result["skipped"] == 1 and _rows(c) == 0
