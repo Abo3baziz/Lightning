@@ -8,13 +8,16 @@
   // Every figure and date reads left to right as one unit (A06.2): the isolate keeps a minus on the left of its
   // digits, an amount's grouping in order and a yyyy-mm-dd date from flipping inside the Arabic line.
   const isolate = (value) => "\u2066" + value + "\u2069";
+  // A date's hyphens sit between Arabic-Indic digits, which a plain isolate would flip into 12-10-2026: the
+  // left-to-right override keeps the digits in the order they are written (the guideline's bdo dir="ltr").
+  const isolateDate = (value) => "\u2066\u202D" + value + "\u202C\u2069";
 
   function localizeNumericText(text) {
     return String(text).split(/(\s+)/).map((token) => {
       if (!token) return token;
       // Keep ISO date separators, while using Arabic grouping/decimal marks for values.
       if (/^\d{4}-\d{2}(?:-\d{2})?$/.test(token)) {
-        return isolate(token.replace(/[0-9]/g, (digit) => digitMap[digit]));
+        return isolateDate(token.replace(/[0-9]/g, (digit) => digitMap[digit]));
       }
       // Compact financial values use the app's k/M suffixes (for example 9.7k).
       const compact = token.match(/^([+\-−]?\d+(?:[,.]\d+)?)([kM])$/);

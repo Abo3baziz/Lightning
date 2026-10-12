@@ -384,3 +384,11 @@ main.phone-content { counter-reset: picked; }
 /* The chip shows the date as the app writes it (yyyy-mm-dd); the phone's own picker lies over it, unseen. */
 .phone-as-of .phone-chip { position: relative; cursor: pointer; }
 .phone-as-of input[type="date"] { position: absolute; inset: 0; width: 100%; min-height: 0; height: 100%; opacity: 0; border: 0; padding: 0; cursor: pointer; }
+
+/* Arabic phone (C03, C04): the four period choices carry longer words, so the month stepper keeps its arrows and its
+   date instead of being squeezed to nothing. The rest of the mirroring is phone.rtl.css, built from this file. */
+html.phone[dir="rtl"] .period-buttons:has(.period-month-seg) { display: flex; }
+html.phone[dir="rtl"] .period-buttons:has(.period-month-seg) > * { flex: 1 1 auto; justify-content: center; }
+html.phone[dir="rtl"] .period-buttons:has(.period-month-seg) .period-button:not(.period-month-seg):not(#_) { padding: 0 6px; font-size: 13px; }
+html.phone[dir="rtl"] .period-buttons:has(.period-month-seg) .period-month-seg { min-width: max-content; }
+html.phone[dir="rtl"] .period-month-seg .period-step:not(#_):not(.x_) { flex: none; width: 22px; }

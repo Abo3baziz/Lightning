@@ -578,9 +578,9 @@ ARABIC_UI = {
     'Yesterday': 'امبارح',
     'All': 'الكل',
     'All time': 'كل الوقت',
-    'YTD': 'من أول السنة',
+    'YTD': 'من بداية السنة',
     'Monthly': 'شهريًا',
-    'Custom': 'فترة مخصصة',
+    'Custom': 'مخصص',
     'Previous month': 'الشهر اللي فات',
     'Next month': 'الشهر الجاي',
     'Month': 'الشهر',
@@ -1155,7 +1155,7 @@ ARABIC_UI = {
     'Because this profile is open, each change needs one more proof: your security answer or your recovery key.': 'بما إن الملف مفتوح، كل تغيير محتاج تأكيد بإجابة الأمان أو مفتاح الاستعادة.',
     'Check interrupted restore →': 'راجع الاستعادة المتوقفة ←',
     '← Back to profile settings': '← رجوع لإعدادات الملف الشخصي',
-    '← Back to profiles': '← رجوع للملفات الشخصية',
+    '← Back to profiles': '→ رجوع للملفات الشخصية',
     'Selected database:': 'قاعدة البيانات المختارة:',
     'Available profiles': 'الملفات الشخصية المتاحة',
     'Choose one to continue.': 'اختار واحد عشان تكمّل.',
@@ -1586,6 +1586,7 @@ BROWSER_UI = {k: v for k, v in ARABIC_UI.items() if k in _ORIGINAL or k not in S
 _DATE_WORDS = {**MONTHS, **FULL_MONTHS}
 _MONTH_YEAR = re.compile(r"(" + "|".join(sorted(_DATE_WORDS, key=len, reverse=True)) + r")( \d{4})?")
 _NUMERIC = {"n", "m", "x", "year", "amt", "amt2"}
+_STAMPS = {"sa", "sb"}
 _MONEY = r"[-+\u2212]?[\d.,]+[kM]?%?(?: [A-Z]{3})?"
 _STAMP = r"\d{4}-\d\d(?:-\d\d)?"
 _NUMBER = r"[-+\u2212]?[\d.,]+[kM]?%?"
@@ -1614,7 +1615,7 @@ def _patterns():
                         pieces.append(f"(?P={name})")
                     else:
                         seen.add(name)
-                        pieces.append(f"(?P<{name}>" + (_MONEY if name.startswith("amt") else _NUMBER if name in _NUMERIC else ".+?") + ")")
+                        pieces.append(f"(?P<{name}>" + (_MONEY if name.startswith("amt") else _STAMP if name in _STAMPS else _NUMBER if name in _NUMERIC else ".+?") + ")")
                 else:
                     pieces.append(re.escape(part))
             regex = "".join(pieces)
@@ -1624,12 +1625,18 @@ def _patterns():
     return _PATTERNS
 
 
+def chunks_text(chunks: tuple[str, ...]) -> str:
+    return "".join(chunks)
+
+
 def _translate_whole(value: str) -> str | None:
     if value in ARABIC_UI and "{" not in value:
         return ARABIC_UI[value]
     for chunks, regex, translated in _patterns():
         if all(chunk in value for chunk in chunks):
             match = regex.fullmatch(value)
+            if match and " · " not in chunks_text(chunks) and any(" · " in v for v in match.groupdict().values()):
+                continue  # a one-part pattern must not swallow a `A · B` line: each part is translated on its own
             if match:
                 try:
                     return translated.format(**{k: _translate_text(v) for k, v in match.groupdict().items()})
@@ -1670,19 +1677,28 @@ def translate(text: str, locale: str = "en", **values: object) -> str:
     value = str(text)
     if locale != "ar":
         return value.format(**values) if values else value
+    if values:  # a system name passed in (an asset class, a category) is shown in Arabic; a typed name has no entry
+        values = {k: _translate_text(v) if isinstance(v, str) else v for k, v in values.items()}
     if value in ARABIC_UI:
         translated = ARABIC_UI[value]
         return translated.format(**values) if values else translated
-    return _translate_text(value)
+    return _translate_text(value.format(**values) if values else value)
 
 
 _TAG = re.compile(r"(<script\b.*?</script>|<style\b.*?</style>|<textarea\b.*?</textarea>|<!--.*?-->|<[^>]+>|[^<]+)", re.S | re.I)
 _ATTRIBUTE = re.compile(r"""(\s(?:title|aria-label|placeholder|alt|data-tip|data-busy|data-watch-label|data-confirm-delete|data-confirm|data-label)=)(["'])(.*?)\2""", re.S | re.I)
-_LATIN = re.compile(r"[A-Za-z]{3}")
+_LATIN = re.compile(r"[A-Za-z]{2}")
+
+
+_ARROWS = str.maketrans("\u2192\u2190", "\u2190\u2192")
 
 
 def _translate_piece(raw: str) -> str:
     plain = html.unescape(raw)
+    if ("\u2192" in plain or "\u2190" in plain) and re.sub(r"\s+", " ", plain.strip()) not in ARABIC_UI:
+        # A written arrow points the way the eye moves: on a right-to-left line, the other way (A06.2).
+        raw = html.escape(plain.translate(_ARROWS), quote=False)
+        plain = html.unescape(raw)
     if not _LATIN.search(plain):
         return raw
     stripped = re.sub(r"\s+", " ", plain.strip())
@@ -1698,7 +1714,10 @@ def localize_html(page: str) -> str:
     sentence left in English is translated here from the same table. Data (names, refs, codes) has no entry, so it stays."""
     out = []
     for token in _TAG.findall(page):
-        if token.startswith("<"):
+        if token[:9].lower() == "<textarea":  # its typed text stays as typed; its placeholder is ours
+            head, sep, rest = token.partition(">")
+            out.append(_ATTRIBUTE.sub(lambda m: m.group(1) + m.group(2) + _translate_piece(m.group(3)) + m.group(2), head) + sep + rest)
+        elif token.startswith("<"):
             if token[:2] not in ("<!", "</") and token.lower()[:7] not in ("<script", "<style>", "<textar"):
                 token = _ATTRIBUTE.sub(lambda m: m.group(1) + m.group(2) + _translate_piece(m.group(3)) + m.group(2), token)
             out.append(token)

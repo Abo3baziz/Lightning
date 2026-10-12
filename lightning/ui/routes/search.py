@@ -111,7 +111,7 @@ def matches(c, query: str, privacy: bool = False, per_group: int = 6) -> list[di
     for account in c.accounts.list(active_only=True):
         score = _score(needle, account.label, fuzzy)
         add(score, account.label, f"/accounts/{account.id}", "Account", account.account_type.label
-            if hasattr(account.account_type, "label") else account.account_type.value.title())
+            if hasattr(account.account_type, "label") else account.account_type.value.replace("_", " ").capitalize())
         if account.account_type.value in ("BANK", "CASH", "BROKERAGE"):
             for verb, path in (("Import CSV", "import"), ("Check against bank", "reconcile")):
                 add(max(_score(needle, f"{verb} {account.label}", fuzzy), _score(needle, verb, False) * 0.85 if score

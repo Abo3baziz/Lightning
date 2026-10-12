@@ -3251,3 +3251,11 @@ html[dir="rtl"] :is(h1,h2,h3) { line-height: 1.3; font-weight: 600; }
 html[dir="rtl"] * { letter-spacing: normal !important; }
 html[dir="rtl"] :is(em,i,cite,address) { font-style: normal; }
 html[dir="rtl"] svg { direction: ltr; }
+
+/* Arabic layout (A06.2): an arrow points the way the eye moves, so left and right chevrons swap; a drawn timeline keeps
+   its left-to-right axis and its Latin labels truncate at the end. Everything else is mirrored by style.rtl.css,
+   which tools/build_rtl_css.js writes from this file. */
+html[dir="rtl"] svg:has(> path[d="M15 18l-6-6 6-6"]), html[dir="rtl"] svg:has(> path[d="M15 6l-6 6 6 6"]),
+html[dir="rtl"] svg:has(> path[d="M9 6l6 6-6 6"]) { transform: scaleX(-1); }
+html[dir="rtl"] .main .timeline { direction: ltr; }
+html[dir="rtl"] td[dir="ltr"], html[dir="rtl"] li.code { text-align: right; }

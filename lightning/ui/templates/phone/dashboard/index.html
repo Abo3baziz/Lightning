@@ -41,7 +41,7 @@
     </div>
   </article>
   {% if owe and owe.bills_due_items %}<article class="card phone-card">
-    {% if owe and owe.bills_due_items %}<details class="phone-row-more"><summary class="phone-row"><span>{{ fig.bills_due.label }} to pay<small>{{ "Tap one to mark it paid"|tr(locale) }}</small></span><b>{{ owe.bills_due_items|length }}</b><span class="phone-chevron" aria-hidden="true">›</span></summary>
+    {% if owe and owe.bills_due_items %}<details class="phone-row-more"><summary class="phone-row"><span>{{ '{label} to pay'|tr(locale, label=fig.bills_due.label) }}<small>{{ "Tap one to mark it paid"|tr(locale) }}</small></span><b>{{ owe.bills_due_items|length }}</b><span class="phone-chevron" aria-hidden="true">›</span></summary>
       <div class="phone-rows is-inner">{% for p in owe.bills_due_items[:6] %}<a class="phone-row" data-popup-open href="/plan/items/{{ p.item.id }}/pay?due={{ p.due_date }}&amp;back=%2F"><span>{{ p.item.name }}<small>{{ p.due_date }}</small></span><b>{{ p.amount|money }}</b></a>{% endfor %}{% if owe.bills_due_items|length > 6 %}<a class="phone-row" href="/plan"><span>{{ owe.bills_due_items|length - 6 }} more</span><b>›</b></a>{% endif %}</div></details>{% endif %}
   </article>{% endif %}
   <article class="card phone-card phone-folds" aria-label="More on your position">

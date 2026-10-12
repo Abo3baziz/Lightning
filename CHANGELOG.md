@@ -6,6 +6,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 - Add one entry at the top of `## [Unreleased]
 
+- 2026-10-12 · Claude: Arabic layout now mirrors on every PC and phone screen: `style.rtl.css`, `phone.rtl.css` and `profiles.rtl.css` (built by `tools/build_rtl_css.js`, charts left as drawn) replace the English files in Arabic only; chevrons and written arrows point the way the eye moves, dates read `٢٠٢٦-١٠-١٢` left to right (they were flipping to `١٢-١٠-٢٠٢٦`), the phone period bar fits, paths and the AI prompt stay left to right, the timeline keeps its axis.
+  Arabic text: periods say «لحد», `As of`/`x of y`/asset-class names in Settings/low-confidence and compare lines/forms and titles are Arabic, period words follow C04 (من بداية السنة، مخصص); `tests/test_arabic_no_english.py` now also covers period variants, settings sections, forms and detail pages, and two-letter English words.
 - 2026-10-12 · Claude: the Arabic UI has no English system text on any PC or phone screen: an Arabic last pass over each page (`localize_html`) and ~1,500 new entries (system categories, asset kinds, currencies, months, sentences, errors) in `ui/i18n_system.py`, the glossary's Egyptian terms.
   Test: `tests/test_arabic_no_english.py`.
 - Keep it to three lines at most: what changed for the user or the code, and where. The reasons and details belong in the doc that owns them (`AGENTS.md` lists which).
