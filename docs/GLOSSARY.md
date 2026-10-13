@@ -10,15 +10,15 @@ Find a term: `grep -n -i '<term>' docs/GLOSSARY.md`.
 
 | Section | When to read |
 |---|---|
-| Device authority | Lending write access between phone and PC |
-| The basic model | Any core noun: account, asset, budget, reserve, loan, price |
-| Three layers: ledger, plan, report | What each layer may do |
-| Reported figures: one name, one calculation, one function | A figure's name, formula or function (generated) |
-| Category taxonomy (why the activity happened) | Category levels and rules |
-| Names and identifiers | Name vs code vs ID; input rules for dates, amounts, tags, rules |
-| Asset and account taxonomy (what vs where) | Asset classes, account kinds, code patterns |
+| Device authority | Lending write access |
+| The basic model | Any core noun |
+| Three layers: ledger, plan, report | What a layer may do |
+| Reported figures: one name, one calculation, one function | A figure's formula or function |
+| Category taxonomy (why the activity happened) | Category levels |
+| Names and identifiers | Name, code, ID; input rules |
+| Asset and account taxonomy (what vs where) | Account kinds, code patterns |
 | Transaction and posting types | The ten type codes |
-| العربية — المسرد العربي | The Egyptian Arabic name of every term and figure |
+| العربية — المسرد العربي | Egyptian Arabic names |
 
 ## Device authority
 
@@ -46,7 +46,7 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Exposure** | Ledger | What an asset economically tracks, apart from its class (a gold fund is a Fund with Gold exposure). |
 | **Holding / position** | Ledger | Calculated quantity of one asset in one account at a date. |
 | **Balance** | Ledger | Calculated value or quantity of an account or position at a date; never typed in. |
-| **Physical item** | Ledger | A named tangible asset tracked by piece count, net gold weight, karat, cost and valuation; not a tickered security. |
+| **Physical item** | Ledger | A named tangible asset tracked by pieces, net gold weight, karat, cost and valuation; not a security. |
 | **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones. Fine-gold exposure = pieces × net grams × karat/24; the karat-specific price applies to alloy grams, never adjusted again. Manual item valuation is a user-entered dated value. |
 | **Acquisition cost** | Ledger | Total paid for the item's current quantity, including workmanship and fees; price updates never change it. |
 | **Category** | Ledger | Label for the activity behind a transaction; never describes counterparty, account or asset. |
@@ -56,9 +56,9 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Profile currency** | Ledger + Report | Currency of ledger amounts and report totals; fixed once history exists. |
 | **FX revaluation** | Ledger + Report | Month-end change in the profile-currency value of foreign cash held; changes no units, is not income or spending. |
 | **Owner ID** | Ledger | Optional Counterparty on a line, shown as **Held for**; blank means the user owns it. |
-| **Held for** | Ledger | Who actually owns money or units in the user's account when not the user; separate from Counterparty. On every form (formerly Whom / Owned by / Owner). |
+| **Held for** | Ledger | Who owns money or units in the user's account when not the user; separate from Counterparty (formerly Whom / Owned by / Owner). |
 | **Change ownership** | Ledger | Zero-sum entry moving part of an account's balance between the user and one saved person. |
-| **Expense paid for you** | Ledger | An expense recorded in the user's account though another person paid; paired with an equal custody amount for the payer, so gross cash is unchanged. |
+| **Expense paid for you** | Ledger | An expense another person paid, recorded as the user's and paired with equal custody for the payer; gross cash unchanged. |
 | **Money in / money out** | Ledger | Direction value crosses an account boundary; direction never decides category. |
 | **Transfer** | Ledger | Value moved between the user's own accounts; not income or expense. |
 | **Investment trade** | Ledger | Brokerage cash for units (buy) or units for cash (sell), entered in that brokerage's register. |
@@ -73,17 +73,17 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Financial health limit** | Report | Profile-owned minimum (passes at or above) or maximum (at or below) for a figure; unavailable figures get no judgement. |
 | **Budget** | Plan | Planned spending for a category and month; not a reserve or a transaction. |
 | **Monthly base budget** | Plan | A category's monthly plan before carryover: fixed EGP, a percentage of Average monthly income, or an observed-month average. Shown as **Base budget**. |
-| **Observed-month average** | Plan | 3m/6m spending divided by the months that had qualifying activity; empty months are not zero and the window is not extended back. |
+| **Observed-month average** | Plan | 3m/6m spending divided by the months with qualifying activity; empty months are not zero. |
 | **Budget carryover** | Plan | Optional unused room added to a later month's limit; sets aside no cash and does not reduce free cash. |
 | **Reserve** | Plan | Already-owned cash assigned to an emergency fund or goal; moves no money, does not change net worth. |
-| **Emergency fund** | Plan | The permanent reserve section. Coverage = Reserves for emergencies ÷ Average monthly income (or spending, per Settings › Budget), in months; the aim is six. |
+| **Emergency fund** | Plan | The permanent reserve section. Coverage = emergency Reserves ÷ Average monthly income (or spending, per Settings › Budget), in months; aim six. |
 | **Cash planning** | Plan | Tab for spendable cash and commitments: Plan, Recurring, Loans, Reserves. Posts nothing by itself. |
 | **Recurring item** | Plan | Bill, subscription or income repeating weekly, monthly, every 3 months, yearly or once. |
 | **Loan** | Plan | Entered as its payments (amount, next date, payments left, optional amount borrowed). Each payment is spending when paid (System Categories › Loan payments unless changed); paying lowers cash, spending room and loans still to pay together, so net worth is unchanged. |
 | **Payment status** | Plan | **Paid** (a posted transaction settles it), **Skipped**, **Due** (today or earlier, unsettled) or **Upcoming**; voiding the transaction makes it Due again. |
-| **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds, Left in plan after bills, Saving for goals, Emergency fund top-up and Rest of savings target. Changes neither net worth nor free cash. |
+| **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds and savings lines. Changes neither net worth nor free cash. |
 | **CD terms** | Plan | Start, earliest withdrawal, maturity, principal, rate, simple payout or compounding, destination. Forecast cash, never post it. |
-| **Sale factor** | Plan | 0-100% estimate of what an asset class fetches if sold today; 95% if unset. Feeds Holdings after sale and If you sold today. A CD uses its class factor only after its earliest withdrawal date, 100% at maturity. Formerly *liquidation factor*. |
+| **Sale factor** | Plan | 0-100% estimate of what an asset class fetches if sold today; 95% if unset. Feeds Holdings after sale and If you sold today. A CD uses it only after its earliest withdrawal date (first date it can be redeemed early), 100% at maturity. Formerly *liquidation factor*. |
 
 <!-- figures:start (generated by python -m lightning.core.figures) -->
 ## Three layers: ledger, plan, report
@@ -287,15 +287,13 @@ Categories are not split into income and expense trees: pick the activity that e
 | **Name** | Human label on screens; account codes never show under it. Counterparty names are unique, other taxonomy names may repeat under different parents. |
 | **Code** | Stable machine identifier for links, imports and technical search; not shown in ordinary UI. |
 | **ID** | Internal database key; never shown. |
-| **Ticker / symbol** | Public exchange symbol used to find an instrument; not Lightning's code or ID. |
-| **ISIN** | Optional global security identifier for source matching. |
+| **Ticker / symbol** | Public exchange symbol; not Lightning's code or ID. Optional ISIN also matches sources. |
 | **Exchange** | Where a stock or ETF trades, stored as ISO 10383 MIC, shown by common name; no exchange means EGX; funds and gold have none. |
 | **Price file** | One market's closing prices, published as a checked folder and refreshed after close; Settings › Price files picks them. Code: pack. |
 | **Update prices** | Asks the sources for each held investment's latest close and missing month-end closes (source `ONLINE`); automatic only on the first open after a month ends; shared price files are the backup after two failed tries. |
 | **Market key** | A price file's permanent name for an instrument: ISO 3166 country and ticker, `EG:FUND:<id>`, or a currency pair; stored on the matched asset. |
 | **Unit** | What is counted for an asset. |
-| **Transaction reference (ref)** | Fixed human ID, unchanged when the date is edited, no account prefix. |
-| **Ledger-line reference** | Transaction ref plus line number. |
+| **Transaction reference (ref)** | Fixed human ID, unchanged when the date is edited; a line adds `/n`. |
 | **Date input** | ISO, day/month/year or day/month (current year); stored as ISO; ambiguous dates are day-first. |
 | **Amount input** | A number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and brackets, evaluated brackets, ^, * and /, then + and -; a bracket after a number multiplies. Unclear input is refused with the reason. |
 | **Tag** | A #word in notes (letters, digits, - or _, at least one letter, case-insensitive); links to every transaction with it; same as the exact register search. |
@@ -361,7 +359,6 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | Opening | رصيد افتتاحي |
 | Inflow | إيداع / وارد |
 | Outflow | سحب / صادر |
-| Internal-account transfer | تحويل بين الحسابات |
 | Investment buy / sell | شراء / بيع استثماري |
 | Dividend | توزيعات |
 | Valuation | تقييم |
