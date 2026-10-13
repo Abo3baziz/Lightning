@@ -1,118 +1,102 @@
-# Glossary and taxonomy
+Last reviewed 2026-10-13 · app 1.0.0b1
 
-Canonical product and technical terms. The product story is in [Project Overview](PROJECT_OVERVIEW.md), calculation contracts in [Architecture](ARCHITECTURE.md), and the visual system in the [Brand guideline](../guideline/) (`app.html`, `website.html`, `phone.html`). The figures table under "Reported figures" is generated from `lightning/core/figures.py` (`python -m lightning.core.figures`), and `tests/test_figures.py` keeps the two in step: change a figure there, never here.
+# Glossary
+
+One name and one meaning per term and figure. How things are built is in [Architecture](ARCHITECTURE.md), the product story in [Project Overview](PROJECT_OVERVIEW.md), history in `CHANGELOG.md`, the look in the [guideline](../guideline/). The figures tables are generated from `lightning/core/figures.py` (`python -m lightning.core.figures`); change a figure there, never here. Screens show the **Name**; codes and IDs never clutter them.
 
 ## Contents
 
-Look up one term with `grep -n -i '<term>' docs/GLOSSARY.md`. Read a whole section only when you add or rename terms in it.
+Find a term with `grep -n -i '<term>' docs/GLOSSARY.md`.
 
-| Section | Holds |
+| Section | When to read |
 |---|---|
-| The basic model | Ledger, accounts, transactions, postings and the other core nouns |
-| Device authority | Home node, borrower, checkout, checkpoint and hand-back receipts |
+| Device authority | Lending write access between phone and PC |
+| The basic model | Any core noun: account, asset, budget, reserve, loan, price |
 | Three layers: ledger, plan, report | What each layer may do |
-| Reported figures: one name, one calculation, one function | Every figure a screen shows, its formula and its function (generated) |
-| Category taxonomy (why the activity happened) | L1, L2 and L3 categories |
-| Names and identifiers | Names versus codes |
-| Asset and account taxonomy (what vs where) | Asset classes and account kinds |
-| Transaction and posting types | Every transaction and posting type |
-| العربية — المسرد العربي | المصطلحات والأرقام المالية بالعربية المصرية |
-
-This is Lightning's canonical language for product, database, code, and UI. Use these definitions consistently. The user's visible label is the **Name**; IDs and codes support data integrity and lookup and should not clutter ordinary screens.
+| Reported figures: one name, one calculation, one function | A figure's name, formula or function (generated) |
+| Category taxonomy (why the activity happened) | Category levels and rules |
+| Names and identifiers | Name vs code vs ID; input rules for dates, amounts, tags, rules |
+| Asset and account taxonomy (what vs where) | Asset classes, account kinds, code patterns |
+| Transaction and posting types | The ten type codes |
+| العربية — المسرد العربي | The Egyptian Arabic name of every term and figure |
 
 ## Device authority
 
-The first table describes built v1 lending. The planned replacement follows below; it does not change the current runtime.
+Built v1 lending. The planned replacement is in [edit journal](proposals/edit_journal.md) and [multiple devices](proposals/multiple_devices.md).
 
 | Term | Meaning |
 |---|---|
-| **Home node** | The device holding the centralized accepted database and deciding which device may write. The phone is the intended default. |
-| **Borrower** | A paired device holding temporary write authority for one checkout; initially a PC. |
-| **Checkout** | One grant of write authority, identified by a random checkout ID and increasing home epoch. |
-| **Checkpoint** | An immutable, verified encrypted database version with an ID and ciphertext hash. The live home file may later change. |
-| **Lend** | Home records a grant and becomes read-only before the borrower enables writes. |
-| **Hand back** | Borrower freezes its working copy and returns an encrypted candidate for home verification and publication. |
-| **Received** | Home durably holds a complete ciphertext candidate; the borrower remains read-only, and home has not resumed writing. |
-| **Accepted** | Home has verified and durably published the candidate and issued a durable receipt for its new checkpoint. |
-
-
-Planned [edit journal](proposals/edit_journal.md), not built:
-
-| Term | Meaning |
-|---|---|
-| **Home** | The stable device that validates proposed edits and publishes confirmed results; it changes only through an explicit move or recovery. |
-| **Proposal** | An immutable, signed request to perform one domain action, with a durable origin identity and preconditions. |
-| **Pending edit** | A locally saved proposal awaiting a terminal home decision; visible locally but excluded from confirmed reports. |
-| **Confirmed change** | The home's durable accepted result, replicated exactly rather than recalculated by peers. |
-| **Decision receipt** | The durable outcome tied to a proposal's identity and content hash, retained in compact form to prevent replay. |
-| **Authority generation** | One home-authority history; explicit home replacement advances it. |
-| **Confirmed cursor** | Generation, decision revision and commit hash identifying contiguous applied progress. |
-| **Origin incarnation** | One device installation's sequence namespace, renewed when safe counter continuity cannot be proved. |
-| **Field group** | Fields whose preconditions and updates must be checked together to preserve a domain action's meaning. |
-| **Outbox** | The device's encrypted durable queue, preserved independently of its confirmed replica. |
+| **Home node** | The device holding the accepted database and deciding which device may write. The phone is the intended default. |
+| **Borrower** | A paired device (initially a PC) holding temporary write authority for one checkout. |
+| **Checkout** | One grant of write authority, with a random checkout ID and increasing home epoch. |
+| **Checkpoint** | An immutable, verified encrypted database version with an ID and ciphertext hash. |
+| **Lend** | Home records a grant and goes read-only before the borrower enables writes. |
+| **Hand back** | Borrower freezes its copy and returns an encrypted candidate for home to verify and publish. |
+| **Received** | Home durably holds the complete candidate; borrower stays read-only, home has not resumed writing. |
+| **Accepted** | Home verified and published the candidate and issued a durable receipt for the new checkpoint. |
 
 ## The basic model
 
-Each term belongs to one layer: **Ledger** (real money that actually moved), **Plan** (what-if; moves no money) or **Report** (read from the other two). See [Three layers](#three-layers-ledger-plan-report).
+Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Report** (reads both).
 
-| Term | Layer | Meaning | Example |
-|---|---|---|---|
-| **Account** | Ledger | Where value is held. | CIB, Cash wallet, THNDR brokerage |
-| **Financial asset** | Ledger | What value is held or counted in an account. Designed as an extensible type so new products can be added without changing the account model. | EGP cash, COMI share, fund unit, CD, gold gram |
-| **Asset class** | Ledger | A grouping for financial assets; describes what kind of wealth it is, not where held or why a payment happened. | Funds → Money Market |
-| **Exposure** | Ledger | What economic value an asset tracks, separately from its wrapper/class. | Gold fund → Gold exposure |
-| **Holding / position** | Ledger | Calculated quantity of one financial asset in one account at a date. | 100 COMI shares in THNDR |
-| **Physical item** | Ledger | Individually named tangible asset tracked by piece count, per-piece net gold-bearing weight, karat, cost, and valuation reference. Its item record is not a tickered security. | One Gold ring, 1 piece, 4.2 g of 18K alloy |
-| **Net gold weight** | Ledger | Grams of gold-bearing alloy per physical piece, excluding stones and non-gold parts. It is not fine-gold grams unless the item's karat is 24K. | Ring: 4.2 g at 18K |
-| **Fine-gold exposure** | Ledger | Pure-gold-equivalent grams derived for allocation/reporting: piece count × net gold grams per piece × karat/24. This reporting measure does not change the item's display weight or reference valuation formula. | 1 × 4.2 g × 18/24 = 3.15 g fine gold |
-| **Karat-specific gold price** | Ledger | Price per gram of alloy at the named karat. Multiply by matching-karat net gold weight; never adjust the quote by purity again. | EGP per gram of 18K gold |
-| **Acquisition cost** | Ledger | Historical total paid for the item's current acquired quantity; may include workmanship, stones, and fees. Reference-price updates never change it. | 18,000 EGP including workmanship |
-| **Manual item valuation** | Ledger | User-entered dated total value for a physical item and its held quantity, used when the shared gold price is unsuitable. | Ring's 2026-09-26 resale estimate |
-| **Balance** | Ledger | Calculated value/quantity of an account or position on a date; not an independent user-entered fact. | 12,000 EGP; 100 shares |
-| **Activity** | Ledger | The broad reason/kind of a transaction, represented by its category family. It is independent of whether money came in or went out. | Personal, Work, Investment |
-| **Category** | Ledger | A label for the activity behind a transaction. Categories do not describe the counterparty, account, or owned asset. | Personal → Food & Groceries |
-| **Counterparty** | Ledger | The canonical person, business, institution, or own account on the other side of a transaction. A saved canonical name can have confirmed aliases; close matches are suggestions and require an explicit user decision. | Talabat, employer, CIB |
-| **Confirmed alias** | Ledger | User-approved alternative spelling attached to one canonical Counterparty; up to ten per Counterparty. A typo suggestion is not an alias until confirmed. | “Talbat” saved for Talabat |
-| **Search suggestion** | Ledger | A ranked possible match shown to help recover from spelling mistakes; it never silently chooses an identity, transfer, category, or custody owner. | “Did you mean Talabat?” |
-| **Transaction** | Ledger | A dated user or system event shown in the main ledger. | 450 EGP Talabat payment |
-| **Main ledger** | Ledger | The single activity ledger from which account registers, all-transaction view, budget actuals, and reporting are derived. | Register filtered to CIB |
-| **Ledger line / journal line** | Ledger | One transaction's effect on a particular account and financial asset. | CIB cash −450 EGP |
-| **Profile currency** | Ledger + Report | The currency used for ledger amount and report totals; fixed once monetary history exists. | EGP |
-| **Amount in currency** | Ledger | The amount in the line's own currency, preserved with its dated profile-currency value and rate. | 100 USD recorded as 5,000 EGP at 50 EGP/USD |
-| **FX revaluation** | Ledger + Report | Month-end change in the profile-currency value of foreign cash already held; it changes no native units and is not income or spending. | 100 USD rises from 5,000 to 5,500 EGP |
-| **Owner ID** | Ledger | Optional Counterparty reference on a ledger line (shown as **Held for**); blank means the user owns the value on that line. | Dad owns 2,000 EGP of THNDR cash |
-| **Money in / money out** | Ledger | Direction in which value crosses an account boundary. Direction does not determine category. | Salary is money in; grocery purchase is money out |
-| **Transfer** | Ledger | Value moved between accounts owned by the user; not income or expense. Selecting an owned account as Counterparty creates both account effects. | CIB → THNDR |
-| **Investment trade** | Ledger | Exchange of brokerage cash for asset units (buy) or units for cash (sell). It is recorded inside that brokerage account's register. | Buy 10 fund units |
-| **Budget** | Plan | Planned spending amount attached to a category/group and month. Budget limits are not reserve accounts or ledger transactions. | Monthly Food limit |
-| **Financial health** | Report | A read-only profile of named financial figures, their periods, supporting amounts and personal limit comparisons. It does not create a score or change financial data. | Financial health page |
-| **Financial health limit** | Report | A profile-owned comparison preference for a named figure. Minimum limits pass on equality or above; maximum limits pass on equality or below. An unavailable figure receives no judgement. | Savings rate at least 20% |
-| **Monthly base budget** | Plan | A tracked category’s monthly plan before any carryover: fixed EGP, a selected percentage of Average monthly income, or an observed-month spending average. Shown as **Base budget**. | Food fixed at 3,000 EGP or 10% of income |
-| **Observed-month average** | Plan | Spending average whose 3m/6m window is divided by the distinct months with qualifying recorded activity. Months without activity are not treated as zero and the window is not extended backward. | 12,000 EGP across two observed months in a six-month window = 6,000 EGP |
-| **Budget carryover** | Plan | Optional unused spending room added to a later month's limit. It never sets aside cash, creates a transaction, or reduces free cash. | 500 EGP of unused Food limit carried into October |
-| **Held for** | Ledger | Who the money or units in the user's account actually belong to, when not the user. Separate from Counterparty: one identifies transaction context, the other identifies beneficial owner/custody. The field is called Held for on every form (formerly Whom / Owned by / Owner). | Dad owns part of THNDR cash |
-| **Change ownership** | Ledger | A zero-sum cash entry that reassigns part of one account's balance between the user and one saved person. It changes beneficial ownership, not the account's gross balance. | Set aside 5,000 EGP in CIB for Dad |
-| **Expense paid for you** | Ledger | An expense the user chooses to record in their account even though another person paid externally. The categorized, user-owned expense is paired with an equal custody amount for the payer, so gross account cash stays unchanged. | Dad paid 2,500 EGP for groceries; record the expense and mark that cash as Dad's |
-| **Reserve** | Plan | A plan assigning some already-owned cash to an emergency fund or future goal. Assignment does not itself move money or change net worth; the actual payment is a normal ledger transaction. | Rent reserve |
-| **Emergency fund** | Plan | Permanent, dedicated reserve section. Coverage = Reserves for emergencies ÷ Average monthly income (or ÷ Average monthly spending, if Settings › Budget says so), shown in months. The aim is six. | 13 months of average monthly income |
-| **Cash planning** | Plan | The tab for spendable cash and commitments. Sub-tabs: Plan, Recurring, Loans, Reserves. Nothing in it posts to the ledger on its own. | — |
-| **Recurring item** | Plan | A bill, subscription or income that repeats on a schedule (weekly, monthly, every 3 months, yearly, or once). | WE Internet · 650 EGP monthly on day 20 |
-| **Loan** | Plan | A loan or installment plan, entered as its payments: amount per payment, the next payment date, and payments left. Optional amount borrowed. Each payment counts as spending when paid, in System Categories › Loan payments unless another category is chosen. While that category has no budget rule, its Planned amount each month is the loan payments scheduled that month (shown as *Loan payments scheduled this month*); setting an amount replaces it; paying one lowers cash, spending room and loans still to pay together, so it does not change net worth. | Car loan · 24 × 2,500 EGP from 2026-10-05 |
-| **Payment status** | Plan | For each scheduled date: **Paid** (settled by a posted transaction), **Skipped** (the user says it won't happen), **Due** (the date is today or earlier and nothing settled it) or **Upcoming**. Voiding the linked transaction makes it Due again. | Rent · 2026-10-03 · Upcoming |
-| **Cash forecast** | Plan | An estimate that carries free cash forward month by month with scheduled payments, separately labelled projected CD proceeds, Left in plan after bills, Saving for goals, Emergency fund top-up and Rest of savings target. A bill in a budgeted category counts inside that budget, never on top. Projected CD principal is a transfer into spendable cash, not income; the forecast never changes net worth or free cash. | 2026-11 ends with 93,220 EGP |
-| **CD terms** | Plan | The dates and interest rules for a funded certificate account: start, earliest withdrawal, maturity, principal, annual rate, simple-interest payout or compound capitalization frequency, and destination. Terms forecast cash but never post it. | NBE CD · 18% simple · monthly payout |
-| **Earliest withdrawal date** | Plan | First date a CD can be redeemed early; it is not a promised payout. Before this date the CD is not immediately realizable. Maturity is when the normal principal return is projected. | Earliest withdrawal 1 March; maturity 1 September |
-| **Sale factor** | Plan | User-selected 0–100% estimate of what one asset class would fetch if sold today; 95% when not set. The same factors feed Holdings after sale on Investments and If you sold today on Overview. A CD with terms uses its class factor as an early-redemption estimate only after its earliest withdrawal date; at maturity its remaining principal uses 100%. It does not change holdings or what you own. Historical scenarios use current settings. Formerly *liquidation factor*. | Gold 90%; CD early redemption 95% |
-| **Revaluation** | Ledger | Change in investment value caused by price changes, not deposits, purchases, or withdrawals. | Shares appreciate by 1,000 EGP |
-| **Opening adjustment** | Ledger | A holding entered as already owned when tracking began; it establishes a baseline and is not period contribution. | 5,000 EGP cost basis entered on tracking start |
-| **Reevaluation ledger** | Ledger | Monthly per-account/per-asset record of units, prices, values, and returns. Its account-level total links to one generated journal transaction in the main ledger. | September COMI return detail linked to one THNDR `VAL` journal |
-| **System-generated posting** | Ledger | An auditable ledger transaction created by application rules, not manually entered by the user. | Monthly `VAL` journal |
-| **Cost basis / average cost** | Ledger | Remaining units' recorded acquisition cost, including buy fees when fees are included in total. | Remaining shares cost 9,500 EGP |
-| **Realized / unrealized return** | Report | Gain/loss from units sold / change in value of units still held. | Sale gain / current paper gain |
-| **XIRR** | Report | Annualized money-weighted investment return from dated cash flows and an ending value. A since-inception rate and a selected-period currency return answer different questions; an unavailable result needs an explanation. | Portfolio XIRR since first contribution |
-| **Opening balance** | Ledger | A separately dated ledger entry for the account's value at a chosen point. It does not set a minimum date for later-entered activity; users can add earlier transactions at any time. | CIB starts at 50,000 EGP on 1 January; a December transaction may be added later |
-| **Void / delete** | Ledger | A recoverable correction that removes a transaction from active balances while retaining history. | Void a duplicate import |
-| **Linked (import row)** | Ledger | A statement row tied to a transaction you already recorded, instead of posting it again. It moves no money and changes nothing on the transaction; one row per account per transaction. | The CIB statement's Carrefour −450.00 linked to the purchase entered on the phone |
+| Term | Layer | Meaning |
+|---|---|---|
+| **Account** | Ledger | Where value is held (CIB, Cash wallet, THNDR brokerage). |
+| **Financial asset** | Ledger | What an account holds or counts (EGP cash, COMI share, fund unit, CD, gold gram). |
+| **Asset class** | Ledger | The kind of wealth an asset is; not where held or why paid. |
+| **Exposure** | Ledger | What an asset economically tracks, apart from its class (a gold fund is a Fund with Gold exposure). |
+| **Holding / position** | Ledger | Calculated quantity of one asset in one account at a date. |
+| **Balance** | Ledger | Calculated value or quantity of an account or position at a date; never typed in. |
+| **Physical item** | Ledger | A named tangible asset tracked by piece count, net gold weight, karat, cost and valuation; not a tickered security. |
+| **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones; equals fine gold only at 24K. |
+| **Fine-gold exposure** | Ledger | Pure-gold grams for reporting: pieces × net gold grams × karat/24. |
+| **Karat-specific gold price** | Ledger | Price per gram of alloy at the named karat; multiply by matching net weight, never adjust for purity again. |
+| **Acquisition cost** | Ledger | Total paid for the item's current quantity, including workmanship and fees; price updates never change it. |
+| **Manual item valuation** | Ledger | User-entered dated total value of an item, for when the shared gold price does not suit. |
+| **Activity** | Ledger | The reason for a transaction, as its category family; independent of direction. |
+| **Category** | Ledger | Label for the activity behind a transaction; never describes counterparty, account or asset. |
+| **Counterparty** | Ledger | The person, business, institution or own account on the other side. Names are unique; close matches are only suggestions. |
+| **Confirmed alias** | Ledger | User-approved alternative spelling of one Counterparty; up to ten each. |
+| **Search suggestion** | Ledger | Ranked possible match for a typo; never silently picks an identity, transfer, category or owner. |
+| **Transaction** | Ledger | A dated user or system event in the main ledger. |
+| **Main ledger** | Ledger | The single ledger every register, budget actual and report is derived from. |
+| **Ledger line / journal line** | Ledger | One transaction's effect on one account and asset. |
+| **Profile currency** | Ledger + Report | Currency of ledger amounts and report totals; fixed once history exists. |
+| **Amount in currency** | Ledger | The line's own-currency amount, kept with its dated profile-currency value and rate. |
+| **FX revaluation** | Ledger + Report | Month-end change in the profile-currency value of foreign cash held; changes no units, is not income or spending. |
+| **Owner ID** | Ledger | Optional Counterparty on a line, shown as **Held for**; blank means the user owns it. |
+| **Held for** | Ledger | Who actually owns money or units in the user's account when not the user; separate from Counterparty. On every form (formerly Whom / Owned by / Owner). |
+| **Change ownership** | Ledger | Zero-sum entry moving part of an account's balance between the user and one saved person; gross balance unchanged. |
+| **Expense paid for you** | Ledger | An expense recorded in the user's account though another person paid; paired with an equal custody amount for the payer, so gross cash is unchanged. |
+| **Money in / money out** | Ledger | Direction value crosses an account boundary; direction never decides category. |
+| **Transfer** | Ledger | Value moved between the user's own accounts; not income or expense. |
+| **Investment trade** | Ledger | Brokerage cash for units (buy) or units for cash (sell), entered in that brokerage's register. |
+| **Opening balance** | Ledger | Separately dated entry for an account's value at a chosen point; earlier transactions may still be added. |
+| **Opening adjustment** | Ledger | A holding entered as already owned when tracking began; a baseline, not a contribution. |
+| **Revaluation** | Ledger | Change in investment value from price, not deposits or withdrawals. |
+| **Reevaluation ledger** | Ledger | Monthly per-account, per-asset units, prices, values and returns; its account total is one generated `VAL` journal in the main ledger. |
+| **System-generated posting** | Ledger | Auditable transaction created by application rules, e.g. the monthly `VAL`. |
+| **Cost basis / average cost** | Ledger | Recorded acquisition cost of remaining units, including buy fees. |
+| **Void / delete** | Ledger | Recoverable correction: leaves active balances, keeps history. |
+| **Linked (import row)** | Ledger | A statement row tied to an already recorded transaction instead of posting again; moves no money, one row per account per transaction. |
+| **Realized / unrealized return** | Report | Gain from units sold / change in value of units held. |
+| **XIRR** | Report | Annualized money-weighted return from dated cash flows and an ending value; unavailable results need an explanation. |
+| **Financial health** | Report | Read-only profile of named figures, periods and personal-limit comparisons; no score. |
+| **Financial health limit** | Report | Profile-owned minimum (passes at or above) or maximum (at or below) for a figure; unavailable figures get no judgement. |
+| **Budget** | Plan | Planned spending for a category and month; not a reserve or a transaction. |
+| **Monthly base budget** | Plan | A category's monthly plan before carryover: fixed EGP, a percentage of Average monthly income, or an observed-month average. Shown as **Base budget**. |
+| **Observed-month average** | Plan | 3m/6m spending divided by the months that had qualifying activity; empty months are not zero and the window is not extended back. |
+| **Budget carryover** | Plan | Optional unused room added to a later month's limit; sets aside no cash and does not reduce free cash. |
+| **Reserve** | Plan | Already-owned cash assigned to an emergency fund or goal; moves no money, does not change net worth. |
+| **Emergency fund** | Plan | The permanent reserve section. Coverage = Reserves for emergencies ÷ Average monthly income (or spending, per Settings › Budget), in months; the aim is six. |
+| **Cash planning** | Plan | Tab for spendable cash and commitments: Plan, Recurring, Loans, Reserves. Posts nothing by itself. |
+| **Recurring item** | Plan | Bill, subscription or income repeating weekly, monthly, every 3 months, yearly or once. |
+| **Loan** | Plan | Entered as its payments (amount, next date, payments left, optional amount borrowed). Each payment counts as spending when paid, in System Categories › Loan payments unless changed; with no budget rule there, Planned is the month's scheduled payments. Paying lowers cash, spending room and loans still to pay together, so net worth is unchanged. |
+| **Payment status** | Plan | **Paid** (a posted transaction settles it), **Skipped**, **Due** (today or earlier, unsettled) or **Upcoming**; voiding the transaction makes it Due again. |
+| **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds, Left in plan after bills, Saving for goals, Emergency fund top-up and Rest of savings target. A bill in a budgeted category counts inside that budget. Changes neither net worth nor free cash. |
+| **CD terms** | Plan | Start, earliest withdrawal, maturity, principal, rate, simple payout or compounding, destination. Forecast cash, never post it. |
+| **Earliest withdrawal date** | Plan | First date a CD can be redeemed early; before it the CD is not immediately realizable. |
+| **Sale factor** | Plan | 0-100% estimate of what an asset class fetches if sold today; 95% if unset. Feeds Holdings after sale and If you sold today. A CD uses its class factor only after its earliest withdrawal date, 100% at maturity. Formerly *liquidation factor*. |
 
 <!-- figures:start (generated by python -m lightning.core.figures) -->
 ## Three layers: ledger, plan, report
@@ -301,295 +285,228 @@ These names no longer appear on screens. Each is now called:
 
 ## Category taxonomy (why the activity happened)
 
-There are three levels in the model, but only two are used now:
+| Level | Meaning |
+|---|---|
+| **L1 Activity family** | Personal, Work, Investment. |
+| **L2 Broad category** | The analysis bucket inside one family (Personal › Food & Groceries, Work › Salary, Investment › Dividends). |
+| **L3 Detail** | Unused and empty; add only when a user chooses more detail. |
 
-- **L1 — Activity family:** Personal · Work · Investment.
-- **L2 — Broad category:** the simple, useful analysis bucket within one family.
-- **L3 — Detail:** intentionally unused/empty for now. Do not prepopulate it; add only when a user chooses to track more detail.
-
-Examples: `Personal → Food & Groceries`, `Work → Salary`, `Investment → Dividends`. Categories are not divided into income and expense trees: choose the activity that explains the event regardless of sign. For example, a refund should retain the original activity category. Counterparty defaults may suggest a category (Talabat → Personal / Food & Groceries), but the user can choose another.
-
-Categories are selected from an explicit list, not silently created by typing. Names are sorted alphabetically within their parent. A category with historical use cannot be physically deleted; it is archived. Archived categories remain legible on old transactions but cannot be selected for new ones. Names should be unique among siblings; the same broad term may exist under different L1 families when meaning differs (e.g., Transportation under Personal and Work).
+Categories are not split into income and expense trees: pick the activity that explains the event whatever its sign (a refund keeps the original category). A Counterparty may suggest a category; the user can change it. Categories are picked from a list, never created by typing, and sorted alphabetically within their parent. A used category is archived, not deleted: readable on old transactions, not selectable for new ones. Sibling names are unique; the same name may sit under different families (Transportation under Personal and Work).
 
 ## Names and identifiers
 
 | Term | Rule | Example |
 |---|---|---|
-| **Name** | Human-readable label shown in ordinary app screens. Account codes never appear under account names in normal UI. Canonical Counterparty names are unique; other taxonomy names may repeat under different parents. | CIB; Talabat; Food & Groceries |
-| **Code** | Stable machine-friendly identifier for relationships, imports, and technical search. It is not the display name and should not appear in ordinary account UI. | `STK:COMI` |
-| **ID** | Internal database key; not meaningful to a person and never displayed. | `account_id = 12` |
-| **Ticker / symbol** | Public exchange/provider symbol used to find an instrument. It is not Lightning's code or database ID. | `COMI` |
-| **ISIN** | Optional global security identifier, useful for source matching; ordinary users need not know or enter it. | Egyptian security ISIN |
-| **Exchange** | Where a stock or ETF trades, stored as its ISO 10383 MIC and shown by its common name. A stock without one is on EGX; funds and gold have none. | `XCAI` shown as EGX; `XNAS` as Nasdaq |
-| **Price file** | The closing prices of one market (Egyptian stocks, Egyptian funds, exchange rates, US, Gulf or European stocks), published as one checked folder and refreshed after that market closes. Settings › Price files chooses which ones a profile follows. Code and the collector call it a pack (`lightning/market/packs.py`). | Egyptian stocks, prices to 2026-12-31 |
-| **Update prices** | Lightning asks the sources itself for each held investment's latest close and every month-end close it lacks (source `ONLINE`). It does it by itself only on the first open after a month ends, in the background. The shared price files are the backup, offered after two failed tries; Settings › Price files › Test price sources names a failing source. | Fetched 6 prices for 3 investments |
-| **Market key** | The price file's name for an instrument, which never changes once published: the venue's ISO 3166 country and the ticker, `EG:FUND:<id>` for a fund, a currency pair for a rate. Stored on the financial asset it matched. | `EG:COMI`, `SA:2222`, `USD/EGP` |
+| **Name** | Human label on screens; account codes never show under it. Counterparty names are unique, other taxonomy names may repeat under different parents. | CIB; Talabat |
+| **Code** | Stable machine identifier for links, imports and technical search; not shown in ordinary UI. | `STK:COMI` |
+| **ID** | Internal database key; never shown. | `account_id = 12` |
+| **Ticker / symbol** | Public exchange symbol used to find an instrument; not Lightning's code or ID. | `COMI` |
+| **ISIN** | Optional global security identifier for source matching. | |
+| **Exchange** | Where a stock or ETF trades, stored as ISO 10383 MIC, shown by common name; no exchange means EGX; funds and gold have none. | `XCAI` as EGX |
+| **Price file** | One market's closing prices (Egyptian stocks, Egyptian funds, rates, US, Gulf, European), published as a checked folder and refreshed after close; Settings › Price files picks them. Code calls it a pack (`lightning/market/packs.py`). | Egyptian stocks to 2026-12-31 |
+| **Update prices** | Asks the sources for each held investment's latest close and missing month-end closes (source `ONLINE`); automatic only on the first open after a month ends; shared price files are the backup after two failed tries. Settings › Price files › Test price sources names a failing source. | |
+| **Market key** | A price file's permanent name for an instrument: ISO 3166 country and ticker, `EG:FUND:<id>`, or a currency pair; stored on the matched asset. | `EG:COMI`, `USD/EGP` |
 | **Unit** | What is counted for an asset. | EGP, share, fund unit, gram |
-| **Transaction reference (ref)** | Fixed human-readable ID assigned to a transaction. It does not change if its date is edited and has no account prefix because transfers can touch two accounts. | `OUT-2026-09-25-003` |
-| **Ledger-line reference** | A transaction ref plus its line number. | `TRF-2026-09-26-001/2` |
-| **Date input** | Accepts ISO (`2026-01-31`), day/month/year (`31/1/2026`), or day/month (`31/1`, current year); stored canonically as ISO. Ambiguous numeric dates are interpreted day-first. | `31/1` → `2026-01-31` in 2026 |
-| **Amount input** | Accepts a number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and round brackets. Order: brackets, then ^, then * and /, then + and -, left to right; a bracket after a number or a bracket multiplies. Anything unclear is refused with the reason (`-2^2`, `2^3^2`, `8/2(2+2)`, a sign too many or too few, an uneven division, %, a date). The window shows the result before saving. | `3+5*8` → 43; `2(3+5)` → 16 |
-| **Tag** | A #word in a transaction's notes: letters, digits, - or _, with at least one letter; case does not matter. A note shows it as a link to every transaction carrying it, headed with their count, Money in and Money out. Typing it in a register's search is the same exact filter. | `#Eid` and `#eid` are one tag; `#eid2026` is another; `invoice #4521` has none |
-| **Rule** | Settings › Rules: when a transaction's counterparty (is, contains, one of), notes, amount (is, about ±7.5%, between, more or less than), account or direction fit, all or any of them, it sets a category, adds tags or splits money out (fixed amounts, then percents, the rest to the category). The most specific rule decides. It files imports and register rows before the counterparty's usual category; the past changes only when you ask, with one undo. | Vodafone between 1,000 and 50,000 → Shopping; Vodafone 350 keeps Utilities & Bills |
-| **Privacy mode** | Every money amount on screen is blurred, for a café or an office; percentages, dates and names stay readable, and pointing at an amount shows it. Switched by the eye beside Search or by "Hide amounts" in the command bar; the profile remembers it. | 52,500 owed shows blurred; 26.5 % stays |
+| **Transaction reference (ref)** | Fixed human ID, unchanged when the date is edited, no account prefix. | `OUT-2026-09-25-003` |
+| **Ledger-line reference** | Transaction ref plus line number. | `TRF-2026-09-26-001/2` |
+| **Date input** | ISO, day/month/year or day/month (current year); stored as ISO; ambiguous dates are day-first. | `31/1` is `2026-01-31` |
+| **Amount input** | A number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and brackets, evaluated brackets, ^, * and /, then + and -; a bracket after a number multiplies. Unclear input (`-2^2`, `2^3^2`, `8/2(2+2)`, uneven division, %, dates) is refused with the reason; the result shows before saving. | `3+5*8` is 43; `2(3+5)` is 16 |
+| **Tag** | A #word in notes (letters, digits, - or _, at least one letter, case-insensitive); links to every transaction with it, with count, Money in and Money out; same as the exact register search. | `#Eid` = `#eid` |
+| **Rule** | Settings › Rules: when counterparty, notes, amount, account or direction fit (all or any), set a category, add tags or split money out. The most specific rule wins; it files imports and register rows before the counterparty's usual category; the past changes only on request, with one undo. | Vodafone 1,000-50,000 to Shopping |
+| **Privacy mode** | Blurs every money amount (not percentages, dates, names); hover shows it. The eye beside Search or "Hide amounts" in the command bar; remembered per profile. | |
 
 ## Asset and account taxonomy (what vs where)
 
-Financial assets can include currency/cash, stocks, funds, physical gold, deposits/CDs, and future supported asset kinds. Asset class and exposure are separate dimensions: a gold fund is a Fund by wrapper/class but has Gold exposure. Account types describe location/container, for example cash wallet, bank account, deposit account, brokerage, physical-asset location, and other asset account. A brokerage may contain both its cash balance and many investment holdings.
-
-Example internal-code patterns (for data/search, not routine UI labels):
-
-- Account: `INSTITUTION-TYPE-CURRENCY`, e.g. `THNDR-BRK-EGP`.
-- Financial asset: `CLASS:SYMBOL`, e.g. `CASH:EGP`, `STK:COMI`, `FND:AZG`, `GLD:21K`.
-- Category/asset-class path: dotted tree code; nesting in the UI is by parent, not repeated breadcrumb text on every child.
+Asset class and exposure are separate. Account kinds describe the container: cash wallet, bank, deposit, brokerage (cash plus holdings), physical-asset location, other asset account. Internal code patterns (data and search only): account `INSTITUTION-TYPE-CURRENCY` (`THNDR-BRK-EGP`); asset `CLASS:SYMBOL` (`CASH:EGP`, `STK:COMI`, `FND:AZG`, `GLD:21K`); categories and classes a dotted tree code.
 
 ## Transaction and posting types
 
-`OPN` opening · `IN` inflow · `OUT` outflow · `TRF` internal-account transfer · `BUY` investment buy · `SEL` sell · `DIV` dividend · `VAL` system-generated valuation · `ADJ` reconciliation adjustment · `CNV` conversion (future/multi-currency use).
-
-An investment overview is a filtered/calculated view, not a separate place for buy/sell/dividend entry: those transactions are entered within the brokerage account register. Monthly return details live in the reevaluation ledger; one aggregate per affected account is journaled in the main ledger for reconciliation.
-
+`OPN` opening · `IN` inflow · `OUT` outflow · `TRF` internal transfer · `BUY` buy · `SEL` sell · `DIV` dividend · `VAL` system valuation · `ADJ` reconciliation adjustment · `CNV` currency conversion. Buy, sell and dividend are entered in the brokerage register; the investment overview only reads them.
 
 ## العربية — المسرد العربي
 
-هذا القسم مرجع عربي للأسماء الأساسية في Lightning. تبقى التسمية الإنجليزية بجوار المقابل العربي لتسهيل مطابقة المصطلحات مع الشاشات والشفرة. التعريف الإنجليزي في القسم السابق هو المرجع التفصيلي عند وجود اختلاف في الصياغة.
+الأسماء العربية المصرية المعتمدة في التطبيق. الاسم الإنجليزي هو اسم الجدول أعلاه؛ المعنى والصيغة هناك.
 
-### الطبقات الأساسية
-
-| English | العربية | المقصود |
-|---|---|---|
-| Ledger | السجل | الأموال والحركات الفعلية المسجلة. |
-| Plan | الخطة | ميزانيات واحتياطيات ومدفوعات متوقعة؛ لا تنقل أموالاً. |
-| Report | التقرير | قراءة للسجل والخطة لعرض النتائج. |
-| Account | الحساب | المكان الذي تُحفظ فيه القيمة. |
-| Financial asset | أصل مالي | ما يحتفظ الحساب بقيمته أو يسجل كميته. |
-| Asset class | فئة الأصل | نوع الثروة، مستقلاً عن مكان حفظها. |
-| Exposure | التعرّض | القيمة الاقتصادية التي يتبعها الأصل. |
-| Holding / position | حيازة / مركز | كمية أصل مالي في حساب بتاريخ محدد. |
-| Balance | الرصيد | قيمة أو كمية الحساب المحسوبة في تاريخ محدد. |
-| Transaction | معاملة | حدث مالي مؤرخ للمستخدم أو النظام. |
-| Main ledger | السجل الرئيسي | مصدر موحد للحركات وأرصدة الحسابات والتقارير. |
-| Ledger line | قيد | أثر معاملة واحدة على حساب وأصل مالي. |
-| Money in / money out | أموال داخلة / أموال خارجة | اتجاه عبور القيمة؛ لا يحدد فئة النشاط. |
-| Transfer | تحويل | نقل قيمة بين حسابات المستخدم، وليس دخلاً أو مصروفاً. |
-| Investment trade | صفقة استثمار | مبادلة نقد الوساطة بوحدات أصل أو العكس. |
-| Budget | ميزانيتك | إنفاق مخطط لفئة وشهر؛ ليست معاملة أو حساب احتياطي. |
-| Category | الفئة | سبب النشاط المالي. |
-| Counterparty | الطرف الآخر | الشخص أو الجهة أو الحساب في الطرف الآخر من المعاملة. |
-| Held for | مملوك لـ | المالك الفعلي للقيمة إذا لم تكن للمستخدم. |
-| Name | الاسم | تسمية مقروءة تظهر للمستخدم. |
-| Code | الرمز | معرّف تقني ثابت للبحث والربط. |
-| ID | المعرّف | مفتاح داخلي لا يحمل معنى للمستخدم. |
-| Date | التاريخ | يوم انتقال المال. |
-| As of | كما في | التاريخ الذي تصف القيمة أو السعر حالته. |
-| Amount | المبلغ | قيمة المال المنقول بعملة الحساب. |
-| Units | الوحدات | عدد الأسهم أو وحدات الصندوق أو القطع أو الغرامات. |
-| Notes | ملاحظات | نص حر مرتبط بالسجل. |
-| Due date | تاريخ الاستحقاق | موعد الدفعة المجدولة. |
-| Sale factor | معامل البيع | الحصة المتوقعة من قيمة الفئة عند البيع اليوم. |
-| Carryover | المبلغ المرحّل | الجزء غير المستخدم من الميزانية الذي ينتقل للشهر التالي؛ مش فلوس محجوزة. |
-| Financial health | صحتك المالية | عرض للقيَم المالية وفتراتها ومقارنتها بالحدود الشخصية، بلا درجة مركبة. |
-
-### سلطة الأجهزة
-
-| English | العربية | المعنى |
-|---|---|---|
-| Home node / Home | الجهاز الرئيسي | الجهاز الذي يعتمد قاعدة البيانات أو يراجع التعديلات وينشر النتائج. |
-| Borrower | الجهاز المستعير | جهاز مقترن يحصل مؤقتاً على صلاحية الكتابة. |
-| Checkout | إعارة الصلاحية | منح مؤقت لصلاحية الكتابة بمعرّف فريد. |
-| Checkpoint | نقطة تحقق | نسخة مشفرة ثابتة ومتحقق منها من قاعدة البيانات. |
-| Lend | إعارة | تسجيل الجهاز الرئيسي للمنح والتحول إلى القراءة فقط. |
-| Hand back | إعادة | تجميد نسخة المستعير وإرسالها للتحقق والنشر. |
-| Received | مستلَم | وصول النسخة كاملة إلى الجهاز الرئيسي مع بقاء الكتابة متوقفة. |
-| Accepted | مقبول | تحقق الجهاز الرئيسي من النسخة ونشرها وإصدار إيصال دائم. |
-| Proposal | مقترح | طلب موقع وثابت لتنفيذ إجراء واحد. |
-| Pending edit | تعديل معلّق | مقترح محفوظ محلياً ينتظر قرار الجهاز الرئيسي ولا يدخل التقارير المؤكدة. |
-| Confirmed change | تغيير مؤكد | نتيجة مقبولة ودائمة يعاد نسخها كما هي. |
-| Decision receipt | إيصال القرار | نتيجة دائمة مرتبطة بهوية المقترح ومحتواه. |
-| Outbox | صندوق الصادر | طابور مشفر دائم على الجهاز. |
-
-### الفئات والأنواع
-
-| English | العربية | المقصود |
-|---|---|---|
-| L1 — Activity family | المستوى الأول — عائلة النشاط | |
-| L2 — Broad category | المستوى الثاني — الفئة العامة | |
-| L3 — Detail | المستوى الثالث — التفصيل | |
-| Personal | شخصي | |
-| Work | عمل | |
-| Investment | استثمار | |
-| Opening | رصيد افتتاحي | |
-| Inflow | إيداع / وارد | |
-| Outflow | سحب / صادر | |
-| Internal-account transfer | تحويل بين الحسابات | |
-| Investment buy / sell | شراء / بيع استثماري | |
-| Dividend | توزيعات | |
-| Valuation | تقييم | |
-| Reconciliation adjustment | تسوية مطابقة | |
-| Conversion | تحويل عملة | |
-| Physical item | مقتنى مادي | أصل ملموس متعقب بالعدد والوزن والتكلفة والتقييم. |
-| Net gold weight | الوزن الصافي للذهب | وزن السبيكة الذهبية في القطعة دون الأحجار أو الأجزاء غير الذهبية. |
-| Fine-gold exposure | التعرّض للذهب الخالص | مكافئ الذهب الخالص المحسوب للتوزيع والتقارير. |
-| Acquisition cost | تكلفة الاقتناء | إجمالي ما دُفع للكمية المقتناة، شاملاً المصنعية والرسوم عند وجودها. |
-| Manual item valuation | تقييم يدوي للمقتنى | قيمة مؤرخة يُدخلها المستخدم عند عدم ملاءمة السعر المشترك. |
-| Confirmed alias | اسم بديل مؤكد | تهجئة بديلة وافق عليها المستخدم للاسم المعتمد. |
-| Search suggestion | اقتراح بحث | تطابق محتمل يُعرض للمراجعة ولا يختار الهوية تلقائياً. |
-| Privacy mode | وضع الخصوصية | تمويه المبالغ الظاهرة مع إبقاء النسب والتواريخ والأسماء مقروءة. |
-
-### مصطلحات إضافية وإدخال البيانات
-
-| English | العربية | المعنى |
-|---|---|---|
-| Amount input | إدخال المبلغ | اكتب رقماً أو عملية حسابية؛ راجع الناتج قبل الحفظ. |
-| Amount set aside | المبلغ المحجوز | نقد مخصص للاحتياطي ويظل في الحساب. |
-| Authority generation | جيل السلطة | تاريخ صلاحية الجهاز الرئيسي؛ استبداله الصريح يبدأ جيلاً جديداً. |
-| Base budget | الميزانية الأساسية | مبلغ الخطة الشهرية للفئة قبل إضافة أي ترحيل. |
-| Budget carryover | ترحيل الميزانية | مساحة إنفاق غير مستخدمة تُضاف للشهر التالي، من غير حجز نقد. |
-| CD terms | شروط شهادة الإيداع | شروط الاستحقاق والسحب المبكر للشهادة. |
-| Cash account | حساب النقد | الحساب الذي يدفع أو يستقبل نقد الصفقة. |
-| Cash forecast | توقع النقد | تقدير النقد وفق المواعيد والمدفوعات والخطة. |
-| Cash planning | تخطيط النقد | تقدير ما يمكن إنفاقه مع مراعاة الالتزامات والاحتياطيات. |
-| Change ownership | تغيير الملكية | تحديث المالك الفعلي للقيمة المسجلة. |
-| Confirmed cursor | مؤشر التأكيد | جيل السلطة ورقم القرار وبصمة التثبيت التي تحدد التقدم المتصل. |
-| Cost basis / average cost | أساس التكلفة / متوسط التكلفة | تكلفة الوحدات المحتفظ بها، شاملة الرسوم. |
-| Date input | إدخال التاريخ | يقبل صيغ التاريخ المحددة ويخزنها بصيغة معيارية. |
-| Earliest withdrawal date | أقرب تاريخ للسحب | أول يوم يمكن فيه سحب الوديعة وفق شروطها. |
-| Exchange | البورصة | السوق المسجل برمز MIC ويظهر باسمه الشائع. |
-| Expense paid for you | مصروف دُفع نيابةً عنك | معاملة تحملها طرف آخر عن المستخدم. |
-| Fees | الرسوم | تكاليف الصفقة؛ وضّح هل هي ضمن المبلغ أو خارجه. |
-| Field group | مجموعة حقول | حقول يجب التحقق منها وتحديثها معاً للحفاظ على معنى الإجراء. |
-| Financial health limit | حد الصحة المالية | تفضيل شخصي لمقارنة رقم مالي بحد أدنى أو أقصى. |
-| ISIN | رقم ISIN | معرّف عالمي اختياري للأوراق المالية. |
-| Karat-specific gold price | سعر الذهب حسب العيار | سعر غرام السبيكة من العيار المحدد؛ لا تعدّل السعر بالنقاوة مرة أخرى. |
-| Last due date | آخر تاريخ استحقاق | موعد آخر دفعة متكررة. |
-| Ledger line / journal line | قيد السجل / قيد اليومية | أثر المعاملة على حساب وأصل مالي. |
-| Ledger-line reference | مرجع القيد | مرجع المعاملة مضافاً إليه رقم القيد. |
-| Linked (import row) | مرتبط (صف مستورد) | صف كشف مربوط بمعاملة موجودة كي لا تُسجل مرتين. |
-| Market key | مفتاح السوق | المعرّف الثابت للأداة في ملف الأسعار. |
-| Money in | فلوس داخلة | قيمة دخلت إلى الحساب. |
-| Money out | فلوس خارجة | قيمة خرجت من الحساب. |
-| Monthly base budget | الميزانية الشهرية الأساسية | خطة الفئة للشهر قبل الترحيل. |
-| Observed-month average | متوسط الأشهر المسجلة | متوسط إنفاق الأشهر التي لها نشاط مؤهل فقط؛ الشهر بلا حركة لا يُحسب صفراً. |
-| Opening adjustment | تسوية افتتاحية | تعديل يطابق الرصيد الافتتاحي المسجل. |
-| Origin incarnation | دورة منشأ الجهاز | مساحة تسلسل خاصة بتثبيت الجهاز وتتجدد عند تعذر إثبات استمرارية العداد بأمان. |
-| Owner ID | معرّف المالك | مرجع اختياري للطرف الذي يملك القيمة فعلياً. |
-| Payment status | حالة الدفع | يوضح هل سُدد الموعد أم لا. |
-| Payments left / Number of payments | الدفعات المتبقية / عدد الدفعات | عدد دفعات القرض محسوباً من أول استحقاق. |
-| Price file | ملف الأسعار | أسعار الإغلاق لسوق محدد في حزمة محدثة. |
-| Realized / unrealized return | عائد محقق / غير محقق | ربح البيع المنفذ / تغير قيمة الوحدات المحتفظ بها. |
-| Recurring item | بند متكرر | فاتورة أو دخل أو دفعة مجدولة بتكرار محدد. |
-| Reevaluation ledger | سجل إعادة التقييم | تفاصيل العائد الشهري وإعادة تقييم الاستثمار. |
-| Revaluation | إعادة تقييم | تحديث قيمة الأصل حسب السعر في تاريخ معين. |
-| Rule | قاعدة | شروط تلقائية لتصنيف المعاملات أو تقسيمها؛ لا تغير الماضي إلا بطلب المستخدم. |
-| Saving needed | المطلوب ادخاره | المبلغ المطلوب لتغطية هدف الادخار في الفترة المختارة. |
-| System-generated posting | قيد ينشئه النظام | حركة يولدها النظام لأغراض التقييم أو المطابقة. |
-| Tag | وسم | كلمة مسبوقة بعلامة # لربط المعاملات في البحث والملاحظات. |
-| Target amount | المبلغ المستهدف | القيمة التي يدخر الاحتياطي للوصول إليها. |
-| Ticker / symbol | رمز التداول | الرمز العام للأداة في السوق. |
-| Transaction reference (ref) | مرجع المعاملة | معرّف مقروء وثابت للمعاملة. |
-| Type | النوع | تصنيف سجل أو معاملة. |
-| Update prices | تحديث الأسعار | جلب أحدث الأسعار وأسعار نهايات الشهور الناقصة للمراكز المحتفظ بها. |
-| Value | القيمة | قيمة أصل أو بند في تاريخ «كما في». |
-| Void / delete | إلغاء / حذف | تصحيح قابل للاسترجاع يستبعد المعاملة من الأرصدة النشطة مع إبقاء تاريخها. |
-| XIRR | العائد السنوي الداخلي | عائد سنوي محسوب لتدفقات نقدية بتواريخ مختلفة. |
-
-### التصنيفات والحسابات والأصول
-
-الفئات تشرح سبب النشاط: **شخصي** ثم فئة عامة مثل الطعام والبقالة؛ **عمل** مثل الراتب؛ و**استثمار** مثل التوزيعات. المستوى الثالث للتفاصيل متروك فارغاً حالياً ولا يُضاف مسبقاً. لا تقسم الفئات إلى شجرتي دخل ومصروف؛ اختَر النشاط الذي يشرح المعاملة حتى لو كانت استرداداً. الحساب يشرح أين توجد القيمة، وفئة الأصل تشرح نوعها. من أنواع الأصول المدعومة: النقد والعملات، الأسهم، الصناديق، الذهب المادي، والودائع أو شهادات الإيداع. ومن أنواع الحسابات: محفظة نقدية، حساب بنك، وديعة، وساطة، ومكان أصل مادي.
-
-### أسماء الأرقام المعروضة
-
-الجدول التالي يغطي كل الأرقام المسجلة في `lightning/core/figures.py`. العمود الإنجليزي يطابق الجدول المولّد أعلاه؛ وأسماء الدوال وصيغ المصدر التفصيلية تظل في ذلك الجدول.
-
-| English figure | التسمية العربية | المعنى وطريقة الحساب |
-|---|---|---|
-| In your accounts | في حساباتك | إجمالي القيمة الموجودة في حساباتك، بما فيها فلوس وأصول غيرك. الحساب: اللي تملكه + أموال لغيرك. |
-| Held for others | أموال لغيرك | فلوس ووحدات في حساباتك لكنها مملوكة لناس تانية؛ قراءة مباشرة من السجل. |
-| What you own | اللي تملكه | قيمة كل ما تملكه في حساباتك. الحساب: النقدية اللي تملكها + قيمة الاستثمارات + أصول تانية تملكها. |
-| Bank and wallet cash | نقدية البنك والمحفظة | النقد الموجود في الحسابات البنكية والمحافظ؛ قراءة مباشرة من السجل. |
-| Brokerage cash | نقدية الاستثمار | النقد غير المستثمر الموجود في حسابات الوساطة؛ قراءة مباشرة من السجل. |
-| Cash you own | النقدية اللي تملكها | نقد البنوك والمحافظ مضافاً إليه النقد في حسابات الوساطة. |
-| Deposits | الودائع والشهادات | قيمة الودائع والشهادات حسب رصيدها؛ تدخل ضمن قيمة الاستثمارات. |
-| Holdings value | قيمة الاستثمارات | أحدث قيمة لكل ما تملكه غير النقد: شهادات وودائع وأسهم وصناديق وذهب وأصول أخرى. |
-| Other you own | أصول تانية تملكها | ما تملكه بخلاف النقد والاستثمارات. الحساب: اللي تملكه − النقدية اللي تملكها − قيمة الاستثمارات. |
-| Reserves | المبالغ المحجوزة | مبالغ للطوارئ والأهداف المؤرخة، بعد خصم ما استُخدم منها في مدفوعات مرتبطة. تظل ضمن حساباتك وممتلكاتك؛ تُقرأ من الخطة. |
-| Bills due | فواتير مستحقة | فواتير واشتراكات وأقساط قروض حل موعدها أو فات، ولسه ما اتدفعتش. |
-| Loans still to pay | قروض لسه عليك | كل دفعات القروض اللي لسه ما اتدفعتش، سواء مستحقة أو جاية. |
-| What you owe | اللي عليك | المدفوعات المؤكدة: الفواتير المستحقة (من غير قسط القرض) + أقساط القروض المتبقية. |
-| Net worth | صافي ثروتك | اللي تملكه − اللي عليك. |
-| Bills and subscriptions a month | الفواتير والاشتراكات شهريًا | تكلفتها الشهرية؛ الأسبوعي يُحسب 52 مرة في السنة والسنوي مرة، والمدفوع لمرة واحدة لا يدخل. |
-| Loan payments a month | أقساط القروض شهريًا | قيمة أقساط القروض شهرياً، للقروض التي بقيت لها دفعات. |
-| Debt to net worth | الديون مقارنة بصافي ثروتك | اللي عليك ÷ صافي ثروتك؛ غير متاح لو صافي الثروة صفر أو أقل. |
-| Debt to cash | الديون مقارنة بالنقدية | اللي عليك ÷ النقدية اللي تملكها؛ يوضح إن كان النقد يكفي لسداد الدين. |
-| Loan payments to income | أقساط القروض من دخلك | أقساط القروض شهريًا ÷ متوسط الدخل الشهري. |
-| Fixed costs to income | المصاريف الثابتة من دخلك | (الفواتير والاشتراكات شهريًا + أقساط القروض شهريًا) ÷ متوسط الدخل الشهري. |
-| Free cash | النقدية المتاحة | النقدية اللي تملكها − المبالغ المحجوزة − الفواتير المستحقة. |
-| Portfolio value | قيمة المحفظة | تساوي قيمة الاستثمارات؛ تشمل كل ما تملكه غير النقد. نقد الوساطة داخل النقدية اللي تملكها. |
-| Holdings after sale (estimate) | قيمة الاستثمارات بعد البيع (تقديري) | مجموع قيمة كل فئة × معامل بيعها. شهادة الإيداع قبل موعد السحب المبكر = صفر؛ بعده تُحسب بمعامل فئتها، وعند الاستحقاق برصيدها الكامل. |
-| If you sold today (estimate) | لو بعت النهارده (تقديري) | النقدية المتاحة + قيمة الاستثمارات بعد البيع التقديرية. |
-| Money in | فلوس داخلة | الدخل المسجل خلال الفترة. لا يشمل التحويلات أو الصفقات أو الأموال المملوكة لغيرك. |
-| Money out | فلوس خارجة | الإنفاق المسجل خلال الفترة بعد الاستردادات. لا يشمل التحويلات أو الصفقات أو الأموال المملوكة لغيرك. |
-| Net flow | صافي التدفق | الفلوس الداخلة − الفلوس الخارجة. |
-| Savings rate | نسبة الادخار | صافي التدفق ÷ الفلوس الداخلة. لو الإنفاق تجاوز ضعفي الداخل، تُعرض الفجوة بالكلام بدل نسبة أقل من −100%. |
-| Opening balances in the period | الأرصدة الافتتاحية خلال الفترة | فلوس وأصول سجلتها على إنها ملكك بالفعل خلال الفترة؛ مش زيادة جديدة لأنك كنت تملكها قبلها. |
-| Change in what you own | التغير في اللي تملكه | قيمة ما تملكه في نهاية الفترة − قيمته في اليوم السابق لبدايتها − أرصدة بداية الفترة. |
-| Change in net worth | التغير في صافي ثروتك | صافي الثروة في نهاية الفترة − صافيها في اليوم السابق لبدايتها − أرصدة بداية الفترة. |
-| Per month | شهريًا | الإنفاق خلال الفترة ÷ عدد الشهور التقويمية التي تغطيها. |
-| Usual month | الشهر المعتاد | متوسط الإنفاق في آخر ستة شهور كاملة قبل الفترة. |
-| Usual range | النطاق المعتاد | أقل ووسط وأعلى إنفاق شهري في الاثني عشر شهراً الكاملين قبل الفترة؛ يحتاج ثلاثة أشهر على الأقل. |
-| Investing rate | نسبة الاستثمار | الأموال المضافة للاستثمار ÷ الفلوس الداخلة؛ لا تزيد عن نسبة الادخار. |
-| Average monthly income | متوسط الدخل الشهري | متوسط دخل الفئات المختارة خلال آخر 3 أو 6 شهور مكتملة فيها دخل. قبل أول شهر مكتمل، يستخدم الدخل المسجل في المتكرر. |
-| Average monthly spending | متوسط المصروفات الشهرية | متوسط الإنفاق في فئات الميزانية خلال نفس 3 أو 6 شهور المكتملة؛ الاستثمارات والفئات لمرة واحدة خارج الحساب. يمكن إدخال صندوق الطوارئ. |
-| Base budget | الميزانية الأساسية | المبلغ الناتج عن قاعدة الميزانية: مبلغ ثابت أو نسبة من الدخل أو متوسط إنفاق. |
-| Carryover | المبلغ المرحّل | المتبقي في خطة الشهر الماضي، إذا كان الترحيل مفعلاً. |
-| Planned | المخطط | الميزانية الأساسية + المبلغ المرحّل. الإجمالي قد يشمل تقديرات خلفية للفئات غير المتتبعة. |
-| Spent | المنفق | الفلوس الخارجة المسجلة في الفئة خلال الشهر. |
-| Left in plan | المتبقي في الخطة | المخطط − المنفق. الفئات لمرة واحدة لا تدخل في المنفق. |
-| Plan leaves to save | المتبقي للادخار من الخطة | متوسط الدخل الشهري − المخطط. |
-| Planned savings rate | نسبة الادخار المخططة | المتبقي للادخار من الخطة ÷ متوسط الدخل الشهري. |
-| Savings target | هدف الادخار | متوسط الدخل الشهري × حد نسبة الادخار الذي حددته. |
-| Emergency fund top-up | زيادة صندوق الطوارئ | النقص اللازم للوصول لصندوق يغطي ستة أشهر، موزع على سنتين؛ صفر لما يكتمل الصندوق. |
-| Saving needed | المطلوب ادخاره | الأكبر بين هدف الادخار وبين الادخار للأهداف + زيادة صندوق الطوارئ. |
-| Most you can plan | أقصى مبلغ تقدر تخطط له | متوسط الدخل الشهري − المطلوب ادخاره. |
-| Cost | التكلفة | إجمالي ما دفعته للوحدات التي لا تزال تملكها؛ قراءة مباشرة من السجل. |
-| Unrealized gain | ربح غير محقق | قيمة الاستثمارات − التكلفة. |
-| Price change on what you hold | تغير قيمة المقتنيات | الربح غير المحقق في نهاية الفترة − الربح غير المحقق في بدايتها. |
-| Gain from sales | أرباح البيع | حصيلة البيع − تكلفة الوحدات المباعة؛ قراءة مباشرة من السجل. |
-| Dividends and interest | توزيعات وفوائد | التوزيعات والفوائد التي استلمتها؛ قراءة مباشرة من السجل. |
-| Net gain or loss | صافي الربح أو الخسارة | أرباح البيع + تغير قيمة المقتنيات + التوزيعات والفوائد. |
-| Money added | فلوس مضافة | النقد المنقول لحسابات الاستثمار من خارجها − النقد المسحوب منها للخارج. |
-| Typical move | الحركة المعتادة | الانحراف المعياري لتغيرات السعر الشهرية بعد توفر ثلاثة أشهر على الأقل. |
-| Fall from its high | الانخفاض من أعلى قيمة | النسبة التي يقل بها سعر نهاية الشهر عن أعلى سعر نهاية شهر سابق. |
-| Average cost | متوسط التكلفة | التكلفة ÷ عدد الوحدات التي لا تزال تملكها؛ الرسوم محسوبة ضمن التكلفة. |
-| Growth | النمو | صافي الربح أو الخسارة ÷ (قيمة المحفظة في بداية الفترة + الفلوس المضافة). |
-| Average rate | متوسط السعر | تكلفة كل وحدة من العملة الأجنبية التي لا تزال تملكها بعملة الملف: التحويلات بسعر ما حصلت عليه، والمال الداخل بسعر اليوم، والخارج يأخذ وحداته بهذا السعر. |
-| Unrealized FX gain | ربح فروق العملة غير المحقق | قيمة الأموال الأجنبية اليوم − تكلفتها. |
-| Realized FX gain | ربح فروق العملة المحقق | لما خرجت أموال أجنبية في الفترة (صُرفت أو تحولت): ما حصلت عليه − تكلفتها بمتوسط السعر. |
-| Spread paid | فرق السعر المدفوع | ما كلفتك التحويلات في الفترة فوق سعر السوق في يومها: قيمة ما أرسلته بسعر السوق − قيمة ما استلمته بسعر السوق. الرسوم منفصلة. |
-| Price part | جزء السعر | جزء الربح غير المحقق للأصل الأجنبي الذي يأتي من سعره بعملته، بسعر صرف اليوم. |
-| FX part | جزء العملة | جزء الربح غير المحقق للأصل الأجنبي الذي يأتي من سعر الصرف: الربح غير المحقق − جزء السعر. |
-| Safe to spend | المتاح الآمن للصرف | تقدير: النقدية المتاحة − الفواتير والأقساط قبل الدخل القادم − المتبقي للإنفاق من الميزانية − الادخار للأهداف − زيادة صندوق الطوارئ − باقي هدف الادخار. |
-| Bills inside the plan | الفواتير ضمن الخطة | فواتير الشهر المستحقة أو القادمة في فئة لها ميزانية؛ محسوبة داخل ميزانيتها. |
-| Budget left to spend | المتبقي من الميزانية للصرف | المتبقي في الخطة − الفواتير المدرجة فيها، لتجنب حساب الفاتورة مرتين. |
-| Bills and loan payments before next income | الفواتير والأقساط قبل الدخل القادم | الفواتير والاشتراكات وأقساط القروض المجدولة حتى موعد الدخل القادم، ما لم يحن موعدها بعد. |
-| Saving for goals | الادخار للأهداف | احتياج الأهداف المؤرخة المتبقي موزعاً على الشهور الباقية. |
-| Rest of savings target | باقي هدف الادخار | هدف الادخار − الادخار للأهداف − زيادة صندوق الطوارئ، بحد أدنى صفر. |
-
-### مصطلحات إضافية من النص الإنجليزي
-
-| English | العربية | المقصود |
-|---|---|---|
-| Activity | النشاط | السبب العام للحركة، بعيدًا عن اتجاه الفلوس. |
-| Loan | قرض | خطة أقساط تسجل الدفعة وقت سدادها. |
-| Reserve | مبلغ محجوز | جزء من الفلوس المملوكة متعين لهدف؛ التعيين نفسه مش حركة مالية. |
-| Opening balance | رصيد افتتاحي | الرصيد وقت بدء المتابعة؛ مش دخل جديد. |
-| Unit | وحدة | كمية من أصل زي سهم أو وحدة صندوق. |
-| Paid | مدفوع | دفعة اتسددت بمعاملة مسجلة. |
-| Skipped | متخطّى | دفعة قال المستخدم إنها مش هتحصل. |
-| Due | مستحق | موعد الدفعة جه ولسه ما اتسددتش. |
-| Upcoming | قادم | موعد الدفعة لسه ما جاش. |
-| From | من | أول تاريخ في الفترة المختارة. |
-| Function | دالة الحساب | اسم الوظيفة البرمجية التي تحسب الرقم؛ مش تسمية على الشاشة. |
-| L1 — Activity family | المستوى الأول — عائلة النشاط | أوسع مستوى للفئة. |
-| L2 — Broad category | المستوى الثاني — الفئة العامة | فئة تحت عائلة النشاط. |
-| L3 — Detail | المستوى الثالث — التفصيل | تفصيل اختياري تحت الفئة العامة. |
+| Term | Arabic |
+|---|---|
+| Ledger | السجل |
+| Plan | الخطة |
+| Report | التقرير |
+| Account | الحساب |
+| Financial asset | أصل مالي |
+| Asset class | فئة الأصل |
+| Exposure | التعرّض |
+| Holding / position | حيازة / مركز |
+| Balance | الرصيد |
+| Transaction | معاملة |
+| Main ledger | السجل الرئيسي |
+| Transfer | تحويل |
+| Investment trade | صفقة استثمار |
+| Budget | ميزانيتك |
+| Category | الفئة |
+| Counterparty | الطرف الآخر |
+| Held for | مملوك لـ |
+| Name | الاسم |
+| Code | الرمز |
+| ID | المعرّف |
+| Date | التاريخ |
+| As of | كما في |
+| Amount | المبلغ |
+| Units | الوحدات |
+| Notes | ملاحظات |
+| Due date | تاريخ الاستحقاق |
+| Sale factor | معامل البيع |
+| Financial health | صحتك المالية |
+| Home node / Home | الجهاز الرئيسي |
+| Borrower | الجهاز المستعير |
+| Checkout | إعارة الصلاحية |
+| Checkpoint | نقطة تحقق |
+| Lend | إعارة |
+| Hand back | إعادة |
+| Received | مستلَم |
+| Accepted | مقبول |
+| L1 — Activity family | المستوى الأول — عائلة النشاط |
+| L2 — Broad category | المستوى الثاني — الفئة العامة |
+| L3 — Detail | المستوى الثالث — التفصيل |
+| Personal | شخصي |
+| Work | عمل |
+| Investment | استثمار |
+| Opening | رصيد افتتاحي |
+| Inflow | إيداع / وارد |
+| Outflow | سحب / صادر |
+| Internal-account transfer | تحويل بين الحسابات |
+| Investment buy / sell | شراء / بيع استثماري |
+| Dividend | توزيعات |
+| Valuation | تقييم |
+| Reconciliation adjustment | تسوية مطابقة |
+| Conversion | تحويل عملة |
+| Physical item | مقتنى مادي |
+| Net gold weight | الوزن الصافي للذهب |
+| Fine-gold exposure | التعرّض للذهب الخالص |
+| Acquisition cost | تكلفة الاقتناء |
+| Manual item valuation | تقييم يدوي للمقتنى |
+| Confirmed alias | اسم بديل مؤكد |
+| Search suggestion | اقتراح بحث |
+| Privacy mode | وضع الخصوصية |
+| Amount input | إدخال المبلغ |
+| Amount set aside | المبلغ المحجوز |
+| CD terms | شروط شهادة الإيداع |
+| Cash account | حساب النقد |
+| Cash forecast | توقع النقد |
+| Cash planning | تخطيط النقد |
+| Change ownership | تغيير الملكية |
+| Cost basis / average cost | أساس التكلفة / متوسط التكلفة |
+| Date input | إدخال التاريخ |
+| Earliest withdrawal date | أقرب تاريخ للسحب |
+| Exchange | البورصة |
+| Expense paid for you | مصروف دُفع نيابةً عنك |
+| Fees | الرسوم |
+| Financial health limit | حد الصحة المالية |
+| ISIN | رقم ISIN |
+| Karat-specific gold price | سعر الذهب حسب العيار |
+| Last due date | آخر تاريخ استحقاق |
+| Ledger-line reference | مرجع القيد |
+| Linked (import row) | مرتبط (صف مستورد) |
+| Market key | مفتاح السوق |
+| Observed-month average | متوسط الأشهر المسجلة |
+| Opening adjustment | تسوية افتتاحية |
+| Owner ID | معرّف المالك |
+| Payment status | حالة الدفع |
+| Payments left / Number of payments | الدفعات المتبقية / عدد الدفعات |
+| Price file | ملف الأسعار |
+| Realized / unrealized return | عائد محقق / غير محقق |
+| Recurring item | بند متكرر |
+| Reevaluation ledger | سجل إعادة التقييم |
+| Revaluation | إعادة تقييم |
+| Rule | قاعدة |
+| Saving needed | المطلوب ادخاره |
+| System-generated posting | قيد ينشئه النظام |
+| Tag | وسم |
+| Target amount | المبلغ المستهدف |
+| Ticker / symbol | رمز التداول |
+| Transaction reference (ref) | مرجع المعاملة |
+| Type | النوع |
+| Update prices | تحديث الأسعار |
+| Value | القيمة |
+| Void / delete | إلغاء / حذف |
+| XIRR | العائد السنوي الداخلي |
+| In your accounts | في حساباتك |
+| Held for others | أموال لغيرك |
+| What you own | اللي تملكه |
+| Bank and wallet cash | نقدية البنك والمحفظة |
+| Brokerage cash | نقدية الاستثمار |
+| Cash you own | النقدية اللي تملكها |
+| Deposits | الودائع والشهادات |
+| Holdings value | قيمة الاستثمارات |
+| Other you own | أصول تانية تملكها |
+| Reserves | المبالغ المحجوزة |
+| Bills due | فواتير مستحقة |
+| Loans still to pay | قروض لسه عليك |
+| What you owe | اللي عليك |
+| Net worth | صافي ثروتك |
+| Bills and subscriptions a month | الفواتير والاشتراكات شهريًا |
+| Loan payments a month | أقساط القروض شهريًا |
+| Debt to net worth | الديون مقارنة بصافي ثروتك |
+| Debt to cash | الديون مقارنة بالنقدية |
+| Loan payments to income | أقساط القروض من دخلك |
+| Fixed costs to income | المصاريف الثابتة من دخلك |
+| Free cash | النقدية المتاحة |
+| Portfolio value | قيمة المحفظة |
+| Holdings after sale (estimate) | قيمة الاستثمارات بعد البيع (تقديري) |
+| If you sold today (estimate) | لو بعت النهارده (تقديري) |
+| Money in | فلوس داخلة |
+| Money out | فلوس خارجة |
+| Net flow | صافي التدفق |
+| Savings rate | نسبة الادخار |
+| Opening balances in the period | الأرصدة الافتتاحية خلال الفترة |
+| Change in what you own | التغير في اللي تملكه |
+| Change in net worth | التغير في صافي ثروتك |
+| Per month | شهريًا |
+| Usual month | الشهر المعتاد |
+| Usual range | النطاق المعتاد |
+| Investing rate | نسبة الاستثمار |
+| Average monthly income | متوسط الدخل الشهري |
+| Average monthly spending | متوسط المصروفات الشهرية |
+| Base budget | الميزانية الأساسية |
+| Carryover / Budget carryover | المبلغ المرحّل |
+| Planned | المخطط |
+| Spent | المنفق |
+| Left in plan | المتبقي في الخطة |
+| Plan leaves to save | المتبقي للادخار من الخطة |
+| Planned savings rate | نسبة الادخار المخططة |
+| Savings target | هدف الادخار |
+| Emergency fund top-up | زيادة صندوق الطوارئ |
+| Most you can plan | أقصى مبلغ تقدر تخطط له |
+| Cost | التكلفة |
+| Unrealized gain | ربح غير محقق |
+| Price change on what you hold | تغير قيمة المقتنيات |
+| Gain from sales | أرباح البيع |
+| Dividends and interest | توزيعات وفوائد |
+| Net gain or loss | صافي الربح أو الخسارة |
+| Money added | فلوس مضافة |
+| Typical move | الحركة المعتادة |
+| Fall from its high | الانخفاض من أعلى قيمة |
+| Average cost | متوسط التكلفة |
+| Growth | النمو |
+| Average rate | متوسط السعر |
+| Unrealized FX gain | ربح فروق العملة غير المحقق |
+| Realized FX gain | ربح فروق العملة المحقق |
+| Spread paid | فرق السعر المدفوع |
+| Price part | جزء السعر |
+| FX part | جزء العملة |
+| Safe to spend | المتاح الآمن للصرف |
+| Bills inside the plan | الفواتير ضمن الخطة |
+| Budget left to spend | المتبقي من الميزانية للصرف |
+| Bills and loan payments before next income | الفواتير والأقساط قبل الدخل القادم |
+| Saving for goals | الادخار للأهداف |
+| Rest of savings target | باقي هدف الادخار |
+| Activity | النشاط |
+| Loan | قرض |
+| Reserve | مبلغ محجوز |
+| Opening balance | رصيد افتتاحي |
+| Unit | وحدة |
+| Paid | مدفوع |
+| Skipped | متخطّى |
+| Due | مستحق |
+| Upcoming | قادم |
+| From | من |
