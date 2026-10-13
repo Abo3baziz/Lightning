@@ -10,18 +10,19 @@ Read only the section your task needs (`grep -n '^## ' docs/PROJECT_OVERVIEW.md`
 
 | Section | Read it when |
 |---|---|
-| What Lightning is | You are new to the product |
-| Product decisions that must hold | You change any figure, rule or flow |
-| What you can do today | You need the current feature list |
-| Period and fixed-horizon visuals | You change a chart, card or the period picker |
-| The questions Lightning answers | You change what a screen answers, or a known gap |
-| Reference workflow: a month with Mohab | You change Mohab's test or a screen he uses |
-| Compared with the best budgeting apps | You plan a feature |
-| UX plan (guideline 3.6) | You take a UX item, or answer the owner's open UX questions |
-| Upcoming projects | You pick the next feature, or want to know which app an idea came from |
-| Roadmap | You plan or finish a milestone |
+| 1. What Lightning is | You are new to the product |
+| 2. Product decisions that must hold | You change any figure, rule or flow |
+| 3. What you can do today | You need the current feature list |
+| 4. Period and fixed-horizon visuals | You change a chart, card or the period picker |
+| 5. The questions Lightning answers | You change what a screen answers, or a known gap |
+| 6. Reference workflow: a month with Mohab | You change Mohab's test or a screen he uses |
+| 7. Compared with the best budgeting apps | You plan a feature |
+| 8. UX plan (guideline 3.6) | You take a UX item, or answer the owner's open UX questions |
+| 9. Upcoming projects | You pick the next feature, or want to know which app an idea came from |
+| 10. Roadmap | You plan or finish a milestone |
 
-## What Lightning is
+<a id="what-lightning-is"></a>
+## 1. What Lightning is
 
 Lightning is a local-first personal wealth app for Egyptians. It shows where your money is held, what it is invested in, how spending compares with your plan, and how what you own changes over time. The loop is simple: record or import activity, sort out unclear counterparties and categories, then read the analysis to spot patterns and save towards goals.
 
@@ -37,7 +38,8 @@ Every number comes from one of three layers, and each screen says which:
 
 **Priorities:** the simplest useful workflow with the fewest clicks; the same words everywhere; durable, searchable data; broad coverage of normal personal-finance cases. Calculations, matching, price processing and categorization are ordinary code, never AI calls.
 
-## Product decisions that must hold
+<a id="product-decisions-that-must-hold"></a>
+## 2. Product decisions that must hold
 
 - **Work happens on `who/feature` branches** (owner, 2026-10-12). Every AI works on a branch named for who does it and what feature it builds (`claude/arabic-type-and-numbers`), never a random name, and merges finished work into `main`. The rule is [AGENTS.md](../AGENTS.md) section 6.
 - **Arabic is for Egypt.** The app offers English and Egyptian Arabic for the same profile and the website links matching English and Arabic pages. Arabic pages read right to left; money, dates, currency codes and identifiers remain legible in their natural order. The [Glossary](GLOSSARY.md#العربية--المسرد-العربي) fixes the financial names used across both.
@@ -77,7 +79,8 @@ Every number comes from one of three layers, and each screen says which:
 - **Order to Google Play (owner, 2026-10-06).** Standalone Android is not enough. Milestone 1: phone and PC connected (pair, lend, edit, hand back), tasks 05–16c. Milestone 2: daily recording on the phone in its own layout, tasks 16d–19c. Milestone 3: bank SMS parsed into the ledger, tasks 21–22. Then the beta (23–24) and Google Play. The owner reviews at each milestone, not between.
 - **Planned bank SMS.** The phone reads bank SMS only after the ledger has been accepted home and unlocked, including messages received during a lend. Known formats follow the import and category rules; unclear ones wait for review and later bank CSVs must not duplicate them. Learn formats bank by bank from sanitized examples. The full design and its limits are in [Multiple devices](proposals/multiple_devices.md).
 
-## What you can do today
+<a id="what-you-can-do-today"></a>
+## 3. What you can do today
 
 - **Accounts and ledger:** open an account with a starting balance; record money in, money out and internal transfers between your accounts; edit, void and restore, bulk select, search, and check an account against the balance the bank shows: a small difference (up to 1% or 100, whichever is larger) becomes one balance adjustment counted as Other spending or Other income; a bigger one is reviewed row by row or reimported. **System Categories** contains loans, held money, Internal transfers, Capital allocation and the editable Adjustment catch-all.
 - **CSV import:** stage a bank CSV with one signed column or separate in/out columns. Only rows that need a decision need attention; a new name typed on several rows is created once; duplicates are flagged.
@@ -94,7 +97,8 @@ Every number comes from one of three layers, and each screen says which:
 - **Version 1.0 beta:** the paired Windows ZIP and signed Android APK are published together from one tested commit. `Lightning.exe` needs no Python; the phone and PC hand one encrypted ledger between them over local Wi-Fi, with one writer at a time. Named profiles open with a password, recovery key and security question. Ordinary Windows recovery/fault acceptance and legacy import remain open; beta testers may use sample or real data with an independent backup.
 - **Samples:** `python -m lightning --demo` opens Mohab's last three months in a separate database. An empty profile's welcome page can load Mohab's full 2026 CSV sample or one of four fictional Egyptian stories—Amr, Abdelrahman, Menna and Fatma—with distinct cash-flow, investing, freelance-income and emergency-reserve cases.
 
-## Period and fixed-horizon visuals
+<a id="period-and-fixed-horizon-visuals"></a>
+## 4. Period and fixed-horizon visuals
 
 The period picker (All time · YTD · Monthly · Custom) changes what most visuals show. A few keep a fixed horizon, because their question is about a set stretch of time, or about today. Each section header says which applies (for example "2026-09-01 to 2026-09-30", "Last 6 months", "Year to date" or "Today").
 
@@ -108,7 +112,8 @@ The period picker (All time · YTD · Monthly · Custom) changes what most visua
 
 A sparkline never follows the period. It is a quick "where is this heading" beside a number, so it always covers the last six months. A comparison ("against your usual month", "usual range") always looks at whole months *before* the period, so the period never compares with itself.
 
-## The questions Lightning answers
+<a id="the-questions-lightning-answers"></a>
+## 5. The questions Lightning answers
 
 Each tab answers one main question first, then its natural follow-ups. **Partial** and **Missing** mark the gaps.
 
@@ -225,7 +230,8 @@ User feedback becomes steps Mohab takes: fixed points are checked as answers, an
 
 Money held for others is left out of every owned, budget and performance view. Transfers are never income or spending. Refunds reduce spending in their original category.
 
-## Reference workflow: a month with Mohab
+<a id="reference-workflow-a-month-with-mohab"></a>
+## 6. Reference workflow: a month with Mohab
 
 The acceptance persona is **Mohab**, 31, salaried, in Cairo. He earns 45,000 EGP a month from ACME Egypt, paid into CIB. He has a CIB payroll account, a cash wallet and Vodafone Cash; an NBE 3-year certificate; and a THNDR account with COMI, Fawry and a money market fund. His gold is an L'Azurde ring bought by card and a gold pound from his grandmother. He holds 10,000 EGP of his mother's money in CIB. He pays rent, internet, phone and electricity monthly, and has a 24-month car loan.
 
@@ -282,7 +288,8 @@ Drive it in a browser through the screens only, and re-run it after any workflow
 - **Paying the car loan off early.** There is no lump-sum payment.
 - **A payslip's deductions** (income tax, social insurance). These are left out: record net pay.
 
-## Compared with the best budgeting apps
+<a id="compared-with-the-best-budgeting-apps"></a>
+## 7. Compared with the best budgeting apps
 
 The reference apps are YNAB, Monarch, Copilot, Simplifi, Rocket Money, Lunch Money and Actual Budget. The Egyptian apps people actually install are Say, Qershnat, Masarifi, Masareef, Money Manager and Wallet; what their users love and hate, and Lightning's main edge over all of them (the whole of an Egyptian's money, with numbers you can trust), are in [Competition](COMPETITION.md).
 
@@ -325,7 +332,8 @@ The reference apps are YNAB, Monarch, Copilot, Simplifi, Rocket Money, Lunch Mon
 
 Bank sync and bill negotiation are not adopted. Any sync first needs a provider and regional coverage; local CSV stays the foundation. A "safe to spend" figure must always say which obligations and income it includes. Simplifi's projection, which leaves out planned spending, shows why.
 
-## UX plan (guideline 3.6)
+<a id="ux-plan-guideline-36"></a>
+## 8. UX plan (guideline 3.6)
 
 From a full UX review on 2026-10-03: Mohab's year at a 1,366 × 768 window (the PC app), every screen checked against Brand guideline 3.6 Part A. The structure is two levels since 2026-10-06 (Architecture › UI contract, *Two levels*). Batch 1 is done; the rest is ranked by what a real user meets first.
 
@@ -355,7 +363,8 @@ From a full UX review on 2026-10-03: Mohab's year at a 1,366 × 768 window (the 
 
 - ~~*Recurring suggestions.*~~ Done 2026-10-06: Looks recurring no longer offers everyday spending (food, eating out, shopping, transport, entertainment: the budget's) or investment income (certificate interest, already in the forecast), and *Not recurring* hides a suggestion for good.
 
-## Upcoming projects
+<a id="upcoming-projects"></a>
+## 9. Upcoming projects
 
 Features worth building, each with the app it came from (added 2026-10-05). Unless marked Built, these are not started or scheduled; the owner picks what enters *Next* in [`NOW.md`](../NOW.md). The evidence is in [Competition](COMPETITION.md). The gaps already ranked in *Compared with the best budgeting apps* (phone capture, bank feed, reminders, multi-currency, household and the rest) are not repeated here. When one is built, its figures get one name in the [Glossary](GLOSSARY.md) and it moves to *What you can do today*.
 
@@ -399,7 +408,8 @@ Features worth building, each with the app it came from (added 2026-10-05). Unle
 
 **For the code** (from **Actual Budget**): one change note per change, joined at release, to end changelog conflicts between AIs; visual snapshots of key screens to guard the brand guideline; a warning on any push that touches a database migration.
 
-## Roadmap
+<a id="roadmap"></a>
+## 10. Roadmap
 
 ### Pre-ZIP release readiness
 
