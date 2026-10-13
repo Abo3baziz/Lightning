@@ -23,7 +23,7 @@
 
 ## Next
 
-1. **v1.1 beta publication:** automated Arabic, PC/phone, foreign cash/import and browser acceptance checked; build and verify the tagged Windows/Android pair, then update the website. Physical-device acceptance remains in OWNER.md. **Read:** Architecture › Build and release.
+1. **v1.1 beta publication:** tag `v1.1.0-beta.1` at `e156292`; 1,447 tests and encrypted self-check pass. [Release run](https://github.com/elfekimuhammed/Lightning/actions/runs/38445652708): approve `android-signing`, then `production-release`; verify both published files and update the website. Physical-device acceptance remains in OWNER.md. **Read:** Architecture › Build and release.
 2. **HIGH PRIORITY: Expand listed shares beyond EGX to Nasdaq, leading European exchanges and all GCC markets.** Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
 3. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
 4. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.

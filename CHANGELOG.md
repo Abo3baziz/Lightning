@@ -30,6 +30,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-13 · Codex: NOW.md records the v1.1 beta tag, passed acceptance and the GitHub signing/publication approval gates.
+
 ## [1.1.0b1] — 2026-10-13 — Windows and Android beta
 
 - 2026-10-13 · Codex: v1.1 beta acceptance: conversion previews use the posting parser (invalid amounts stay blank; Arabic digits work), foreign-stock requirements are translated and use the dated FX lookup, Mohab’s dollar brokerage participates in cross-tab reconciliation, and EGP bank SMS cannot be assigned to foreign accounts.
