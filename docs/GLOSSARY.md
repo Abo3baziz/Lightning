@@ -2,11 +2,11 @@ Last reviewed 2026-10-13 · app 1.0.0b1
 
 # Glossary
 
-One name and one meaning per term and figure. How things are built is in [Architecture](ARCHITECTURE.md), the product story in [Project Overview](PROJECT_OVERVIEW.md), history in `CHANGELOG.md`, the look in the [guideline](../guideline/). The figures tables are generated from `lightning/core/figures.py` (`python -m lightning.core.figures`); change a figure there, never here. Screens show the **Name**; codes and IDs never clutter them.
+One name and one meaning per term and figure. How things are built is in [Architecture](ARCHITECTURE.md), the product story in [Project Overview](PROJECT_OVERVIEW.md), history in `CHANGELOG.md`, the look in the [guideline](../guideline/). The figures tables are generated from `lightning/core/figures.py` (`python -m lightning.core.figures`); change a figure there, never here.
 
 ## Contents
 
-Find a term with `grep -n -i '<term>' docs/GLOSSARY.md`.
+Find a term: `grep -n -i '<term>' docs/GLOSSARY.md`.
 
 | Section | When to read |
 |---|---|
@@ -22,7 +22,7 @@ Find a term with `grep -n -i '<term>' docs/GLOSSARY.md`.
 
 ## Device authority
 
-Built v1 lending. The planned replacement is in [edit journal](proposals/edit_journal.md) and [multiple devices](proposals/multiple_devices.md).
+Built v1 lending; planned replacement: [edit journal](proposals/edit_journal.md).
 
 | Term | Meaning |
 |---|---|
@@ -30,9 +30,8 @@ Built v1 lending. The planned replacement is in [edit journal](proposals/edit_jo
 | **Borrower** | A paired device (initially a PC) holding temporary write authority for one checkout. |
 | **Checkout** | One grant of write authority, with a random checkout ID and increasing home epoch. |
 | **Checkpoint** | An immutable, verified encrypted database version with an ID and ciphertext hash. |
-| **Lend** | Home records a grant and goes read-only before the borrower enables writes. |
+| **Lend / Received** | Home goes read-only and records a grant before the borrower writes / home durably holds the complete returned candidate and has not resumed writing. |
 | **Hand back** | Borrower freezes its copy and returns an encrypted candidate for home to verify and publish. |
-| **Received** | Home durably holds the complete candidate; borrower stays read-only, home has not resumed writing. |
 | **Accepted** | Home verified and published the candidate and issued a durable receipt for the new checkpoint. |
 
 ## The basic model
@@ -48,21 +47,13 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Holding / position** | Ledger | Calculated quantity of one asset in one account at a date. |
 | **Balance** | Ledger | Calculated value or quantity of an account or position at a date; never typed in. |
 | **Physical item** | Ledger | A named tangible asset tracked by piece count, net gold weight, karat, cost and valuation; not a tickered security. |
-| **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones; equals fine gold only at 24K. |
-| **Fine-gold exposure** | Ledger | Pure-gold grams for reporting: pieces × net gold grams × karat/24. |
-| **Karat-specific gold price** | Ledger | Price per gram of alloy at the named karat; never adjust for purity again. |
+| **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones. Fine-gold exposure = pieces × net grams × karat/24; the karat-specific price applies to alloy grams, never adjusted again. Manual item valuation is a user-entered dated value. |
 | **Acquisition cost** | Ledger | Total paid for the item's current quantity, including workmanship and fees; price updates never change it. |
-| **Manual item valuation** | Ledger | User-entered dated total value of an item, for when the shared gold price does not suit. |
-| **Activity** | Ledger | The reason for a transaction, as its category family; independent of direction. |
 | **Category** | Ledger | Label for the activity behind a transaction; never describes counterparty, account or asset. |
-| **Counterparty** | Ledger | The person, business, institution or own account on the other side. |
-| **Confirmed alias** | Ledger | User-approved alternative spelling of one Counterparty; up to ten each. |
-| **Search suggestion** | Ledger | Ranked possible match for a typo; never silently picks an identity, transfer, category or owner. |
+| **Counterparty** | Ledger | The person, business, institution or own account on the other side; up to ten confirmed aliases each; typo matches are only suggestions. |
 | **Transaction** | Ledger | A dated user or system event in the main ledger. |
 | **Main ledger** | Ledger | The single ledger every register, budget actual and report is derived from. |
-| **Ledger line / journal line** | Ledger | One transaction's effect on one account and asset. |
 | **Profile currency** | Ledger + Report | Currency of ledger amounts and report totals; fixed once history exists. |
-| **Amount in currency** | Ledger | The line's own-currency amount, kept with its dated profile-currency value and rate. |
 | **FX revaluation** | Ledger + Report | Month-end change in the profile-currency value of foreign cash held; changes no units, is not income or spending. |
 | **Owner ID** | Ledger | Optional Counterparty on a line, shown as **Held for**; blank means the user owns it. |
 | **Held for** | Ledger | Who actually owns money or units in the user's account when not the user; separate from Counterparty. On every form (formerly Whom / Owned by / Owner). |
@@ -72,13 +63,10 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Transfer** | Ledger | Value moved between the user's own accounts; not income or expense. |
 | **Investment trade** | Ledger | Brokerage cash for units (buy) or units for cash (sell), entered in that brokerage's register. |
 | **Opening balance** | Ledger | Separately dated entry for an account's value at a chosen point; earlier transactions may still be added. |
-| **Opening adjustment** | Ledger | A holding entered as already owned when tracking began; a baseline, not a contribution. |
 | **Revaluation** | Ledger | Change in investment value from price, not deposits or withdrawals. |
-| **Reevaluation ledger** | Ledger | Monthly per-account, per-asset units, prices, values and returns; its account total is one generated `VAL` journal in the main ledger. |
-| **System-generated posting** | Ledger | Auditable transaction created by application rules, e.g. the monthly `VAL`. |
-| **Cost basis / average cost** | Ledger | Recorded acquisition cost of remaining units, including buy fees. |
+| **Reevaluation ledger** | Ledger | Monthly per-account, per-asset units, prices, values and returns; each account total is one system-generated `VAL` journal in the main ledger. |
 | **Void / delete** | Ledger | Recoverable correction: leaves active balances, keeps history. |
-| **Linked (import row)** | Ledger | A statement row tied to an already recorded transaction instead of posting again; moves no money, one row per account per transaction. |
+| **Linked (import row)** | Ledger | A statement row tied to an already recorded transaction instead of posting again; moves no money. |
 | **Realized / unrealized return** | Report | Gain from units sold / change in value of units held. |
 | **XIRR** | Report | Annualized money-weighted return from dated cash flows and an ending value; unavailable results need an explanation. |
 | **Financial health** | Report | Read-only profile of named figures, periods and personal-limit comparisons; no score. |
@@ -95,7 +83,6 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Payment status** | Plan | **Paid** (a posted transaction settles it), **Skipped**, **Due** (today or earlier, unsettled) or **Upcoming**; voiding the transaction makes it Due again. |
 | **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds, Left in plan after bills, Saving for goals, Emergency fund top-up and Rest of savings target. Changes neither net worth nor free cash. |
 | **CD terms** | Plan | Start, earliest withdrawal, maturity, principal, rate, simple payout or compounding, destination. Forecast cash, never post it. |
-| **Earliest withdrawal date** | Plan | First date a CD can be redeemed early; before it the CD is not immediately realizable. |
 | **Sale factor** | Plan | 0-100% estimate of what an asset class fetches if sold today; 95% if unset. Feeds Holdings after sale and If you sold today. A CD uses its class factor only after its earliest withdrawal date, 100% at maturity. Formerly *liquidation factor*. |
 
 <!-- figures:start (generated by python -m lightning.core.figures) -->
@@ -303,25 +290,25 @@ Categories are not split into income and expense trees: pick the activity that e
 | **Ticker / symbol** | Public exchange symbol used to find an instrument; not Lightning's code or ID. |
 | **ISIN** | Optional global security identifier for source matching. |
 | **Exchange** | Where a stock or ETF trades, stored as ISO 10383 MIC, shown by common name; no exchange means EGX; funds and gold have none. |
-| **Price file** | One market's closing prices (Egyptian stocks, Egyptian funds, rates, US, Gulf, European), published as a checked folder and refreshed after close; Settings › Price files picks them. Code: pack. |
+| **Price file** | One market's closing prices, published as a checked folder and refreshed after close; Settings › Price files picks them. Code: pack. |
 | **Update prices** | Asks the sources for each held investment's latest close and missing month-end closes (source `ONLINE`); automatic only on the first open after a month ends; shared price files are the backup after two failed tries. |
 | **Market key** | A price file's permanent name for an instrument: ISO 3166 country and ticker, `EG:FUND:<id>`, or a currency pair; stored on the matched asset. |
 | **Unit** | What is counted for an asset. |
 | **Transaction reference (ref)** | Fixed human ID, unchanged when the date is edited, no account prefix. |
 | **Ledger-line reference** | Transaction ref plus line number. |
 | **Date input** | ISO, day/month/year or day/month (current year); stored as ISO; ambiguous dates are day-first. |
-| **Amount input** | A number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and brackets, evaluated brackets, ^, * and /, then + and -; a bracket after a number multiplies. Unclear input (`-2^2`, `2^3^2`, `8/2(2+2)`, %, dates) is refused with the reason. |
+| **Amount input** | A number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and brackets, evaluated brackets, ^, * and /, then + and -; a bracket after a number multiplies. Unclear input is refused with the reason. |
 | **Tag** | A #word in notes (letters, digits, - or _, at least one letter, case-insensitive); links to every transaction with it; same as the exact register search. |
-| **Rule** | Settings › Rules: when counterparty, notes, amount, account or direction fit (all or any), set a category, add tags or split money out. The most specific rule wins; it files imports and register rows before the counterparty's usual category; the past changes only on request, with one undo. |
+| **Rule** | Settings › Rules: when counterparty, notes, amount, account or direction fit, set a category, add tags or split money out. The most specific wins; it applies before the counterparty's usual category; the past changes only on request. |
 | **Privacy mode** | Blurs every money amount (not percentages, dates, names); hover shows it. The eye beside Search or "Hide amounts" in the command bar; remembered per profile. |
 
 ## Asset and account taxonomy (what vs where)
 
-Asset class and exposure are separate. Account kinds describe the container: cash wallet, bank, deposit, brokerage (cash plus holdings), physical-asset location, other asset account. Internal code patterns (data and search only): account `INSTITUTION-TYPE-CURRENCY` (`THNDR-BRK-EGP`); asset `CLASS:SYMBOL` (`CASH:EGP`, `STK:COMI`, `FND:AZG`, `GLD:21K`); categories and classes a dotted tree code.
+Asset class and exposure are separate. Account kinds describe the container: cash wallet, bank, deposit, brokerage (cash plus holdings), physical-asset location, other asset account. Code patterns: account `INSTITUTION-TYPE-CURRENCY` (`THNDR-BRK-EGP`); asset `CLASS:SYMBOL` (`STK:COMI`, `GLD:21K`).
 
 ## Transaction and posting types
 
-`OPN` opening · `IN` inflow · `OUT` outflow · `TRF` internal transfer · `BUY` buy · `SEL` sell · `DIV` dividend · `VAL` system valuation · `ADJ` reconciliation adjustment · `CNV` currency conversion. Buy, sell and dividend are entered in the brokerage register; the investment overview only reads them.
+`OPN` opening · `IN` inflow · `OUT` outflow · `TRF` internal transfer · `BUY` buy · `SEL` sell · `DIV` dividend · `VAL` system valuation · `ADJ` reconciliation adjustment · `CNV` currency conversion. Buy, sell and dividend are entered in the brokerage register.
 
 ## العربية — المسرد العربي
 
