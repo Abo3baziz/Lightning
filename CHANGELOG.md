@@ -30,7 +30,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
-- 2026-10-13 · Codex: NOW.md records the v1.1 beta tag, passed acceptance and the GitHub signing/publication approval gates.
+- 2026-10-13 · Codex: NOW.md records v1.1 beta acceptance and the verified Windows ZIP; GitHub signing/publication approval gates remain.
 
 ## [1.1.0b1] — 2026-10-13 — Windows and Android beta
 
