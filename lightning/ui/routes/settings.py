@@ -180,8 +180,14 @@ async def save_locale(request: Request):
     """Store the interface language in this profile; unsupported values fall back to English."""
     form = await request.form()
     locale = str(form.get("locale", "en"))
-    container(request).settings.set("locale", locale if locale in ("en", "ar") else "en")
-    return redirect("/settings")
+    locale = locale if locale in ("en", "ar") else "en"
+    container(request).settings.set("locale", locale)
+    response = redirect("/settings")
+    # The profile pages and the locked chooser read this cookie (encrypted settings are closed there),
+    # so they follow the language chosen here.
+    response.set_cookie("lightning_ui_locale", locale, max_age=60 * 60 * 24 * 365, httponly=False,
+                        secure=request.url.scheme == "https", samesite="lax", path="/")
+    return response
 
 
 @router.post("/ai-analysis")

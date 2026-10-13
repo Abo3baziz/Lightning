@@ -1656,6 +1656,10 @@ def _translate_text(value: str) -> str:
         return _DATE_WORDS[month.group(1)] + (month.group(2) or "")
     if value in WEEKDAYS:
         return WEEKDAYS[value]
+    if value.endswith(".") and not value.endswith(".."):
+        head = _translate_text(value[:-1])  # a name or list closing a sentence: "Transportation."
+        if head != value[:-1]:
+            return head + "."
     named = _NAME_NUMBER.fullmatch(value)
     if named:
         head = _translate_text(named.group(1))
@@ -1669,7 +1673,9 @@ def _translate_text(value: str) -> str:
     for separator in _SEPARATORS:
         if separator in value:
             done = [_translate_text(part) for part in value.split(separator)]
-            return separator.join(done)
+            if done == value.split(separator):
+                return value
+            return ("، " if separator == ", " else separator).join(done)  # the Arabic comma between list items
     return value
 
 
