@@ -244,6 +244,16 @@ def phone_mode() -> bool:
 
 templates.env.globals["phone_mode"] = phone_mode
 
+_LOCALE: contextvars.ContextVar[str] = contextvars.ContextVar("lightning_locale", default="en")
+
+
+def ui_locale() -> str:
+    """The page's language, for macros imported without the page's context (en or ar)."""
+    return _LOCALE.get()
+
+
+templates.env.globals["ui_locale"] = ui_locale
+
 
 def _phone_template(name: str) -> str:
     """A page with its own phone screen has it under templates/phone/; every other page keeps its own."""
@@ -267,6 +277,15 @@ def _render(request, name, status_code, c, total, owned_total, groups, context) 
 def _render_page(request, name, status_code, c, total, owned_total, groups, context) -> HTMLResponse:
     locale = c.settings.get("locale") if c is not None else "en"
     locale = locale if locale in ("en", "ar") else "en"
+    language = _LOCALE.set(locale)
+    try:
+        response = _template_response(request, name, status_code, c, locale, total, owned_total, groups, context)
+    finally:
+        _LOCALE.reset(language)
+    return response
+
+
+def _template_response(request, name, status_code, c, locale, total, owned_total, groups, context):
     response = templates.TemplateResponse(
         request,
         name,

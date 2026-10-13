@@ -27,6 +27,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-13 · Claude: Arabic in the app: Settings › Language also sets the profile pages' language; month grid keeps time left to right with month numbers, not J F M; YTD reads `2026-01-01 to today` (A06.1); list keynotes and the phone category count translated; RTL CSS regenerated.
 - 2026-10-13 · Claude: v1.1 US stocks: an investment is priced in its exchange's currency (USD for Nasdaq, NYSE, Arca; registered on creation); picker lists about 400 US stocks and 70 ETFs with their exchange; buys, sells, dividends and holdings post at the day's rate and refuse an account in another currency. The 2026 sample and Mohab get a dollar brokerage with a Nasdaq ETF.
 - 2026-10-13 · Claude: v1.1 phone and Arabic pass: phone day headers and quiet links Ink; the hidden calendar button no longer squeezes dates in the register (English and Arabic); RTL CSS regenerated. `phone_check` is clean.
 - 2026-10-13 · Claude: v1.1 brand pass (PC and phone): links Ink and underlined, register spending Ink and the table fits its card at 1440 px, off-palette text and H3 to A03, soft-well fields, profile and welcome currency are type-and-pick, one palette in `style.css`, no dark-mode gradients. New `tests/test_brand_audit.py` (browser) guards it.

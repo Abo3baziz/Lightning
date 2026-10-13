@@ -31,7 +31,7 @@ EXTRA_PAGES = ("/accounts/1", "/accounts/2", "/accounts/3", "/accounts/6", "/acc
 PHONE_EXTRA = ("/accounts/1", "/accounts/6", "/plan/loans", "/plan/recurring", "/plan/reserves", "/investments/holding/11",
                "/transactions/315", "/accounts/1/transaction/new", "/budget/raise?month=2026-10", "/search?q=a")
 PHONE_PAGES = ("/", "/budget", "/plan", "/investments", "/accounts", "/transactions", "/birdview/expenses",
-               "/financial-health", "/settings")
+               "/financial-health", "/settings", "/categories")
 
 # Brand, keyboard keys, data sources and the one prompt meant to be pasted into an AI tool.
 ALLOWED_WORDS = {"Lightning", "Ctrl", "Enter", "Esc", "TradingView", "Yahoo", "Finance", "Mubasher", "Nasdaq",
@@ -168,6 +168,46 @@ def test_patterns_and_months():
     assert translate("Delete Eating Out", "ar") == "احذف المطاعم"
     assert translate("Oct 2026", "ar") == "أكتوبر 2026"
     assert translate("Personal › Food & Groceries", "ar") == "شخصي › الأكل والبقالة"
+
+
+def test_a_name_or_list_closing_a_sentence_is_translated():
+    """Keynotes close a list of category names with a full stop (Budget › Categories over plan)."""
+    assert translate("Transportation.", "ar") == "المواصلات."
+    assert translate("Transportation, Eating Out and 2 more.", "ar") == "المواصلات، المطاعم و2 كمان."
+    assert translate("CIB, THNDR", "ar") == "CIB, THNDR"  # typed names stay as typed
+
+
+def test_dates_are_iso_and_month_columns_keep_time_left_to_right(sample):
+    """A06.1 and A06.2: no "1 January 2026"; the month grid is a time axis, so it does not mirror, and its short
+    labels are month numbers rather than English initials."""
+    c, _ = sample
+    client = _client(c, False)
+    investments = client.get("/investments").text
+    body = investments[investments.index("</head>"):]
+    assert "1 يناير" not in body and "1 January" not in body
+    assert "-01-01" in body  # Dividends collected: from yyyy-01-01 to today
+    overview = client.get("/").text
+    if 'class="mcal"' in overview:
+        assert '<table class="mcal" dir="ltr"' in overview
+        assert re.search(r'class="m-short">[JFMASOND]<', overview) is None
+
+
+@pytest.mark.parametrize("phone", [False, True], ids=["pc", "phone"])
+def test_the_browser_translations_load_before_the_page_scripts(sample, phone):
+    """Page scripts (the category count, dialogs) call window.lightningT as they run, so it is set in the head."""
+    c, _ = sample
+    page = _client(c, phone).get("/categories").text
+    assert page.index("window.lightningT=") < page.index("</head>")
+
+
+def test_choosing_arabic_in_settings_carries_to_the_profile_pages(sample):
+    """Profile settings and the locked chooser cannot read the encrypted settings, so they read this cookie."""
+    c, _ = sample
+    client = _client(c, False)
+    response = client.post("/settings/locale", data={"locale": "ar"}, follow_redirects=False)
+    assert "lightning_ui_locale=ar" in response.headers.get("set-cookie", "")
+    response = client.post("/settings/locale", data={"locale": "fr"}, follow_redirects=False)
+    assert "lightning_ui_locale=en" in response.headers.get("set-cookie", "")
 
 
 def test_arabic_pages_use_the_mirrored_stylesheets_and_they_match_their_source(sample):
