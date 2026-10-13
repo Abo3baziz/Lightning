@@ -3241,9 +3241,11 @@ html[dir="rtl"] td[dir="ltr"], html[dir="rtl"] li.code { text-align: right; }
 
 /* Register at 1440 px: the table fills its card, no inner scroll; narrower screens still scroll. */
 .main .register-rows { min-width:980px!important; }
-.main .register-rows .col-date { width:118px; }
+.main .register-rows .col-date { width:132px; }
 .main .register-rows .col-amount { width:138px; }
-.main .register-rows .col-balance { width:128px; }
+.main .register-rows .col-balance { width:116px; }
 /* Plan forecast numbers: five columns inside half a card wrap instead of scrolling. */
 .main .plan-forecast-table :is(th,td) { padding-inline:6px; white-space:normal; }
 .main .plan-forecast-table td.num { white-space:nowrap; }
+/* The calendar button is hidden (the date opens its own calendar), so its grid column no longer takes room from the date. */
+.iso-date-control { grid-template-columns:minmax(0,1fr); }

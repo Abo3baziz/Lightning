@@ -27,6 +27,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-13 · Claude: v1.1 phone and Arabic pass: phone day headers and quiet links Ink; the hidden calendar button no longer squeezes dates in the register (English and Arabic); RTL CSS regenerated. `phone_check` is clean.
 - 2026-10-13 · Claude: v1.1 brand pass (PC and phone): links Ink and underlined, register spending Ink and the table fits its card at 1440 px, off-palette text and H3 to A03, soft-well fields, profile and welcome currency are type-and-pick, one palette in `style.css`, no dark-mode gradients. New `tests/test_brand_audit.py` (browser) guards it.
 - 2026-10-13 · Claude: v1.1 review: brand audit of the post-beta screens, FX gaps (no conversion, typed rates only, no age limit, no FX cost or gains, foreign stocks booked in EGP) and the US-stock plan in `docs/proposals/v1_1_presentable.md`; packages A and B claimed.
 - 2026-10-12 · Claude: red suite fixed. Code: income plan items offer ± categories (Internal transfers, Capital allocation, Adjustment); the section tabs show on `/accounts/currencies` and other non-numeric account pages.
