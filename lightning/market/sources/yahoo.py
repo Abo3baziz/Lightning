@@ -20,8 +20,8 @@ def symbol_for(key: str) -> str | None:
         return key[3:] + ".CA"
     if key.startswith("US:"):
         return key[3:].replace(".", "-")
-    if key.endswith("/EGP") and key[:3] == "USD":
-        return "EGP=X"
+    if key.endswith("/EGP") and key[:3].isalpha() and key[:3] != "EGP":
+        return "EGP=X" if key[:3] == "USD" else f"{key[:3]}EGP=X"  # EUR/EGP -> EUREGP=X
     return {"XAU/USD": "GC=F", "XAG/USD": "SI=F"}.get(key)
 
 

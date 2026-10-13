@@ -8,10 +8,15 @@
   <div class="card">
     <h2>{% if txn.description or summary.counterparty %}{{ txn.description or summary.counterparty }}{% else %}{{ txn.type_label|tr(locale) }}{% endif %}</h2>
     <table>
-      <tr><td class="muted">{{ 'Amount'|tr(locale) }}</td><td class="num">{% if txn.type == 'TRF' %}{{ summary.amount|money }} {{ summary.currency }}{% else %}{{ amount(summary.amount, summary.currency, True) }}{% endif %}</td></tr>
-      {% if txn.type == 'TRF' %}
+      <tr><td class="muted">{{ 'Amount'|tr(locale) }}</td><td class="num">{% if txn.type == 'CNV' %}{{ summary.amount|money }} {{ summary.currency }} → {{ summary.to_amount|money }} {{ summary.to_currency }}{% elif txn.type == 'TRF' %}{{ summary.amount|money }} {{ summary.currency }}{% else %}{{ amount(summary.amount, summary.currency, True) }}{% endif %}</td></tr>
+      {% if txn.type in ('TRF', 'CNV') %}
       <tr><td class="muted">{{ 'From'|tr(locale) }}</td><td>{{ summary.account_label }}</td></tr>
       <tr><td class="muted">{{ 'To'|tr(locale) }}</td><td>{{ summary.to_account_label }}</td></tr>
+      {% if conversion %}
+      <tr><td class="muted">{{ 'Rate'|tr(locale) }}</td><td class="num">1 {{ conversion.quote_base }} = {{ conversion.rate }} {{ conversion.quote_quote }}</td></tr>
+      {% if conversion.fee %}<tr><td class="muted">{{ 'Fee'|tr(locale) }}</td><td class="num">{{ conversion.fee|money }} {{ conversion.sent_currency }}</td></tr>{% endif %}
+      {% if conversion_spread is not none %}<tr><td class="muted">{{ 'Spread paid'|tr(locale) }}</td><td class="num">{{ conversion_spread|money }} {{ base }}</td></tr>{% endif %}
+      {% endif %}
       {% else %}
       <tr><td class="muted">{{ 'Account'|tr(locale) }}</td><td>{{ summary.account_label }}</td></tr>
       {% if summary.category_label %}<tr><td class="muted">{{ 'Category'|tr(locale) }}</td><td>{{ summary.category_label }}</td></tr>{% endif %}
@@ -26,6 +31,7 @@
     <div class="actions" style="margin-top:14px">
       {% if not txn.is_void %}
         {% if txn.source == 'SYSTEM' %}<span class="muted small">{{ "Deleting this reevaluation removes its effect from the account."|tr(locale) }}</span>
+        {% elif txn.type == 'CNV' %}<a class="btn" href="/transactions/{{ txn.id }}/convert/edit">{{ 'Edit'|tr(locale) }}</a>
         {% elif is_ownership %}<a class="btn" data-popup-open href="/transactions/{{ txn.id }}/ownership/edit">{{ 'Edit'|tr(locale) }}</a>
         {% elif txn.type in ('BUY', 'SEL', 'DIV') or (txn.type == 'OPN' and lines[0].asset != 'CASH:' ~ base) %}<a class="btn" href="/investments/{{ txn.id }}/edit">{{ 'Edit'|tr(locale) }}</a>
         {% elif txn.type == 'OPN' %}<a class="btn" href="/accounts/{{ lines[0].account_id }}/edit">{{ "Change opening balance"|tr(locale) }}</a>

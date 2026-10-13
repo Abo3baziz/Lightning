@@ -3249,3 +3249,10 @@ html[dir="rtl"] td[dir="ltr"], html[dir="rtl"] li.code { text-align: right; }
 .main .plan-forecast-table td.num { white-space:nowrap; }
 /* The calendar button is hidden (the date opens its own calendar), so its grid column no longer takes room from the date. */
 .iso-date-control { grid-template-columns:minmax(0,1fr); }
+/* FX positions and conversion (v1.1) */
+.convert-form { max-width: 760px; }
+.convert-quote { min-height: 1.5em; margin: 0 0 14px; font-size: var(--fs-2); }
+.fx-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
+.fx-chart, .fx-currency { margin-top: 16px; }
+@media (max-width: 760px) { .fx-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .fx-figures { grid-template-columns: 1fr; } }

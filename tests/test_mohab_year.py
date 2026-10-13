@@ -712,6 +712,24 @@ def _the_feedback_round(o: Mohab) -> None:
     first = min(int(k.rsplit("_", 1)[1]) for k in b.page.form("Post ready rows").fields if k.startswith("notes_"))
     o.notes["import_error"] = b.submit({f"date_{first}": "31/31/2026"}, button="Post ready rows")
 
+    # He saves in dollars: 50,000 pounds become 1,000 dollars at the bank (50.00, with a 50 pound fee) while the
+    # market rate is 49.25. It is the last thing he does, so every figure above was read before the dollars existed
+    # (a dollar account needs a dollar rate no older than 45 days, and he types one only now).
+    b.open("/settings?section=currencies")
+    b.submit({"action": "register", "code": "USD"}, action="/settings/currency")
+    b.open("/settings?section=currencies&tab=rates")
+    b.submit({"currency": "USD", "date": "2027-09-28", "rate": "49.25"}, action="/settings/fx-rate")
+    b.go("+ Add account")
+    b.submit({"name": "Dollar savings", "account_type": Choose("Bank"), "currency": "USD", "opening_balance": "0",
+              "opening_balance_date": "2027-09-28"}, button="Add account")
+    o.notes["convert_form"] = b.go("CIB Payroll", "Convert")
+    o.notes["converted"] = b.submit({"date": "2027-09-29", "to_account_id": Choose("Dollar savings"), "sent": "50,000",
+                                     "received": "1,000", "fee": "50", "notes": "Dollars from Banque Misr"},
+                                    button="Convert")
+    b.open("/settings?section=currencies&tab=rates")   # the day's rate, typed after the bank's own
+    b.submit({"currency": "USD", "date": "2027-09-30", "rate": "49.40"}, action="/settings/fx-rate")
+    o.ask("dollars", "I bought 1,000 dollars. What did they cost me and what are they worth?", "Currencies")
+
 
 @pytest.fixture(scope="module")
 def mohab(tmp_path_factory):
@@ -1439,3 +1457,19 @@ def test_the_buy_form_says_what_a_us_listing_needs_and_refuses_the_wrong_account
 
 def notes_exchange(choice):
     return choice["exchange"], choice["currency"]
+
+def test_dollars_he_bought_show_their_cost_value_and_spread(mohab):
+    """Buying dollars (50,000 pounds for 1,000 dollars at 50.00, the market at 49.25, then 49.40) is one Convert from
+    his pay account; the Currencies tab says what they cost, what they are worth and what the bank kept."""
+    assert mohab.notes["convert_form"].shows("You sent", "You received", "Fee")
+    assert mohab.notes["converted"].shows("Saved CNV")
+    assert route(mohab, "dollars") == ["/", "/accounts/currencies"]
+    answer = mohab.answers["dollars"]
+    assert answer.shows("USD", "Held", "1,000.00 USD", "Average rate", "50.0000",
+                        "Value", "49,400 EGP", "Unrealized FX gain", "−600", "Spread paid", "750",
+                        "1 USD = 49.400000 EGP", "Dollar savings")
+    register = mohab.b.go("Dollar savings")
+    assert register.shows("1,000.00", "USD", "50,000")
+    detail = mohab.b.click("Details")
+    assert detail.shows("1 USD = 50.000000 EGP", "Spread paid", "750.00", "Fee", "50.00 EGP")
+

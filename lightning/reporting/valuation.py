@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from lightning.assets.domain import FinancialAsset
 from lightning.core.money import ONE, from_e6
+from lightning.fx import MISSING_DAYS, Rate, rate_for
 
 from .queries import ReportQueries
 
@@ -24,6 +25,7 @@ class Valuation:
     price_date: str | None
     reason: str = ""
     source: str = ""  # MANUAL (a price you typed) · TRADE (last buy/sell) · COST (what you paid) · CASH
+    fx_as_of: str | None = None  # the day of the exchange rate used, when it is older than a week and more
 
 
 class Valuer:
@@ -62,7 +64,7 @@ class Valuer:
                     fx = self._fx(asset.currency, day)
                     if fx is None:
                         return Valuation(None, price, reference_date,
-                                         f"No {asset.currency}/{self.base} rate on or before {day}")
+                                         f"No {asset.currency}/{self.base} rate within {MISSING_DAYS} days before {day}")
                     value = (quantity * price * fx).quantize(Decimal("0.000001"))
                     return Valuation(value, price, reference_date, "", f"{asset.unit} · {reference['source']} reference")
                 held_qty = Decimal(0)
@@ -90,10 +92,11 @@ class Valuer:
             if found is None:
                 return Valuation(None, None, None, f"No price for {asset.label} on or before {day}")
             price, price_date, source = found
-        fx = self._fx(asset.currency, day)
-        if fx is None:
-            return Valuation(None, price, price_date, f"No {asset.currency}/{self.base} rate on or before {day}")
-        return Valuation((quantity * price * fx).quantize(Decimal("0.000001")), price, price_date, "", source)
+        rate = self.fx(asset.currency, day)
+        if rate is None:
+            return Valuation(None, price, price_date, f"No {asset.currency}/{self.base} rate within {MISSING_DAYS} days before {day}")
+        return Valuation((quantity * price * rate.rate).quantize(Decimal("0.000001")), price, price_date, "", source,
+                         rate.as_of)
 
     def _price(self, asset: FinancialAsset, day: str) -> tuple[Decimal, str, str] | None:
         """Newest of: a price you entered, the last buy/sell price. A typed price wins on the same day.
@@ -110,8 +113,12 @@ class Valuer:
             return per_unit, cost["date"], "COST"
         return None
 
+    def fx(self, currency: str, day: str) -> Rate | None:
+        """The rate (with its day and source) that values `currency` in the base on `day`; None = missing."""
+        return rate_for(self.q.db, currency, self.base, day)
+
     def _fx(self, currency: str, day: str) -> Decimal | None:
         if currency == self.base:
             return ONE
-        row = self.q.latest_fx(currency, self.base, day)
-        return from_e6(row["rate_e6"]) if row else None
+        found = self.fx(currency, day)
+        return found.rate if found else None

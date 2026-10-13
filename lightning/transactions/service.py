@@ -23,7 +23,9 @@ from lightning.core.money import ONE, ZERO, check_places, fmt, to_decimal
 from lightning.core.refs import DOC_LABELS, DocType, format_ref, ref_prefix
 from lightning.database.audit import AuditLog
 from lightning.database.connection import Database
+from lightning.fx import MISSING_DAYS, rate_for
 
+from . import conversion
 from .domain import Transaction, TxnFilter, TxnSource, TxnStatus, TxnSummary
 from .repository import TransactionRepository
 from .tags import normalize as normal_tag, tags_in
@@ -604,6 +606,46 @@ class TransactionService:
         lines = [replace(line, owner_id=owner_id) for line in lines]
         return self._update(current, day, lines, description, "", notes)
 
+    def record_conversion(self, date: str, from_account_id: int, to_account_id: int, sent, received, fee=None,
+                          description: str = "", notes: str = "",
+                          source: TxnSource = TxnSource.MANUAL) -> Transaction:
+        """Your own money changing currency: `sent` leaves one account, `received` arrives in another, and an
+        optional `fee` (in the sending currency) is an expense. The executed rate is kept as a dated rate."""
+        day, lines = self._conversion_lines(date, from_account_id, to_account_id, sent, received, fee)
+        created = self.post(DocType.CNV, day, lines, description, "", notes, source)
+        conversion.rebuild_trade_rates(self)
+        return created
+
+    def update_conversion(self, txn_id: int, date: str, from_account_id: int, to_account_id: int, sent, received,
+                          fee=None, description: str = "", notes: str = "") -> Transaction:
+        current = self._editable(txn_id, {DocType.CNV})
+        day, lines = self._conversion_lines(date, from_account_id, to_account_id, sent, received, fee)
+        updated = self.repost(txn_id, day, lines, description, "", notes)
+        conversion.rebuild_trade_rates(self)
+        return updated
+
+    def conversion_of(self, t: Transaction):
+        """A conversion read back: amounts, currencies, fee, executed rate (None for any other document)."""
+        return conversion.describe(self, t) if t.type == DocType.CNV else None
+
+    def conversion_spread(self, t: Transaction):
+        """What the bank kept beyond the market rate, in the profile currency (None: no market rate that day)."""
+        described = self.conversion_of(t)
+        return conversion.spread_cost(self, described, t.date) if described else None
+
+    def conversion_quote(self, date: str, from_account_id: int, to_account_id: int, sent, received):
+        """For the Convert form: the executed rate and its distance from the day's market rate."""
+        return conversion.quote(self, fmt_date(parse_date(date)), self.accounts.get(from_account_id),
+                                self.accounts.get(to_account_id), sent, received)
+
+    def _conversion_lines(self, date: str, from_id: int, to_id: int, sent, received, fee):
+        src = self.accounts.require_usable(from_id, "from_account")
+        dst = self.accounts.require_usable(to_id, "to_account")
+        day = self._check_date(date)
+        lines = conversion.build(self, fmt_date(day), src, dst, sent, received, fee)
+        validate_posting(lines)
+        return day, lines
+
     def void(self, txn_id: int, reason: str = "") -> Transaction:
         """Cancel a transaction. It stays visible (greyed out) and can be restored."""
         t = self.get(txn_id)
@@ -621,6 +663,8 @@ class TransactionService:
                                               ignore_before_day=True)
             self._check_holdings(t.lines)
             self.audit.record("transaction", t.id, "void", reason or f"Voided {t.ref}")
+            if t.type == DocType.CNV:
+                conversion.rebuild_trade_rates(self)
         return self.get(txn_id)
 
     def delete_many(self, txn_ids: list[int]) -> int:
@@ -653,6 +697,8 @@ class TransactionService:
                                               validate_all_cash=True, extra_keys=custody_keys,
                                               ignore_before_day=True)
             self._check_holdings(lines)
+            if any(txn.type == DocType.CNV for txn in pending):
+                conversion.rebuild_trade_rates(self)
         return len(pending)
 
     def restore(self, txn_id: int) -> Transaction:
@@ -689,6 +735,8 @@ class TransactionService:
             self.repo.set_status(t.id, TxnStatus.POSTED)
             self._check_holdings(t.lines)
             self.audit.record("transaction", t.id, "restore", f"Restored {t.ref}")
+            if t.type == DocType.CNV:
+                conversion.rebuild_trade_rates(self)
         return self.get(txn_id)
 
     # ======================================================================
@@ -736,7 +784,11 @@ class TransactionService:
             to_account_id = in_line.account_id if in_line else None
             amount = in_line.quantity if in_line else ZERO
         type_label = t.type_label
-        if t.type == DocType.ADJ and self._is_ownership_transaction(t):
+        to_amount, to_currency, rate = ZERO, "", None
+        if t.type == DocType.CNV and (described := conversion.describe(self, t)):
+            account_id, to_account_id = described.src_account_id, described.dst_account_id
+            amount, to_amount, to_currency, rate = described.sent, described.received, described.received_currency, described.rate
+        elif t.type == DocType.ADJ and self._is_ownership_transaction(t):
             cash = [ln for ln in t.lines if self.assets.get_asset(ln.asset_id).is_cash]
             outflow = next((ln for ln in cash if ln.effect == Effect.OUTFLOW), None)
             if outflow:
@@ -779,6 +831,9 @@ class TransactionService:
             account_id=account_id,
             to_account_id=to_account_id,
             category_id=category_id,
+            to_amount=to_amount,
+            to_currency=to_currency,
+            rate=rate,
         )
 
     @staticmethod
@@ -830,7 +885,7 @@ class TransactionService:
         if src.account_type not in source_accounts or dst.account_type not in destination_accounts:
             raise ValidationError("Transfers can move cash from wallets, banks, or legacy deposit balances into liquid accounts.", "to_account")
         if src.currency != dst.currency:
-            raise ValidationError("Both accounts must use the same currency; moving money between currencies is not built yet.", "to_account")
+            raise ValidationError("Both accounts must use the same currency; to change currency, use Convert.", "to_account")
         day = self._check_date(date)
         asset = self.assets.cash_asset(src.currency)
         value = self._positive_amount(amount, asset.quantity_decimals)
@@ -941,6 +996,13 @@ class TransactionService:
         return day
 
     @staticmethod
+    def _amount_or_zero(amount, places: int) -> Decimal:
+        value = check_places(to_decimal(amount, "fee"), places)
+        if value < ZERO:
+            raise ValidationError("A fee cannot be negative.", "fee")
+        return value
+
+    @staticmethod
     def _positive_amount(amount, places: int) -> Decimal:
         value = check_places(to_decimal(amount), places)
         if value <= ZERO:
@@ -948,22 +1010,20 @@ class TransactionService:
         return value
 
     def _fx(self, account: Account, day) -> Decimal:
-        if account.currency == self.base_currency:
+        return self._rate(account.currency, day)
+
+    def _rate(self, currency: str, day) -> Decimal:
+        """The profile-currency value of one unit of `currency`: the one lookup in lightning/fx.py."""
+        if currency == self.base_currency:
             return ONE
-        # Match reporting valuation: a row with base=asset currency and
-        # quote=profile currency expresses asset currency -> base currency.
-        rate = self.db.one(
-            "SELECT rate_e6 FROM fx_rates WHERE base=? AND quote=? AND date<=? "
-            "ORDER BY date DESC, CASE source WHEN 'MANUAL' THEN 0 ELSE 1 END LIMIT 1",
-            (account.currency, self.base_currency, fmt_date(parse_date(day))),
-        )
-        if not rate:
+        found = rate_for(self.db, currency, self.base_currency, fmt_date(parse_date(day)))
+        if not found:
             raise ValidationError(
-                f"No {account.currency}/{self.base_currency} exchange rate on or before "
+                f"No {currency}/{self.base_currency} exchange rate within {MISSING_DAYS} days before "
                 f"{fmt_date(parse_date(day))}. Add a dated rate before recording this amount.",
                 "currency",
             )
-        return Decimal(rate["rate_e6"]) / Decimal(1_000_000)
+        return found.rate
 
     @staticmethod
     def _snapshot(t: Transaction) -> dict:

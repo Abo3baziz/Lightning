@@ -100,6 +100,39 @@ async def save_transaction_popup(request: Request, txn_id: int):
                                                    if txn.type.value == "OUT" and len(cash_lines) > 1 else []))
 
 
+@router.get("/transactions/{txn_id:int}/convert/edit")
+async def edit_conversion(request: Request, txn_id: int):
+    from .accounts import convert_context
+    c = container(request)
+    txn = c.transactions.get(txn_id)
+    described = c.transactions.conversion_of(txn)
+    if described is None or txn.is_void:
+        return redirect(f"/transactions/{txn_id}", "This is not an active conversion.")
+    values = {"date": txn.date, "from_account_id": str(described.src_account_id),
+              "to_account_id": str(described.dst_account_id), "sent": str(described.sent),
+              "received": str(described.received), "fee": str(described.fee) if described.fee else "",
+              "notes": txn.notes, "return_to": f"/transactions/{txn_id}"}
+    return render(request, "accounts/convert.html",
+                  **convert_context(request, values, f"/transactions/{txn_id}/convert/edit", "Edit conversion"))
+
+
+@router.post("/transactions/{txn_id:int}/convert/edit")
+async def save_edited_conversion(request: Request, txn_id: int):
+    from .accounts import _account_id, convert_context, convert_values
+    c = container(request)
+    form = await request.form()
+    values = convert_values(form) | {"return_to": f"/transactions/{txn_id}"}
+    try:
+        txn = c.transactions.update_conversion(
+            txn_id, values["date"], _account_id(values["from_account_id"], "from_account"),
+            _account_id(values["to_account_id"], "to_account"), values["sent"], values["received"],
+            values["fee"] or None, notes=values["notes"])
+    except LightningError as exc:
+        return render(request, "accounts/convert.html", status_code=400,
+                      **convert_context(request, values, f"/transactions/{txn_id}/convert/edit", "Edit conversion", exc))
+    return redirect(f"/transactions/{txn.id}", f"Saved {txn.ref}.")
+
+
 @router.get("/transactions/{txn_id:int}/ownership/edit")
 async def edit_ownership_change(request: Request, txn_id: int):
     c = container(request)
@@ -276,6 +309,7 @@ async def transaction_detail(request: Request, txn_id: int):
                                        "month": txn.date[:7]})
     return render(request, "transactions/detail.html", txn=txn, summary=c.transactions.summarize(txn),
                   is_ownership=c.transactions._is_ownership_transaction(txn),
+                  conversion=c.transactions.conversion_of(txn), conversion_spread=c.transactions.conversion_spread(txn),
                   replaced_revaluation=txn.id in c.transactions.replaced_revaluation_ids(),
                   lines=lines, history=c.transactions.history(txn_id), can_split=can_split,
                   cash_effects=cash_effects,

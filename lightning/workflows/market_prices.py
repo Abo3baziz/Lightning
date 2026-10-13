@@ -17,6 +17,7 @@ from datetime import date
 from pathlib import Path
 
 from lightning.core.dates import fmt_date
+from lightning.fx import save_rate
 from lightning.market.bundle import MarketFile, MarketFileError
 from lightning.market.iso import venue_name
 from lightning.market.packs import INDEX, PACK_ID, PACKS, MarketSet, chosen, read_zip
@@ -35,10 +36,13 @@ class FillReport:
     missing_ids: list[tuple[int, str]] = field(default_factory=list)  # (asset id, month-end), for Needs you
     unmatched: list[str] = field(default_factory=list)
     other_currency: list[str] = field(default_factory=list)
+    rates: int = 0                                                    # exchange rates filled from the fx file
 
     def summary(self) -> str:
         parts = [f"Filled {self.added} price{'s' if self.added != 1 else ''} for {len(self.matched)} "
                  f"investment{'s' if len(self.matched) != 1 else ''} from the price files of {self.file_date[:10]}."]
+        if self.rates:
+            parts.append(f"{self.rates} exchange rate{'s' if self.rates != 1 else ''} filled.")
         if self.missing:
             shown = ", ".join(f"{name} {day}" for name, day in self.missing[:3])
             parts.append(f"{len(self.missing)} still missing: {shown}{' and more' if len(self.missing) > 3 else ''}.")
@@ -176,8 +180,41 @@ class MarketPrices:
                 return key
         return None
 
+    def fill_rates(self, market: MarketSet, today: date) -> int:
+        """Exchange rates from the followed fx file (source MARKET) for every pair between the profile currency
+        and the registered ones: each month-end, each day money moved in a foreign currency, and the latest."""
+        db, base = self.reporting.q.db, self.reporting.base_currency
+        codes = {row["code"] for row in db.all("SELECT code FROM registered_currencies")} | {base}
+        pairs = [(key, key[:3], key[4:]) for key, item in market.instruments().items()
+                 if item.category == "CURRENCY" and len(key) == 7 and key[3] == "/" and key[:3] in codes
+                 and key[4:] in codes]
+        if not pairs:
+            return 0
+        active = sorted(row["date"] for row in db.all(
+            "SELECT DISTINCT le.date FROM ledger_entries le JOIN financial_assets a ON a.id=le.asset_id "
+            "WHERE a.currency<>? AND le.date<=?", (base, fmt_date(today))))
+        days = set(active)
+        if active:
+            days |= set(_month_ends(date.fromisoformat(active[0][:10]), today))
+        saved = 0
+        with db.transaction():
+            for key, left, right in pairs:
+                found = {}
+                for day in sorted(days):
+                    close = market.close_on(key, day)
+                    if close:
+                        found[close.date] = close.close
+                latest = market.latest(key)
+                if latest and (today - date.fromisoformat(latest.date)).days <= 10:
+                    found[latest.date] = latest.close
+                for day, close in found.items():
+                    save_rate(db, day, left, right, close, "MARKET")
+                    saved += 1
+        return saved
+
     def fill(self, market: MarketSet, today: date) -> FillReport:
         report = FillReport(market.created_at)
+        report.rates = self.fill_rates(market, today)
         first = self.reporting.first_activity_date()
         held: dict[int, list[str]] = {}
         if first:
