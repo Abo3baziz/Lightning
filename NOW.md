@@ -4,7 +4,6 @@
 
 | Who | Work | Files | Since |
 |---|---|---|---|
-| Codex | v1.1 beta release: audit current main, fix release regressions, build matched PC/phone packages, publish and update website. Read: Architecture §10; v1_1_presentable §5–6. | `lightning/__init__.py`, `pyproject.toml`, `packaging/`, release docs and discovered regressions (excluding other claims) | 2026-10-13 |
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk and [OWNER.md](OWNER.md). | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
@@ -23,7 +22,6 @@
 
 ## Next
 
-1. **v1.1 beta publication:** tag `v1.1.0-beta.1` at `e156292`; 1,447 tests pass; Windows ZIP, checksum, frozen self-check and WebView2 pass. [Release run](https://github.com/elfekimuhammed/Lightning/actions/runs/38445652708): approve `android-signing`, then `production-release`; verify both published files and update the website. Physical-device acceptance remains in OWNER.md. **Read:** Architecture › Build and release.
-2. **HIGH PRIORITY: Expand listed shares beyond EGX to Nasdaq, leading European exchanges and all GCC markets.** Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
-3. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
-4. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.
+1. **Next release: European and all GCC stock lists.** US stocks/ETFs are in v1.1; add the remaining exchanges. Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
+2. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
+3. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.
