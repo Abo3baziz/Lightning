@@ -50,12 +50,12 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Physical item** | Ledger | A named tangible asset tracked by piece count, net gold weight, karat, cost and valuation; not a tickered security. |
 | **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones; equals fine gold only at 24K. |
 | **Fine-gold exposure** | Ledger | Pure-gold grams for reporting: pieces × net gold grams × karat/24. |
-| **Karat-specific gold price** | Ledger | Price per gram of alloy at the named karat; multiply by matching net weight, never adjust for purity again. |
+| **Karat-specific gold price** | Ledger | Price per gram of alloy at the named karat; never adjust for purity again. |
 | **Acquisition cost** | Ledger | Total paid for the item's current quantity, including workmanship and fees; price updates never change it. |
 | **Manual item valuation** | Ledger | User-entered dated total value of an item, for when the shared gold price does not suit. |
 | **Activity** | Ledger | The reason for a transaction, as its category family; independent of direction. |
 | **Category** | Ledger | Label for the activity behind a transaction; never describes counterparty, account or asset. |
-| **Counterparty** | Ledger | The person, business, institution or own account on the other side. Names are unique; close matches are only suggestions. |
+| **Counterparty** | Ledger | The person, business, institution or own account on the other side. |
 | **Confirmed alias** | Ledger | User-approved alternative spelling of one Counterparty; up to ten each. |
 | **Search suggestion** | Ledger | Ranked possible match for a typo; never silently picks an identity, transfer, category or owner. |
 | **Transaction** | Ledger | A dated user or system event in the main ledger. |
@@ -66,7 +66,7 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **FX revaluation** | Ledger + Report | Month-end change in the profile-currency value of foreign cash held; changes no units, is not income or spending. |
 | **Owner ID** | Ledger | Optional Counterparty on a line, shown as **Held for**; blank means the user owns it. |
 | **Held for** | Ledger | Who actually owns money or units in the user's account when not the user; separate from Counterparty. On every form (formerly Whom / Owned by / Owner). |
-| **Change ownership** | Ledger | Zero-sum entry moving part of an account's balance between the user and one saved person; gross balance unchanged. |
+| **Change ownership** | Ledger | Zero-sum entry moving part of an account's balance between the user and one saved person. |
 | **Expense paid for you** | Ledger | An expense recorded in the user's account though another person paid; paired with an equal custody amount for the payer, so gross cash is unchanged. |
 | **Money in / money out** | Ledger | Direction value crosses an account boundary; direction never decides category. |
 | **Transfer** | Ledger | Value moved between the user's own accounts; not income or expense. |
@@ -91,9 +91,9 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Emergency fund** | Plan | The permanent reserve section. Coverage = Reserves for emergencies ÷ Average monthly income (or spending, per Settings › Budget), in months; the aim is six. |
 | **Cash planning** | Plan | Tab for spendable cash and commitments: Plan, Recurring, Loans, Reserves. Posts nothing by itself. |
 | **Recurring item** | Plan | Bill, subscription or income repeating weekly, monthly, every 3 months, yearly or once. |
-| **Loan** | Plan | Entered as its payments (amount, next date, payments left, optional amount borrowed). Each payment counts as spending when paid, in System Categories › Loan payments unless changed; with no budget rule there, Planned is the month's scheduled payments. Paying lowers cash, spending room and loans still to pay together, so net worth is unchanged. |
+| **Loan** | Plan | Entered as its payments (amount, next date, payments left, optional amount borrowed). Each payment is spending when paid (System Categories › Loan payments unless changed); paying lowers cash, spending room and loans still to pay together, so net worth is unchanged. |
 | **Payment status** | Plan | **Paid** (a posted transaction settles it), **Skipped**, **Due** (today or earlier, unsettled) or **Upcoming**; voiding the transaction makes it Due again. |
-| **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds, Left in plan after bills, Saving for goals, Emergency fund top-up and Rest of savings target. A bill in a budgeted category counts inside that budget. Changes neither net worth nor free cash. |
+| **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds, Left in plan after bills, Saving for goals, Emergency fund top-up and Rest of savings target. Changes neither net worth nor free cash. |
 | **CD terms** | Plan | Start, earliest withdrawal, maturity, principal, rate, simple payout or compounding, destination. Forecast cash, never post it. |
 | **Earliest withdrawal date** | Plan | First date a CD can be redeemed early; before it the CD is not immediately realizable. |
 | **Sale factor** | Plan | 0-100% estimate of what an asset class fetches if sold today; 95% if unset. Feeds Holdings after sale and If you sold today. A CD uses its class factor only after its earliest withdrawal date, 100% at maturity. Formerly *liquidation factor*. |
@@ -291,29 +291,29 @@ These names no longer appear on screens. Each is now called:
 | **L2 Broad category** | The analysis bucket inside one family (Personal › Food & Groceries, Work › Salary, Investment › Dividends). |
 | **L3 Detail** | Unused and empty; add only when a user chooses more detail. |
 
-Categories are not split into income and expense trees: pick the activity that explains the event whatever its sign (a refund keeps the original category). A Counterparty may suggest a category; the user can change it. Categories are picked from a list, never created by typing, and sorted alphabetically within their parent. A used category is archived, not deleted: readable on old transactions, not selectable for new ones. Sibling names are unique; the same name may sit under different families (Transportation under Personal and Work).
+Categories are not split into income and expense trees: pick the activity that explains the event whatever its sign (a refund keeps the original category). A Counterparty may suggest a category; the user can change it. Categories are picked from a list, never created by typing. A used category is archived, not deleted: readable on old transactions, not selectable for new ones. Sibling names are unique; one name may sit under different families.
 
 ## Names and identifiers
 
-| Term | Rule | Example |
-|---|---|---|
-| **Name** | Human label on screens; account codes never show under it. Counterparty names are unique, other taxonomy names may repeat under different parents. | CIB; Talabat |
-| **Code** | Stable machine identifier for links, imports and technical search; not shown in ordinary UI. | `STK:COMI` |
-| **ID** | Internal database key; never shown. | `account_id = 12` |
-| **Ticker / symbol** | Public exchange symbol used to find an instrument; not Lightning's code or ID. | `COMI` |
-| **ISIN** | Optional global security identifier for source matching. | |
-| **Exchange** | Where a stock or ETF trades, stored as ISO 10383 MIC, shown by common name; no exchange means EGX; funds and gold have none. | `XCAI` as EGX |
-| **Price file** | One market's closing prices (Egyptian stocks, Egyptian funds, rates, US, Gulf, European), published as a checked folder and refreshed after close; Settings › Price files picks them. Code calls it a pack (`lightning/market/packs.py`). | Egyptian stocks to 2026-12-31 |
-| **Update prices** | Asks the sources for each held investment's latest close and missing month-end closes (source `ONLINE`); automatic only on the first open after a month ends; shared price files are the backup after two failed tries. Settings › Price files › Test price sources names a failing source. | |
-| **Market key** | A price file's permanent name for an instrument: ISO 3166 country and ticker, `EG:FUND:<id>`, or a currency pair; stored on the matched asset. | `EG:COMI`, `USD/EGP` |
-| **Unit** | What is counted for an asset. | EGP, share, fund unit, gram |
-| **Transaction reference (ref)** | Fixed human ID, unchanged when the date is edited, no account prefix. | `OUT-2026-09-25-003` |
-| **Ledger-line reference** | Transaction ref plus line number. | `TRF-2026-09-26-001/2` |
-| **Date input** | ISO, day/month/year or day/month (current year); stored as ISO; ambiguous dates are day-first. | `31/1` is `2026-01-31` |
-| **Amount input** | A number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and brackets, evaluated brackets, ^, * and /, then + and -; a bracket after a number multiplies. Unclear input (`-2^2`, `2^3^2`, `8/2(2+2)`, uneven division, %, dates) is refused with the reason; the result shows before saving. | `3+5*8` is 43; `2(3+5)` is 16 |
-| **Tag** | A #word in notes (letters, digits, - or _, at least one letter, case-insensitive); links to every transaction with it, with count, Money in and Money out; same as the exact register search. | `#Eid` = `#eid` |
-| **Rule** | Settings › Rules: when counterparty, notes, amount, account or direction fit (all or any), set a category, add tags or split money out. The most specific rule wins; it files imports and register rows before the counterparty's usual category; the past changes only on request, with one undo. | Vodafone 1,000-50,000 to Shopping |
-| **Privacy mode** | Blurs every money amount (not percentages, dates, names); hover shows it. The eye beside Search or "Hide amounts" in the command bar; remembered per profile. | |
+| Term | Rule |
+|---|---|
+| **Name** | Human label on screens; account codes never show under it. Counterparty names are unique, other taxonomy names may repeat under different parents. |
+| **Code** | Stable machine identifier for links, imports and technical search; not shown in ordinary UI. |
+| **ID** | Internal database key; never shown. |
+| **Ticker / symbol** | Public exchange symbol used to find an instrument; not Lightning's code or ID. |
+| **ISIN** | Optional global security identifier for source matching. |
+| **Exchange** | Where a stock or ETF trades, stored as ISO 10383 MIC, shown by common name; no exchange means EGX; funds and gold have none. |
+| **Price file** | One market's closing prices (Egyptian stocks, Egyptian funds, rates, US, Gulf, European), published as a checked folder and refreshed after close; Settings › Price files picks them. Code: pack. |
+| **Update prices** | Asks the sources for each held investment's latest close and missing month-end closes (source `ONLINE`); automatic only on the first open after a month ends; shared price files are the backup after two failed tries. |
+| **Market key** | A price file's permanent name for an instrument: ISO 3166 country and ticker, `EG:FUND:<id>`, or a currency pair; stored on the matched asset. |
+| **Unit** | What is counted for an asset. |
+| **Transaction reference (ref)** | Fixed human ID, unchanged when the date is edited, no account prefix. |
+| **Ledger-line reference** | Transaction ref plus line number. |
+| **Date input** | ISO, day/month/year or day/month (current year); stored as ISO; ambiguous dates are day-first. |
+| **Amount input** | A number (`1,250.50`, Arabic-Indic digits) or a sum with + - * / ^ and brackets, evaluated brackets, ^, * and /, then + and -; a bracket after a number multiplies. Unclear input (`-2^2`, `2^3^2`, `8/2(2+2)`, %, dates) is refused with the reason. |
+| **Tag** | A #word in notes (letters, digits, - or _, at least one letter, case-insensitive); links to every transaction with it; same as the exact register search. |
+| **Rule** | Settings › Rules: when counterparty, notes, amount, account or direction fit (all or any), set a category, add tags or split money out. The most specific rule wins; it files imports and register rows before the counterparty's usual category; the past changes only on request, with one undo. |
+| **Privacy mode** | Blurs every money amount (not percentages, dates, names); hover shows it. The eye beside Search or "Hide amounts" in the command bar; remembered per profile. |
 
 ## Asset and account taxonomy (what vs where)
 
@@ -403,7 +403,7 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | Fees | الرسوم |
 | Financial health limit | حد الصحة المالية |
 | ISIN | رقم ISIN |
-| Karat-specific gold price | سعر الذهب حسب العيار |
+|Karat-specific gold price | سعر الذهب حسب العيار |
 | Last due date | آخر تاريخ استحقاق |
 | Ledger-line reference | مرجع القيد |
 | Linked (import row) | مرتبط (صف مستورد) |

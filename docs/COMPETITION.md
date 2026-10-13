@@ -1,6 +1,6 @@
 # Competition: our compass
 
-Last reviewed 2026-10-13. Who else helps people with their money, what their users love and hate, and what that means for Lightning. When a product decision is unclear, read *The compass* first. Every competitor fact is dated "as of" its reading; most Egyptian-app facts are from 2026-10-04 and are stale after about three months. *Evidence limits and sources* says what is solid.
+Last reviewed 2026-10-13. Who else helps people with their money, what their users love and hate, and what that means for Lightning. When a product decision is unclear, read *The compass* first. Every competitor fact is dated "as of" its reading; most Egyptian-app facts are from 2026-10-04 and are stale after about three months. 
 
 ## Contents
 
@@ -198,41 +198,38 @@ Reference code to inspect for financial rules, as of 2026-10-04. Check the licen
 
 ## Actual Budget code analysis
 
-Read 2026-10-04: a shallow clone of `actualbudget/actual` at commit `9732a44` (rules, templates, spreadsheet, sync and CRDT, bank sync, importers, schedules, undo, reports, i18n, tests, CI, AI-agent files). The app was not run. Actual is TypeScript, Lightning Python: ideas to borrow, not code to copy. Paths are inside `packages/`. Which of these are built, and what is next, lives in Project Overview › Features worth building; this list keeps only what Actual does and what we learned.
+## Actual Budget code analysis
+
+Read 2026-10-04: shallow clone of `actualbudget/actual` at `9732a44`; the app was not run. TypeScript, so ideas to borrow, not code. Paths are inside `packages/`. Status of each idea lives in Project Overview › Features worth building.
 
 | Actual has | Where | Lesson for Lightning |
 |---|---|---|
 | Rules engine: and/or conditions, split by amount or percent, three stages, indexed | `loot-core/src/server/rules/` | Built (Settings › Rules). Open: suggest a rule from what you file. Actual keeps `learnCategories` off by default: suggest, never learn silently |
 | Undo and redo, 20 steps over every change | `loot-core/src/server/undo.ts` | Open: undo for last edit, delete or import. Most trust per line of work |
 | Layered import match: exact id, then amount and nearest date; reconciled rows locked; merge two transactions | `accounts/sync.ts` (`matchTransactions`, `reconcileTransactions`), `transactions/merge.ts` | Open: reuse for SMS against CSV, lock a checked month, merge keeping a transfer linked |
-| Schedules: skip weekend, amount ranges, detect recurring from three occurrences | `server/schedules/` (`find-schedules.ts`) | Weekend-aware due dates built; public holidays open |
-| Budget templates: one line per category fills the month | `server/budget/goal-template.pegjs`, `cleanup-template.ts` | "Fill this month" built, as a form, not text in notes |
+| Schedules: skip weekend, amount ranges, detect recurring from three occurrences | `server/schedules/` (`find-schedules.ts`) | Weekend-aware dates built; public holidays open |
 | i18n: locale files, string-extract CI, 50 currencies | `desktop-client/src/i18n.ts`, `shared/currencies.ts` | Arabic and RTL built; keep strings translated as screens grow |
 | Entry helpers: arithmetic in amounts, `#tag`, Ctrl-K, privacy filter | `shared/arithmetic.ts`, `shared/tags.ts`, `CommandBar.tsx`, `PrivacyFilter.tsx` | All built |
-| Reports as a dashboard, 14 types | `components/reports/reports/` | Open: Age of Money (salary-to-salary), a spending calendar, one saved filter shared by search, reports and rules. Leave Monte Carlo |
+| Reports as a dashboard, 14 types | `components/reports/reports/` | Open: Age of Money, a spending calendar, one saved filter shared by search, reports and rules |
 | One change-note file per PR | `upcoming-release-notes/` | Open: ends changelog conflicts between AIs |
-| Tests: e2e with mobile variants, visual regression, migration warning | `desktop-client/e2e/`, `.github/workflows/` | Open: visual snapshots would guard the brand guideline; the migration warning is cheap |
+| Tests: visual regression, migration warning | `desktop-client/e2e/` | Open: visual snapshots would guard the brand guideline |
 
 **Do not copy:**
-- **The sync design.** CRDT with a hybrid logical clock and merkle trie (`crdt/src/crdt/`). Its issue list shows the cost: "can't open budget on mobile", "can't sync changes" ([#6279](https://github.com/actualbudget/actual/issues/6279), [#7542](https://github.com/actualbudget/actual/issues/7542), [#6223](https://github.com/actualbudget/actual/issues/6223)). Lightning lends the ledger to one writer; the planned replacement is the [edit journal](proposals/edit_journal.md). A row-merge engine alone cannot enforce our financial rules.
-- **The calculation engine** (`spreadsheet/spreadsheet.ts`): a second place figures live. Ours come from services; revisit only if the Budget page is measurably slow.
-- **Multi-user, OpenID, public API, CLI, plugins:** for self-hosters, not a salaried user on one PC.
+- **The sync design.** CRDT with a hybrid logical clock and merkle trie (`crdt/src/crdt/`). Its issues show the cost: "can't open budget on mobile", "can't sync changes" ([#6279](https://github.com/actualbudget/actual/issues/6279), [#7542](https://github.com/actualbudget/actual/issues/7542), [#6223](https://github.com/actualbudget/actual/issues/6223)). Lightning lends the ledger to one writer; the planned replacement is the [edit journal](proposals/edit_journal.md). A row-merge engine alone cannot enforce our financial rules.
+- **The calculation engine** (`spreadsheet/spreadsheet.ts`): a second place figures live; ours come from services.
+- **Multi-user, OpenID, API, CLI, plugins:** for self-hosters.
 - **Text typed into notes as a language:** fails the user who won't read help.
 
-**Bank sync:** five providers behind one pipeline, none for Egypt. If an Egyptian aggregator appears: one normaliser plus the layered match. Until then SMS and statements.
-
-**Where Lightning is ahead:** wealth (Actual has no holdings); six-place scaled integers for gold grams and fund units; encrypted profile at rest (SQLCipher, Argon2id; Actual encrypts only what goes to its sync server); a Windows app and a password instead of Docker; Mohab's test checks right answers, Actual's tests check code and screenshots.
-
-**From its AI-agent files:** `AGENTS.md`, review guidelines and five repo skills; "do not add a setting for every UI tweak". We have the same rules; repo skills for push, changelog and hand-off would be a fit.
+**Where Lightning is ahead:** wealth (Actual has no holdings); six-place integers for gold grams and fund units; an encrypted profile at rest (Actual encrypts only what goes to its sync server); no Docker; Mohab's test checks answers, Actual's tests check code.
 
 ### Suggested order
 
-Order of value, from the 2026-10-04 reading: undo; layered match with a locked month; weekend-aware schedules and month fill (both since built); i18n and Arabic (since built); one change note per change. The owner chooses what enters *Next* in `NOW.md`; Project Overview tracks status.
+Value order from the 2026-10-04 reading: undo; layered match with a locked month; weekend schedules and month fill (since built); i18n and Arabic (since built); one change note per change. The owner chooses what enters *Next* in `NOW.md`.
 
 ## Evidence limits and sources
 
 **Read directly (2026-10-04):** Google Play, Egypt store, via `google-play-scraper`: app details and the most relevant reviews (60 per language for Say, 40 for the others), English and Arabic. "Most relevant" favours reviews marked helpful and is not a random sample. Arabic quotes are translated.
 
-**Not read:** App Store, Reddit, Facebook, Trustpilot, GitHub discussions, Say's own site. The Actual, YNAB, Monarch, Copilot, Firefly III and Telda rows come from review-site summaries. Quicken, Banktivity, Moneydance and GnuCash were checked against official pages on 2026-10-05; prices can change. Say's rating is 4.84 (Google Play), not the 4.63 of earlier summaries. Check any number or quote at its source before it goes on the website. **Next:** Egyptian Facebook groups, TikTok comments and App Store reviews, from a browser that can open them.
+**Not read:** App Store, Reddit, Facebook, Trustpilot, Say's own site; the Actual, YNAB, Monarch, Copilot, Firefly III and Telda rows are review-site summaries. Suites checked on official pages 2026-10-05; prices change. Say is 4.84 on Google Play, not the 4.63 of earlier summaries. Check any number at its source before the website uses it. **Next:** Egyptian Facebook groups, TikTok comments and App Store reviews, from a browser that can open them.
 
 Sources: Google Play (Egypt) for [Say](https://play.google.com/store/apps/details?id=com.moments.expenses&hl=en&gl=EG), [Qershnat](https://play.google.com/store/apps/details?id=com.qrshnat.app.gms), [Masarifi](https://play.google.com/store/apps/details?id=com.tm.my_expenses), [Masareef](https://play.google.com/store/apps/details?id=com.appsqueue.masareef), [Money Manager](https://play.google.com/store/apps/details?id=com.realbyteapps.moneymanagerfree), [Wallet](https://play.google.com/store/apps/details?id=com.droid4you.application.wallet), [Masroofy](https://play.google.com/store/apps/details?id=com.masroofi.masroofi); [YNAB on Trustpilot](https://www.trustpilot.com/review/ynab.com); [Actual review](https://wealthypot.com/budgeting-apps/actual-budget/); official pages of [Quicken](https://www.quicken.com/products/pricing-comparison/), [Banktivity](https://www.banktivity.com/content/plans/plans.php), [Moneydance](https://moneydance.com/hello), [GnuCash](https://www.gnucash.org/).
