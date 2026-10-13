@@ -29,6 +29,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-13 · Claude: docs made lean and dated: Overview 68→26 KB, Architecture 116→65, Glossary 78→43, Competition 53→28; planned designs moved to `docs/proposals/` (search_matching, stored_figures); 1.0.0b1 entries moved to `CHANGELOG-archive.md`; `OWNER.md` dated.
 - 2026-10-13 · Claude: v1.1 merged (brand, US stocks, FX, Arabic); Investments shows a foreign holding's gain with its Price part and FX part under it.
 - 2026-10-13 · Claude: Arabic in the app: Settings › Language also sets the profile pages' language; month grid keeps time left to right with month numbers, not J F M; YTD reads `2026-01-01 to today` (A06.1); list keynotes and the phone category count translated; RTL CSS regenerated.
 - 2026-10-13 · Claude: v1.1 US stocks: an investment is priced in its exchange's currency (USD for Nasdaq, NYSE, Arca; registered on creation); picker lists about 400 US stocks and 70 ETFs with their exchange; buys, sells, dividends and holdings post at the day's rate and refuse an account in another currency. The 2026 sample and Mohab get a dollar brokerage with a Nasdaq ETF.
