@@ -588,6 +588,33 @@ def _a_rule_for_vodafone(o: Mohab) -> None:
     o.ask("rule_filed", "Did the rule file the phone as Shopping and keep the bill?", "CIB Payroll")
 
 
+def _a_dollar_account_and_a_nasdaq_etf(o: Mohab) -> None:
+    """US stocks (v1.1): Mohab keeps 3,000 dollars from a freelance job abroad and buys a Nasdaq ETF with them. The
+    asset takes its currency (USD) from the exchange. The dollars arrive as the account's opening balance; the
+    currency and its rate are typed on Settings (Currencies), which package B reshapes, so they are set here.
+    TODO(package B): fund the account by converting pounds (CNV) instead of an opening balance."""
+    o.on("2027-09-30")
+    b, c = o.b, o.c
+    c.currencies.register("USD")
+    c.fx.save("USD", "2027-09-30", "49.50")
+    b.go("+ Add account")
+    o.notes["usd_account"] = b.submit({"name": "Dollar brokerage", "account_type": Choose("Brokerage"), "currency": "USD",
+                                       "opening_balance": "3,000", "opening_balance_date": "2027-09-30"},
+                                      button="Add account")
+    # In his pound brokerage the ETF is on offer but says it needs a dollar account; he is not let buy it there.
+    thndr = b.go("THNDR")
+    o.notes["etf_in_pounds_choice"] = next(x for x in thndr.catalogue("trade-instrument-catalogue") if x.get("ticker") == "QQQM")
+    o.notes["etf_in_pounds"] = b.submit({"instrument_key": o.notes["etf_in_pounds_choice"]["key"], "trade_action": "buy",
+                                         "date": "2027-09-30", "units": "5", "total": "1,000"}, action="investment-entry",
+                                        expect=400)
+    screen = b.go("Dollar brokerage")
+    o.notes["etf_in_dollars_choice"] = next(x for x in screen.catalogue("trade-instrument-catalogue") if x.get("ticker") == "QQQM")
+    o.notes["etf_bought"] = b.submit({"instrument_key": o.notes["etf_in_dollars_choice"]["key"], "trade_action": "buy",
+                                      "date": "2027-09-30", "units": "10", "total": "2,200", "fees": "5"},
+                                     action="investment-entry")
+    o.ask("usd_investments", "Is my Nasdaq ETF in my investments?", "Investments")
+
+
 def _exercise_cash_ownership(o: Mohab) -> None:
     """Use the account workflow to assign part of the cash to Mom, then record an expense she paid."""
     o.on("2027-09-30")
@@ -1376,3 +1403,39 @@ def test_a_rule_files_a_new_phone_as_shopping_and_keeps_the_monthly_bill(mohab):
     answer = mohab.answers["rule_filed"]
     assert answer.shows("2027-09-30 Vodafone Shopping new phone −12,000",
                         "2027-09-30 Vodafone Utilities & Bills — −350")
+
+
+# ------------------------------------------------------------------ US stocks (v1.1)
+# Last in the file on purpose: the dollar account joins the year after every cross-tab check above has run, because
+# package B has not yet made the Overview and Investments agree on foreign cash (see NOW.md, package B).
+
+def dollars(mohab) -> None:
+    """Run Mohab's dollar step once, however many tests ask for it."""
+    if not mohab.notes.get("dollars_done"):
+        _a_dollar_account_and_a_nasdaq_etf(mohab)
+        mohab.notes["dollars_done"] = True
+
+
+def test_a_nasdaq_etf_is_bought_with_dollars_in_a_dollar_account(mohab):
+    dollars(mohab)
+    c, notes = mohab.c, mohab.notes
+    assert notes["usd_account"].shows("Dollar brokerage")
+    etf = next(a for a in c.assets.investments() if a.code == "FND:QQQM")
+    assert (etf.currency, etf.mic, etf.market_key) == ("USD", "XNAS", "US:QQQM")
+    account = next(a for a in c.accounts.list() if a.name == "Dollar brokerage")
+    assert account.currency == "USD" and c.reporting.account_balance(account.id) == D("800")  # 3,000 less the 2,200 paid, fee included
+    assert c.investments.holding(account.id, etf.id, "2027-09-30") == D("10")
+    assert notes["etf_bought"].shows("Invesco NASDAQ 100 ETF")
+    assert mohab.answers["usd_investments"].screen.shows("Invesco NASDAQ 100 ETF")
+
+
+def test_the_buy_form_says_what_a_us_listing_needs_and_refuses_the_wrong_account(mohab):
+    dollars(mohab)
+    assert notes_exchange(mohab.notes["etf_in_pounds_choice"]) == ("Nasdaq", "USD")
+    assert "buy it from a USD account" in mohab.notes["etf_in_pounds_choice"]["note"]
+    assert mohab.notes["etf_in_dollars_choice"]["note"] == ""
+    assert mohab.notes["etf_in_pounds"].shows("is priced in USD; this account is in EGP")
+
+
+def notes_exchange(choice):
+    return choice["exchange"], choice["currency"]

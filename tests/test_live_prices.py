@@ -74,6 +74,8 @@ def held(c, setup):
             "azs": c.assets.create_investment("AZ Savings", "FUND.FIXED_INCOME", "AZS"),
             "apple": c.assets.create_investment("Apple", "STOCK", "AAPL", mic="XNAS"),
             "nope": c.assets.create_investment("Nope fund", "FUND.EQUITY", "NOPE")}
+    # A US listing is created in USD now; this one stands for an older holding kept in pounds.
+    c.db.execute("UPDATE financial_assets SET currency='EGP' WHERE id=?", (made["apple"].id,))
     c.assets.link_market(made["azs"].id, "EG:FUND:4104")
     for asset in made.values():
         c.investments.buy("2026-09-02", accounts["thndr"].id, asset.id, "10", "50")

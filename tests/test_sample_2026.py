@@ -26,7 +26,7 @@ def _lines(name: str) -> int:
 
 
 def _open_accounts(b: Browser) -> None:
-    """The six accounts from accounts.csv, through the Add account form."""
+    """The accounts from accounts.csv, through the Add account form."""
     labels = {"BANK": "Bank", "CASH": "Cash wallet", "BROKERAGE": "Brokerage", "DEPOSIT": "Certificate",
               "PHYSICAL_ASSET": "Physical asset"}
     for row in rows("accounts.csv"):
@@ -82,7 +82,7 @@ def test_an_internal_row_whose_account_is_unknown_asks_which_account(c, on_2_oct
 
 def test_the_whole_sample_loads_and_adds_up(c, on_2_october):
     summary = load_mohab_2026(c)
-    assert summary == {"accounts": 6, "rows": sum(_lines(n) for n in BANK_FILES), "from": "2026-01-01",
+    assert summary == {"accounts": 7, "rows": sum(_lines(n) for n in BANK_FILES), "from": "2026-01-01",
                        "to": "2026-10-02"}
     day = date(2026, 10, 2)
     position = c.position.at(day)
@@ -93,7 +93,11 @@ def test_the_whole_sample_loads_and_adds_up(c, on_2_october):
     assert not [p for p in c.planning.all_payments(day, day) if p.status.name == "DUE"]
     held = {c.assets.get_asset(p.asset_id).name for p in c.investments.portfolio(day).open}
     assert {"Commercial International Bank (COMI)", "Fawry for Banking Technology", "Talaat Moustafa Group",
-            "Azimut money market fund", "L'Azurde ring", "Gold pound (from grandma)", "BTC 10 g bar"} <= held
+            "Azimut money market fund", "L'Azurde ring", "Gold pound (from grandma)", "BTC 10 g bar",
+            "Invesco NASDAQ 100 ETF"} <= held
+    dollars = next(a for a in c.accounts.list() if a.name == "Dollar brokerage")
+    etf = next(a for a in c.assets.investments() if a.ticker == "QQQM")
+    assert (dollars.currency, etf.currency, etf.mic) == ("USD", "USD", "XNAS")
     b = Browser(create_app(c))
     for page in ("/", "/budget", "/investments", "/birdview/expenses", "/plan", "/plan/recurring", "/plan/loans",
                  "/plan/reserves", "/money-from-others", "/transactions", "/checks"):
@@ -105,8 +109,9 @@ def test_the_welcome_page_loads_the_sample_and_offers_the_files(c, on_2_october)
     b = Browser(create_app(c))
     welcome = b.open("/")
     assert welcome.shows("Mohab's 2026")
-    for name in ("accounts.csv", *BANK_FILES, "thndr.csv", "gold-at-home.csv", "prices.csv"):
+    for name in ("accounts.csv", *BANK_FILES, "thndr.csv", "usd-brokerage.csv", "gold-at-home.csv", "prices.csv",
+                 "fx.csv"):
         assert b.client.get(f"/samples/mohab-2026/{name}").status_code == 200
     done = b.submit({}, button="Load Mohab's 2026")
     assert done.shows("Mohab's 2026 added")
-    assert len(c.accounts.list()) == 6
+    assert len(c.accounts.list()) == 7

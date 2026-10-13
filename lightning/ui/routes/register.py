@@ -20,6 +20,7 @@ from lightning.core.codes import slug
 from lightning.core.dates import fmt_date, parse_date, parse_month, today
 from lightning.core.errors import ConflictError, LightningError, ValidationError
 from lightning.core.money import ZERO, fmt, to_decimal
+from lightning.market.iso import venue_name
 from lightning.core.refs import DocType
 from lightning.transactions.tags import normalize as normal_tag
 
@@ -135,6 +136,21 @@ def _trade_choices(c, account, positions) -> list[dict]:
     by_code = {asset.code: asset for asset in assets}
     held = {position.asset_id: position.quantity for position in positions}
     choices, included_ids = [], set()
+    accounts_in = {a.currency for a in c.accounts.list(active_only=True)}
+    rates_for = {row["currency"] for row in c.fx.list()}
+
+    def currency_note(currency: str) -> str:
+        """One line when a foreign listing cannot be paid for yet: its currency needs an account and a rate."""
+        if currency == c.base_currency:
+            return ""
+        missing = [what for ok, what in ((currency in accounts_in, f"a {currency} account"),
+                                         (currency in rates_for, f"a {currency} rate")) if not ok]
+        if missing:
+            return f"Priced in {currency}: add {' and '.join(missing)} first."
+        if account.currency != currency:
+            return f"Priced in {currency}: buy it from a {currency} account."
+        return ""
+
     for item in catalog_instruments():
         prefix = "STK" if item["class_code"] == "STOCK" else "FND"
         code = f"{prefix}:{slug(item['ticker'], 20)}"
@@ -149,6 +165,9 @@ def _trade_choices(c, account, positions) -> list[dict]:
             "holding": str(held.get(asset.id, ZERO)) if asset else "0",
             "unit": asset.unit if asset else ("share" if item["class_code"] == "STOCK" else "unit"),
             "decimals": asset.quantity_decimals if asset else (0 if item["class_code"] == "STOCK" else 4),
+            "exchange": venue_name(item.get("mic")) if item.get("mic") else "",
+            "currency": asset.currency if asset else item.get("currency", ""),
+            "note": currency_note(asset.currency if asset else item.get("currency", "")),
         })
     for asset in assets:
         if asset.id in included_ids:
@@ -157,7 +176,8 @@ def _trade_choices(c, account, positions) -> list[dict]:
         choices.append({"key": f"asset:{asset.id}", "name": asset.name, "ticker": ticker,
                         "kind": c.assets.display_name(asset.asset_class_id),
                         "holding": str(held.get(asset.id, ZERO)), "unit": asset.unit,
-                        "decimals": asset.quantity_decimals})
+                        "decimals": asset.quantity_decimals, "exchange": venue_name(asset.mic) if asset.mic else "",
+                        "currency": asset.currency, "note": currency_note(asset.currency)})
     return sorted(choices, key=lambda item: (item["name"].casefold(), item["ticker"].casefold()))
 
 
@@ -551,9 +571,12 @@ async def create_investment_entry(request: Request, account_id: int):
                     if units is not None and units < ZERO:
                         raise ValidationError(f"You do not hold {ticker_row['name']} in this account yet.", "units")
                     asset = c.assets.create_investment(ticker_row["name"], ticker_row["class_code"],
-                                                       ticker_row["ticker"])
+                                                       ticker_row["ticker"], mic=ticker_row.get("mic", ""))
             else:
                 raise ValidationError("Choose an investment from the results.", "instrument")
+            if asset.currency != account.currency:
+                raise ValidationError(f"{asset.name} is priced in {asset.currency}; this account is in {account.currency}. "
+                                      f"Use a {asset.currency} account.", "instrument")
             owner = None
             owner_id = None
             if values["is_others"]:

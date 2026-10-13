@@ -1,0 +1,470 @@
+﻿ticker,name,kind,class_code,source,source_url,catalogue_date,mic,currency
+MMM,3M Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ABT,Abbott Laboratories,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ABBV,AbbVie Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ACN,Accenture plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ADBE,Adobe Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AMD,"Advanced Micro Devices, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AFRM,"Affirm Holdings, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+A,"Agilent Technologies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+APD,"Air Products and Chemicals, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ABNB,"Airbnb, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AKAM,"Akamai Technologies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BABA,Alibaba Group Holding Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ALGN,"Align Technology, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LNT,Alliant Energy Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+GOOGL,Alphabet Inc. Class A,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+GOOG,Alphabet Inc. Class C,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MO,"Altria Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AMZN,"Amazon.com, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AEE,Ameren Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AAL,American Airlines Group Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AEP,"American Electric Power Company, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AXP,American Express Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AIG,"American International Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AMT,American Tower Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AWK,"American Water Works Company, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AME,"AMETEK, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AMGN,Amgen Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ADI,"Analog Devices, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AON,Aon plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+APO,"Apollo Global Management, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AAPL,Apple Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+AMAT,"Applied Materials, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+APP,AppLovin Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ANET,"Arista Networks, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ARM,Arm Holdings plc,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ASML,ASML Holding N.V.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+T,AT&T Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TEAM,Atlassian Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ADSK,"Autodesk, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ADP,"Automatic Data Processing, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BIDU,"Baidu, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BKR,Baker Hughes Company,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BALL,Ball Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BAC,Bank of America Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BMO,Bank of Montreal,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BCS,Barclays PLC,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BAX,Baxter International Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BDX,"Becton, Dickinson and Company",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BBY,"Best Buy Co., Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BHP,BHP Group Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BIIB,Biogen Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BNTX,BioNTech SE,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BLK,"BlackRock, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BX,Blackstone Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BKNG,Booking Holdings Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+BSX,Boston Scientific Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BP,BP p.l.c.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BMY,Bristol-Myers Squibb Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+AVGO,Broadcom Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CHRW,"C.H. Robinson Worldwide, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CDNS,"Cadence Design Systems, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CNI,Canadian National Railway Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+COF,Capital One Financial Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CAH,"Cardinal Health, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CCL,Carnival Corporation & plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CARR,Carrier Global Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CVNA,Carvana Co.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CAT,Caterpillar Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CBRE,"CBRE Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CDW,CDW Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CNC,Centene Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CHTR,"Charter Communications, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CVX,Chevron Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CMG,"Chipotle Mexican Grill, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CB,Chubb Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CINF,Cincinnati Financial Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CTAS,Cintas Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CSCO,"Cisco Systems, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+C,Citigroup Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NET,"Cloudflare, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CME,CME Group Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CCEP,Coca-Cola Europacific Partners PLC,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CTSH,Cognizant Technology Solutions Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+COIN,"Coinbase Global, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CL,Colgate-Palmolive Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CMCSA,Comcast Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+COP,ConocoPhillips,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ED,"Consolidated Edison, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+STZ,"Constellation Brands, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CEG,Constellation Energy Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CPRT,"Copart, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CSGP,"CoStar Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+COST,Costco Wholesale Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CPNG,"Coupang, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CRWD,"CrowdStrike Holdings, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CCI,Crown Castle Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CSX,CSX Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+CMI,Cummins Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CVS,CVS Health Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DHI,"D.R. Horton, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DHR,Danaher Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DDOG,"Datadog, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+DE,Deere & Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DELL,Dell Technologies Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DAL,"Delta Air Lines, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DXCM,"DexCom, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+DEO,Diageo plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+FANG,"Diamondback Energy, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+DLR,"Digital Realty Trust, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DOCU,"DocuSign, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+DG,Dollar General Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DLTR,"Dollar Tree, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+D,"Dominion Energy, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DPZ,"Domino's Pizza, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DASH,"DoorDash, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+DOW,Dow Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DTE,DTE Energy Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DUK,Duke Energy Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DD,"DuPont de Nemours, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ETN,Eaton Corporation plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EBAY,eBay Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ECL,Ecolab Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EIX,Edison International,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EW,Edwards Lifesciences Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EA,Electronic Arts Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ELV,"Elevance Health, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LLY,Eli Lilly and Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EMR,Emerson Electric Co.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ENB,Enbridge Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ENPH,"Enphase Energy, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ETR,Entergy Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EOG,"EOG Resources, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EQIX,"Equinix, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ES,Eversource Energy,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EXC,Exelon Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+EXPE,"Expedia Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+XOM,Exxon Mobil Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+FAST,Fastenal Company,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+FDX,FedEx Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+FIS,"Fidelity National Information Services, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+FITB,Fifth Third Bancorp,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+FSLR,"First Solar, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+FE,FirstEnergy Corp.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+F,Ford Motor Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+FTNT,"Fortinet, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+FCX,Freeport-McMoRan Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GE,GE Aerospace,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GEHC,GE HealthCare Technologies Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+GEV,GE Vernova Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GD,General Dynamics Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GIS,"General Mills, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GM,General Motors Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GILD,"Gilead Sciences, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+GFS,GLOBALFOUNDRIES Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+HAS,"Hasbro, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+HCA,"HCA Healthcare, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HDB,HDFC Bank Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HPE,Hewlett Packard Enterprise Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HLT,Hilton Worldwide Holdings Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HMC,"Honda Motor Co., Ltd.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HON,Honeywell International Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+HWM,Howmet Aerospace Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HPQ,HP Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HSBC,HSBC Holdings plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HUM,Humana Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HBAN,Huntington Bancshares Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+IBN,ICICI Bank Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+IDXX,"IDEXX Laboratories, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ITW,Illinois Tool Works Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ILMN,"Illumina, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+INCY,Incyte Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+INFY,Infosys Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ING,ING Groep N.V.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+IR,Ingersoll Rand Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PODD,Insulet Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+INTC,Intel Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ICE,"Intercontinental Exchange, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+IBM,International Business Machines Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+IP,International Paper Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+INTU,Intuit Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ISRG,"Intuitive Surgical, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+IQV,IQVIA Holdings Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+JBHT,"J.B. Hunt Transport Services, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+JD,"JD.com, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+JNJ,Johnson & Johnson,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+JCI,Johnson Controls International plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+JPM,JPMorgan Chase & Co.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+K,Kellanova,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+KDP,Keurig Dr Pepper Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+KMB,Kimberly-Clark Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+KMI,"Kinder Morgan, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+KKR,KKR & Co. Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+KLAC,KLA Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LHX,"L3Harris Technologies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LRCX,Lam Research Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LVS,Las Vegas Sands Corp.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LEN,Lennar Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LIN,Linde plc,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LKQ,LKQ Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LMT,Lockheed Martin Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LOGI,Logitech International S.A.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LOW,"Lowe's Companies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LULU,lululemon athletica inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LYFT,"Lyft, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+LYB,LyondellBasell Industries N.V.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MFC,Manulife Financial Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MPC,Marathon Petroleum Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MAR,"Marriott International, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MLM,"Martin Marietta Materials, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MRVL,"Marvell Technology, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MA,Mastercard Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MAT,"Mattel, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MCD,McDonald's Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MCK,McKesson Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MDT,Medtronic plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MELI,"MercadoLibre, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MRK,"Merck & Co., Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+META,"Meta Platforms, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MET,"MetLife, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MTD,Mettler-Toledo International Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MGM,MGM Resorts International,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MCHP,Microchip Technology Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MU,"Micron Technology, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MSFT,Microsoft Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MUFG,"Mitsubishi UFJ Financial Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MRNA,"Moderna, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MDLZ,"Mondelez International, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MPWR,"Monolithic Power Systems, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MNST,Monster Beverage Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+MCO,Moody's Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MS,Morgan Stanley,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+MSCI,MSCI Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NDAQ,"Nasdaq, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+NTAP,"NetApp, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+NTES,"NetEase, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+NFLX,"Netflix, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+NEM,Newmont Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NEE,"NextEra Energy, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NKE,"NIKE, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NIO,NIO Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NSC,Norfolk Southern Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NTRS,Northern Trust Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+NOC,Northrop Grumman Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NVS,Novartis AG,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NVO,Novo Nordisk A/S,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NU,Nu Holdings Ltd.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NVDA,NVIDIA Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+NXPI,NXP Semiconductors N.V.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ORLY,"O'Reilly Automotive, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+OXY,Occidental Petroleum Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+OKTA,"Okta, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ODFL,"Old Dominion Freight Line, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ON,ON Semiconductor Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+OKE,"ONEOK, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ORCL,Oracle Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+OTIS,Otis Worldwide Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PCAR,PACCAR Inc,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PKG,Packaging Corporation of America,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PLTR,Palantir Technologies Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PANW,"Palo Alto Networks, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PH,Parker-Hannifin Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PAYX,"Paychex, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PYPL,"PayPal Holdings, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PDD,PDD Holdings Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PEP,"PepsiCo, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PBR,Petroleo Brasileiro S.A. - Petrobras,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PFE,Pfizer Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PCG,PG&E Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PM,Philip Morris International Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PSX,Phillips 66,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PINS,"Pinterest, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PPL,PPL Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PLD,"Prologis, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PRU,"Prudential Financial, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PTC,PTC Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PEG,Public Service Enterprise Group Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PSA,Public Storage,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PHM,"PulteGroup, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+QCOM,QUALCOMM Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+PWR,"Quanta Services, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DGX,Quest Diagnostics Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+O,Realty Income Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+REGN,"Regeneron Pharmaceuticals, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+RSG,"Republic Services, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+RMD,ResMed Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+RIO,Rio Tinto Group,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+RIVN,"Rivian Automotive, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+HOOD,"Robinhood Markets, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+RBLX,Roblox Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ROK,"Rockwell Automation, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ROKU,"Roku, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ROST,"Ross Stores, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+RY,Royal Bank of Canada,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+RCL,Royal Caribbean Cruises Ltd.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+RTX,RTX Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SPGI,S&P Global Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CRM,"Salesforce, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SAP,SAP SE,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SBAC,SBA Communications Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+STX,Seagate Technology Holdings plc,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+SRE,Sempra,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+NOW,"ServiceNow, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SHEL,Shell plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SPG,"Simon Property Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SWKS,"Skyworks Solutions, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+SNAP,Snap Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SNOW,Snowflake Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SOFI,"SoFi Technologies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+SONY,Sony Group Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+LUV,Southwest Airlines Co.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SPOT,Spotify Technology S.A.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SBUX,Starbucks Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+STT,State Street Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SYK,Stryker Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SU,Suncor Energy Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SMCI,"Super Micro Computer, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+SNPS,"Synopsys, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+SYY,Sysco Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TMUS,"T-Mobile US, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TROW,"T. Rowe Price Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TSM,Taiwan Semiconductor Manufacturing Company Limited,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TTWO,"Take-Two Interactive Software, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TGT,Target Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TSLA,"Tesla, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TXN,Texas Instruments Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ALL,The Allstate Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BK,The Bank of New York Mellon Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BNS,The Bank of Nova Scotia,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+BA,The Boeing Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SCHW,The Charles Schwab Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CI,The Cigna Group,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+CLX,The Clorox Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+KO,The Coca-Cola Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+EL,The Estee Lauder Companies Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GS,"The Goldman Sachs Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HSY,The Hershey Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+HD,"The Home Depot, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+KHC,The Kraft Heinz Company,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+KR,The Kroger Co.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PNC,"The PNC Financial Services Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PG,The Procter & Gamble Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PGR,The Progressive Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SHW,The Sherwin-Williams Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+SO,The Southern Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TJX,"The TJX Companies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TD,The Toronto-Dominion Bank,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TTD,"The Trade Desk, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TRV,"The Travelers Companies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+DIS,The Walt Disney Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WMB,"The Williams Companies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TMO,Thermo Fisher Scientific Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TTE,TotalEnergies SE,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TM,Toyota Motor Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TSCO,Tractor Supply Company,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TT,Trane Technologies plc,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TDG,TransDigm Group Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TCOM,Trip.com Group Limited,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+TFC,Truist Financial Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TWLO,Twilio Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+TSN,"Tyson Foods, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+USB,U.S. Bancorp,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+UBER,"Uber Technologies, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+UBS,UBS Group AG,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+PATH,UiPath Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ULTA,"Ulta Beauty, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+UL,Unilever PLC,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+UNP,Union Pacific Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+UAL,"United Airlines Holdings, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+UPS,"United Parcel Service, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+URI,"United Rentals, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+UNH,UnitedHealth Group Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+VALE,Vale S.A.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+VLO,Valero Energy Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+VRSN,"VeriSign, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+VRSK,"Verisk Analytics, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+VZ,Verizon Communications Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+VRTX,Vertex Pharmaceuticals Incorporated,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+V,Visa Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+VST,Vistra Corp.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+VMC,Vulcan Materials Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+GWW,"W.W. Grainger, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WMT,Walmart Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WBD,"Warner Bros. Discovery, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+WM,"Waste Management, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WAT,Waters Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WEC,"WEC Energy Group, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WFC,Wells Fargo & Company,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WELL,Welltower Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+WDC,Western Digital Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+WDAY,"Workday, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+XEL,Xcel Energy Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+YUM,"Yum! Brands, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ZBRA,Zebra Technologies Corporation,Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ZBH,"Zimmer Biomet Holdings, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ZTS,Zoetis Inc.,Stocks,STOCK,compiled list,,2026-10-13,XNYS,USD
+ZS,"Zscaler, Inc.",Stocks,STOCK,compiled list,,2026-10-13,XNAS,USD
+ARKK,ARK Innovation ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLC,Communication Services Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLY,Consumer Discretionary Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLP,Consumer Staples Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLE,Energy Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLF,Financial Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLV,Health Care Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLI,Industrial Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+DBC,Invesco DB Commodity Index Tracking Fund,ETFs,FUND.OTHER,compiled list,,2026-10-13,ARCX,USD
+QQQM,Invesco NASDAQ 100 ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+QQQ,"Invesco QQQ Trust, Series 1",ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+RSP,Invesco S&P 500 Equal Weight ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+SHY,iShares 1-3 Year Treasury Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+TLT,iShares 20+ Year Treasury Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+IEF,iShares 7-10 Year Treasury Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+IBB,iShares Biotechnology ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+IBIT,iShares Bitcoin Trust ETF,ETFs,FUND.OTHER,compiled list,,2026-10-13,XNAS,USD
+FXI,iShares China Large-Cap ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+IEMG,iShares Core MSCI Emerging Markets ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+IXUS,iShares Core MSCI Total International Stock ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+IVV,iShares Core S&P 500 ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+IJH,iShares Core S&P Mid-Cap ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+IJR,iShares Core S&P Small-Cap ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+ITOT,iShares Core S&P Total U.S. Stock Market ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+AGG,iShares Core U.S. Aggregate Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,ARCX,USD
+ICLN,iShares Global Clean Energy ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+IAU,iShares Gold Trust,ETFs,FUND.GOLD,compiled list,,2026-10-13,ARCX,USD
+HYG,iShares iBoxx $ High Yield Corporate Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,ARCX,USD
+LQD,iShares iBoxx $ Investment Grade Corporate Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,ARCX,USD
+EMB,iShares J.P. Morgan USD Emerging Markets Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+ACWI,iShares MSCI ACWI ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+EFA,iShares MSCI EAFE ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+EEM,iShares MSCI Emerging Markets ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+EZA,iShares MSCI South Africa ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+MUB,iShares National Muni Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,ARCX,USD
+IWM,iShares Russell 2000 ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+DVY,iShares Select Dividend ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+SOXX,iShares Semiconductor ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+SLV,iShares Silver Trust,ETFs,FUND.OTHER,compiled list,,2026-10-13,ARCX,USD
+TIP,iShares TIPS Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,ARCX,USD
+JEPI,JPMorgan Equity Premium Income ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLB,Materials Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLRE,Real Estate Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+SCHD,Schwab U.S. Dividend Equity ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+BIL,SPDR Bloomberg 1-3 Month T-Bill ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,ARCX,USD
+DIA,SPDR Dow Jones Industrial Average ETF Trust,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+GLDM,SPDR Gold MiniShares Trust,ETFs,FUND.GOLD,compiled list,,2026-10-13,ARCX,USD
+GLD,SPDR Gold Shares,ETFs,FUND.GOLD,compiled list,,2026-10-13,ARCX,USD
+SPLG,SPDR Portfolio S&P 500 ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+SPY,SPDR S&P 500 ETF Trust,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XBI,SPDR S&P Biotech ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+XLK,Technology Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+USO,"United States Oil Fund, LP",ETFs,FUND.OTHER,compiled list,,2026-10-13,ARCX,USD
+XLU,Utilities Select Sector SPDR Fund,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+EGPT,VanEck Egypt Index ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+SMH,VanEck Semiconductor ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+VIG,Vanguard Dividend Appreciation ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VEA,Vanguard FTSE Developed Markets ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VWO,Vanguard FTSE Emerging Markets ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VUG,Vanguard Growth ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VYM,Vanguard High Dividend Yield ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VGT,Vanguard Information Technology ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VCIT,Vanguard Intermediate-Term Corporate Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+VO,Vanguard Mid-Cap ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VNQ,Vanguard Real Estate ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VOO,Vanguard S&P 500 ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VB,Vanguard Small-Cap ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+BND,Vanguard Total Bond Market ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+BNDX,Vanguard Total International Bond ETF,ETFs,FUND.FIXED_INCOME,compiled list,,2026-10-13,XNAS,USD
+VXUS,Vanguard Total International Stock ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,XNAS,USD
+VTI,Vanguard Total Stock Market ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VT,Vanguard Total World Stock ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD
+VTV,Vanguard Value ETF,ETFs,FUND.EQUITY,compiled list,,2026-10-13,ARCX,USD

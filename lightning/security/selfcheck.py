@@ -33,7 +33,7 @@ def _resource_checks() -> dict[str, bool]:
         and any((root / "ui" / "templates").rglob("*.html")),
         "static": (root / "ui" / "static").is_dir()
         and any(path.is_file() for path in (root / "ui" / "static").rglob("*")),
-        "catalogue": (root / "assets" / "egx_instruments.csv").is_file(),
+        "catalogue": (root / "assets" / "egx_instruments.csv").is_file() and (root / "assets" / "us_instruments.csv").is_file(),
     }
     try:
         from zoneinfo import ZoneInfo

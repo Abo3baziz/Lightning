@@ -190,9 +190,15 @@ class AssetService:
         if self.repo.get_asset_by_code(code):
             raise ConflictError(f"{code} already exists.", "symbol")
         venue, country, isin = _venue(class_code, mic, isin) if class_code != "GOLD" else (None, None, None)
+        # A listing is priced in its exchange's currency (US shares in USD); the currency is registered if new.
+        from lightning.market.iso import venue_currency
+        currency = venue_currency(venue) or self.base_currency
+        if currency != self.base_currency:
+            from lightning.database.currencies import CurrencyRegistry
+            CurrencyRegistry(self.db).register(currency)
         asset = FinancialAsset(
             id=0, code=code, name=name, asset_class_id=self.get_class_by_code(class_code).id,
-            currency=self.base_currency, unit=kind.unit, quantity_decimals=kind.quantity_decimals, is_cash=False,
+            currency=currency, unit=kind.unit, quantity_decimals=kind.quantity_decimals, is_cash=False,
             exposure=kind.exposure, liquidity=kind.liquidity, purity=purity, isin=isin,
             price_source=PriceSource.MANUAL, external_symbol=None, active=True, notes=(notes or "").strip(),
             mic=venue, country=country, market_key=_market_key(code.split(":", 1)[1], venue, country),

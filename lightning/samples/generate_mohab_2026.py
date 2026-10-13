@@ -141,15 +141,33 @@ def build() -> None:
 
     with open(HERE / "accounts.csv", "w", newline="", encoding="utf-8") as f:
         out = csv.writer(f)
-        out.writerow(("Name", "Type", "Institution", "Opening balance", "Opening date", "File"))
+        out.writerow(("Name", "Type", "Institution", "Opening balance", "Opening date", "File", "Currency"))
         # CIB opens with the 100,000 that buys the NBE certificate on the first day.
-        out.writerows((("CIB Payroll", "BANK", "CIB", "152000.00", FIRST.isoformat(), "cib-payroll.csv"),
-                       ("Cash wallet", "CASH", "", "1500.00", FIRST.isoformat(), "cash-wallet.csv"),
-                       ("Vodafone Cash", "CASH", "", "400.00", FIRST.isoformat(), "vodafone-cash.csv"),
-                       ("THNDR", "BROKERAGE", "THNDR", "0.00", FIRST.isoformat(), "thndr.csv"),
+        out.writerows((("CIB Payroll", "BANK", "CIB", "152000.00", FIRST.isoformat(), "cib-payroll.csv", ""),
+                       ("Cash wallet", "CASH", "", "1500.00", FIRST.isoformat(), "cash-wallet.csv", ""),
+                       ("Vodafone Cash", "CASH", "", "400.00", FIRST.isoformat(), "vodafone-cash.csv", ""),
+                       ("THNDR", "BROKERAGE", "THNDR", "0.00", FIRST.isoformat(), "thndr.csv", ""),
                        ("NBE 3-year certificate", "DEPOSIT", "NBE", "0.00", FIRST.isoformat(),
-                        "nbe-3-year-certificate.csv"),
-                       ("Gold at home", "PHYSICAL_ASSET", "", "0.00", FIRST.isoformat(), "gold-at-home.csv")))
+                        "nbe-3-year-certificate.csv", ""),
+                       ("Gold at home", "PHYSICAL_ASSET", "", "0.00", FIRST.isoformat(), "gold-at-home.csv", ""),
+                       # Dollars he already had: the account opens with them. TODO(package B): fund it by converting
+                       # pounds (CNV) once conversion exists; until then the dollars arrive as an opening balance.
+                       ("Dollar brokerage", "BROKERAGE", "", "2000.00", FIRST.isoformat(), "usd-brokerage.csv", "USD")))
+
+    # A Nasdaq ETF bought with those dollars (Exchange is the ISO 10383 code, so the asset is in USD).
+    with open(HERE / "usd-brokerage.csv", "w", newline="", encoding="utf-8") as f:
+        out = csv.writer(f)
+        out.writerow(("Date", "Action", "Investment", "Ticker", "Class", "Exchange", "Units", "Total", "Fees", "Notes"))
+        out.writerow(("2026-03-12", "Buy", "Invesco NASDAQ 100 ETF", "QQQM", "FUND.EQUITY", "XNAS", "8", "1765.00",
+                      "5.00", "In dollars"))
+
+    # What a dollar cost in pounds on each month-end (typed rates; the sample has no live source).
+    with open(HERE / "fx.csv", "w", newline="", encoding="utf-8") as f:
+        out = csv.writer(f)
+        out.writerow(("Date", "Currency", "Rate"))
+        out.writerow(("2026-01-01", "USD", "49.80"))
+        for m, rate in zip(MONTHS, ("50.10", "50.35", "50.60", "50.85", "51.00", "51.20", "51.30", "51.45", "51.60")):
+            out.writerow(((m + timedelta(days=32)).replace(day=1) - timedelta(days=1), "USD", rate))
 
     # A CD portfolio holds certificates, not cash: one bought from CIB, paying 22% a year monthly into
     # CIB (the 1,833.33 "Certificate interest" rows in cib-payroll.csv).
@@ -189,6 +207,7 @@ def build() -> None:
               "FWRY": (8.40, 8.62, 8.90, 9.10, 9.02, 9.31, 9.60, 9.44, 9.80),
               "TMGH": (None, None, None, None, 62.0, 64.1, 61.5, 66.0, 68.2),
               "AZMM": (None, 120.6, 121.7, 122.8, 125.2, 126.3, 127.4, 128.6, 129.7),
+              "QQQM": (None, None, 220.5, 218.1, 226.4, 231.0, 238.2, 241.7, 247.3),   # dollars
               "GOLD21": gold21,
               "GOLD24": tuple(round(p * 24 / 21, -1) for p in gold21)}
     with open(HERE / "prices.csv", "w", newline="", encoding="utf-8") as f:

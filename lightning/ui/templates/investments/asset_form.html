@@ -10,7 +10,7 @@
     <label for="instrument-search">{{ 'Find a stock or fund'|tr(locale) }}</label>
     <input id="instrument-search" type="search" placeholder="Type a company, fund, or ticker (e.g. CIB or COMI)" autocomplete="off" aria-controls="instrument-results" aria-expanded="false" autofocus>
     <div id="instrument-results" class="instrument-results" role="listbox" hidden></div>
-    <div id="instrument-selection" class="help" aria-live="polite">{{ "Search the local EGX and Thndr fund list, or enter details below."|tr(locale) }}</div>
+    <div id="instrument-selection" class="help" aria-live="polite">{{ "Search the local EGX, Thndr fund and US stock and ETF list, or enter details below."|tr(locale) }}</div>
   </section>
   <script nonce="{{ request.state.csp_nonce|default('') }}" id="instrument-catalogue" type="application/json">{{ catalogue | tojson }}</script>
   {% endif %}

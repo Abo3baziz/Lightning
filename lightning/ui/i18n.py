@@ -1309,7 +1309,7 @@ ARABIC_UI = {
     'the register': 'السجل',
     'to inspect source entries.': 'لمراجعة القيود المصدرية.',
     'Something you can own units of: a stock, a fund, gold.': 'أصل تقدر تملك منه وحدات: سهم أو صندوق أو دهب.',
-    'Search the local EGX and Thndr fund list, or enter details below.': 'ابحث في قائمة EGX المحلية وصناديق Thndr، أو اكتب التفاصيل تحت.',
+    'Search the local EGX, Thndr fund and US stock and ETF list, or enter details below.': 'ابحث في القائمة المحلية لأسهم EGX وصناديق Thndr والأسهم والصناديق الأمريكية، أو اكتب التفاصيل تحت.',
     'Exchange': 'البورصة',
     'A stock is on EGX unless you choose another. Funds and gold are not listed.': 'السهم في البورصة المصرية إلا لو اخترت غيرها. الصناديق والدهب مش مدرجين في بورصة.',
     'Gold karat': 'عيار الدهب',

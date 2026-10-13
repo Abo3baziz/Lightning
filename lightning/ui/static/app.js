@@ -1003,6 +1003,7 @@ if (tradeCatalogueNode) {
     } else if (selected) {
       positionHint.textContent = t("You hold {quantity} {unit}(s) here.", {quantity: formatted(Number(selected.holding || 0), selected.decimals), unit: selected.unit});
     }
+    if (selected && selected.note) positionHint.textContent += ` ${t(selected.note)}`;
     if (isDividend) entryHint.textContent = dividendBasis?.value === "per_share"
       ? t("The total dividend uses this rate × shares held by the selected owner on the transaction date.")
       : t("Enter the total dividend received. The selected owner must hold shares on the transaction date.");
@@ -1015,7 +1016,7 @@ if (tradeCatalogueNode) {
     const query = search.value.trim().toLocaleLowerCase();
     results.replaceChildren();
     if (!query) { results.hidden = true; search.setAttribute("aria-expanded", "false"); return; }
-    const matches = instruments.filter((item) => `${item.name} ${item.ticker} ${item.kind}`
+    const matches = instruments.filter((item) => `${item.name} ${item.ticker} ${item.kind} ${item.exchange || ""}`
       .toLocaleLowerCase().includes(query)).slice(0, 12);
     activeResult = 0;
     if (!matches.length) {
@@ -1030,7 +1031,7 @@ if (tradeCatalogueNode) {
       button.setAttribute("aria-selected", index === activeResult ? "true" : "false");
       if (index === activeResult) button.classList.add("is-active");
       const name = document.createElement("span"); name.textContent = item.name;
-      const ticker = document.createElement("small"); ticker.textContent = `${item.kind} · ${item.ticker}`;
+      const ticker = document.createElement("small"); ticker.textContent = `${item.kind} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
       button.append(name, ticker);
       const choose = () => {
         selected = item; selectedKey.value = item.key;
@@ -1113,15 +1114,16 @@ if (catalogueNode) {
   const name = form.querySelector('[name="name"]');
   const kind = form.querySelector('[name="class_code"]');
   const symbol = form.querySelector('[name="symbol"]');
+  const venue = form.querySelector('[name="mic"]');
   const render = () => {
     const query = search.value.trim().toLocaleLowerCase(); results.replaceChildren();
     if (!query) { results.hidden = true; search.setAttribute("aria-expanded", "false"); return; }
-    const matches = catalogue.filter((item) => `${item.name} ${item.ticker} ${item.kind}`.toLocaleLowerCase().includes(query)).slice(0, 12);
+    const matches = catalogue.filter((item) => `${item.name} ${item.ticker} ${item.kind} ${item.exchange || ""}`.toLocaleLowerCase().includes(query)).slice(0, 12);
     if (!matches.length) { const empty=document.createElement("div"); empty.className="instrument-result"; empty.textContent=t("No match. You can enter the investment details below."); results.append(empty); }
     matches.forEach((item) => {
       const button=document.createElement("button"); button.type="button"; button.className="instrument-result"; button.setAttribute("role","option");
-      const label=document.createElement("span"); label.textContent=item.name; const ticker=document.createElement("small"); ticker.textContent=`${item.kind} · ${item.ticker}`; button.append(label,ticker);
-      button.addEventListener("click", () => { name.value=item.name; kind.value=item.class_code; if(symbol) symbol.value=item.ticker; search.value=`${item.name} · ${item.ticker}`; results.hidden=true; search.setAttribute("aria-expanded","false"); selection.textContent=t("Selected {name} ({ticker}). Review the details, then save.", {name: item.name, ticker: item.ticker}); }); results.append(button);
+      const label=document.createElement("span"); label.textContent=item.name; const ticker=document.createElement("small"); ticker.textContent=`${item.kind} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`; button.append(label,ticker);
+      button.addEventListener("click", () => { name.value=item.name; kind.value=item.class_code; if(symbol) symbol.value=item.ticker; if(venue) venue.value=item.mic||""; search.value=`${item.name} · ${item.ticker}`; results.hidden=true; search.setAttribute("aria-expanded","false"); selection.textContent=t("Selected {name} ({ticker}). Review the details, then save.", {name: item.name, ticker: item.ticker}); }); results.append(button);
     }); results.hidden=false; search.setAttribute("aria-expanded","true");
   };
   search.addEventListener("input",render); search.addEventListener("focus",render);

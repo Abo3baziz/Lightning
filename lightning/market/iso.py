@@ -31,6 +31,22 @@ VENUES: dict[str, tuple[str, str]] = {
     "XSWX": ("SIX Swiss Exchange", "CH"),
 }
 
+# The currency a venue's shares are priced in (ISO 4217). A listing's currency follows its exchange, not the profile.
+# XLON quotes in pence (GBX); GBP is used here and the pence handling is not built.
+VENUE_CURRENCY: dict[str, str] = {
+    "XCAI": "EGP",
+    "XNAS": "USD", "XNYS": "USD", "ARCX": "USD", "XASE": "USD", "BATS": "USD",
+    "XSAU": "SAR", "XDFM": "AED", "XADS": "AED", "DSMQ": "QAR", "XKUW": "KWD", "XBAH": "BHD",
+    "XLON": "GBP",
+    "XETR": "EUR", "XPAR": "EUR", "XAMS": "EUR", "XBRU": "EUR", "XLIS": "EUR", "XMAD": "EUR", "XMIL": "EUR",
+    "XSWX": "CHF",
+}
+
+
+def venue_currency(mic: str | None) -> str | None:
+    """'XNAS' -> 'USD'; an unknown or empty MIC has no currency of its own."""
+    return VENUE_CURRENCY.get((mic or "").strip().upper())
+
 
 def venue_name(mic: str | None) -> str:
     """'XCAI' -> 'EGX'; an unknown MIC is shown as itself, an empty one as ''."""

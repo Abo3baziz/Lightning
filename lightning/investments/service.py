@@ -222,7 +222,7 @@ class InvestmentService:
             raise ValidationError("Dividends can only be recorded in a brokerage account.", "account")
         if self.holding_for_owner(account_id, asset_id, date, owner_id) <= ZERO:
             raise ValidationError("A dividend requires shares held by the selected owner on that date.", "instrument")
-        lines, counterparty = self._dividend_lines(account_id, asset_id, amount)
+        lines, counterparty = self._dividend_lines(account_id, asset_id, amount, on=date)
         if owner_id is not None:
             lines = [replace(line, owner_id=owner_id) for line in lines]
         txn = self.transactions.post(DocType.DIV, date, lines, "", counterparty, notes)
@@ -250,7 +250,7 @@ class InvestmentService:
         self._validate_asset_account(account, asset)
         if self.transactions.opening_txn_id(account.id, asset.id):
             raise ConflictError(f"{account.label} already has a starting amount of {asset.name} — edit that one.")
-        lines = self._holding_lines(account, asset, quantity, total_cost)
+        lines = self._holding_lines(account, asset, quantity, total_cost, on=date or fmt_date(today()))
         if owner_id is not None:
             lines = [replace(line, owner_id=owner_id) for line in lines]
         return self.transactions.post(DocType.OPN, date or fmt_date(today()), lines,
@@ -268,7 +268,7 @@ class InvestmentService:
                                                     values["price"], values.get("fees", "0"),
                                                     values.get("cash_account_id"), total=values.get("total") or None,
                                                     total_fees=values.get("total_fees", "0"),
-                                                    fees_included=values.get("fees_included", True))
+                                                    fees_included=values.get("fees_included", True), on=date)
             if owner_id:
                 lines = [replace(line, owner_id=int(owner_id)) for line in lines]
             updated = self.transactions.repost(txn_id, date, lines, "", counterparty, notes)
@@ -280,7 +280,8 @@ class InvestmentService:
         if kind == DocType.DIV:
             if self.holding_for_owner(values["account_id"], values["asset_id"], date, owner_id) <= ZERO:
                 raise ValidationError("A dividend requires shares held by the selected owner on that date.", "asset_id")
-            lines, counterparty = self._dividend_lines(values["account_id"], values["asset_id"], values["amount"])
+            lines, counterparty = self._dividend_lines(values["account_id"], values["asset_id"], values["amount"],
+                                                       on=date)
             if owner_id:
                 lines = [replace(line, owner_id=int(owner_id)) for line in lines]
             updated = self.transactions.repost(txn_id, date, lines, "", counterparty, notes)
@@ -295,7 +296,7 @@ class InvestmentService:
             existing = self.transactions.opening_txn_id(account.id, asset.id, exclude_id=txn_id)
             if existing:
                 raise ConflictError(f"{account.label} already has a starting amount of {asset.name}.")
-            lines = self._holding_lines(account, asset, values["quantity"], values["total_cost"])
+            lines = self._holding_lines(account, asset, values["quantity"], values["total_cost"], on=date)
             if owner_id is not None:
                 lines = [replace(line, owner_id=int(owner_id)) for line in lines]
             return self.transactions.repost(txn_id, date, lines, f"Starting holding — {asset.name}", asset.name,
@@ -432,7 +433,7 @@ class InvestmentService:
     def _trade(self, kind, date, account_id, asset_id, quantity, price, fees, cash_account_id, notes, total=None,
                total_fees="0", fees_included=True, owner_id=None):
         lines, counterparty = self._trade_lines(kind, account_id, asset_id, quantity, price, fees, cash_account_id,
-                                                total, total_fees, fees_included)
+                                                total, total_fees, fees_included, on=date)
         if owner_id is not None:
             party = self.db.one("SELECT id FROM counterparties WHERE id=? AND active=1", (owner_id,))
             if not party:
@@ -451,12 +452,26 @@ class InvestmentService:
                                             owner_id=owner_id)
         return txn
 
+    def _rate(self, account: Account, on) -> Decimal:
+        """The line rate (account currency -> base) on a day: one place for every investment line."""
+        return self.transactions._fx(account, on)
+
+    @staticmethod
+    def _same_currency(asset: FinancialAsset, *accounts: Account) -> None:
+        """An investment is bought, held and paid for in its own currency."""
+        for account in accounts:
+            if account.currency != asset.currency:
+                raise ValidationError(f"{asset.name} is priced in {asset.currency}; {account.label} is in "
+                                      f"{account.currency}. Use a {asset.currency} account.", "account")
+
     def _trade_lines(self, kind, account_id, asset_id, quantity, price, fees, cash_account_id, total=None,
-                     total_fees="0", fees_included=True):
+                     total_fees="0", fees_included=True, on=None):
         account = self._holding_account(account_id)
         asset = self._investment(asset_id)
         self._validate_asset_account(account, asset)
         cash_account = self._cash_account(account, cash_account_id)
+        self._same_currency(asset, account, cash_account)
+        on = on or fmt_date(today())
         units = self._units(asset, quantity)
         fee = check_places(to_decimal(total_fees if str(total_fees or "").strip() else "0", "fees"), 2, "fees")
         if fee < ZERO:
@@ -488,30 +503,36 @@ class InvestmentService:
                 f" · {'cash total' if fees_included else 'trade total'} {fmt(entered)}")
         if kind == DocType.BUY:
             cost = gross + fee
-            return [PostingLine.cash(cash_account.id, cash_asset.id, -cost, Effect.INTERNAL, memo=memo),
-                    PostingLine.units(account.id, asset.id, units, cost, Effect.INTERNAL, unit_price, memo)], asset.name
+            return [PostingLine.cash(cash_account.id, cash_asset.id, -cost, Effect.INTERNAL, memo=memo,
+                                     fx_rate=self._rate(cash_account, on)),
+                    PostingLine.units(account.id, asset.id, units, cost, Effect.INTERNAL, unit_price, memo,
+                                      fx_rate=self._rate(account, on))], asset.name
         proceeds = gross - fee
         if proceeds <= ZERO:
             raise ValidationError("After fees nothing would be received — check the price and fees.", "fees")
-        return [PostingLine.units(account.id, asset.id, -units, -proceeds, Effect.INTERNAL, unit_price, memo),
-                PostingLine.cash(cash_account.id, cash_asset.id, proceeds, Effect.INTERNAL, memo=memo)], asset.name
+        return [PostingLine.units(account.id, asset.id, -units, -proceeds, Effect.INTERNAL, unit_price, memo,
+                                  fx_rate=self._rate(account, on)),
+                PostingLine.cash(cash_account.id, cash_asset.id, proceeds, Effect.INTERNAL, memo=memo,
+                                 fx_rate=self._rate(cash_account, on))], asset.name
 
-    def _dividend_lines(self, account_id, asset_id, amount):
+    def _dividend_lines(self, account_id, asset_id, amount, on=None):
         account = self.accounts.require_usable(account_id)
         if account.account_type != AccountType.BROKERAGE:
             raise ValidationError("Dividends can only be recorded in a brokerage account.", "account")
         asset = self._investment(asset_id)
         self._validate_asset_account(account, asset)
+        self._same_currency(asset, account)
         value = check_places(to_decimal(amount, "amount"), 2, "amount")
         if value <= ZERO:
             raise ValidationError("Enter the dividend you received.", "amount")
         category = self.categories.get_by_code(DIVIDEND_CATEGORY)
         cash_asset = self.assets.cash_asset(account.currency)
         # Asset attribution is stored in investment_dividend_assets; memo remains descriptive only.
-        return [PostingLine.cash(account.id, cash_asset.id, value, Effect.INFLOW, category.id, memo=asset.code)], \
-            asset.name
+        return [PostingLine.cash(account.id, cash_asset.id, value, Effect.INFLOW, category.id, memo=asset.code,
+                                 fx_rate=self._rate(account, on or fmt_date(today())))], asset.name
 
-    def _holding_lines(self, account: Account, asset: FinancialAsset, quantity, total_cost):
+    def _holding_lines(self, account: Account, asset: FinancialAsset, quantity, total_cost, on=None):
+        self._same_currency(asset, account)
         units = self._units(asset, quantity)
         cost = check_places(to_decimal(total_cost if str(total_cost or "").strip() else "0", "total_cost"), 2,
                             "total_cost")
@@ -519,7 +540,8 @@ class InvestmentService:
             raise ValidationError("What you paid cannot be negative.", "total_cost")
         per_unit = (cost / units).quantize(Decimal("0.000001"))
         return [PostingLine.units(account.id, asset.id, units, cost, Effect.OPENING, per_unit,
-                                  f"Starting holding {_num(units)} × {asset.label}")]
+                                  f"Starting holding {_num(units)} × {asset.label}",
+                                  fx_rate=self._rate(account, on or fmt_date(today())))]
 
     def _holding_account(self, account_id) -> Account:
         account = self.accounts.require_usable(account_id)

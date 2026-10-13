@@ -619,11 +619,11 @@ async def update_trade(request: Request, txn_id: int):
 # -- investments (what you can hold) -------------------------------------------
 def _asset_form(request: Request, values: dict, asset=None, error: LightningError | None = None, status=200):
     c = container(request)
-    from lightning.market.iso import VENUES
+    from lightning.market.iso import VENUES, venue_name
     return render(request, "investments/asset_form.html", status_code=status, values=values, asset=asset,
                   classes=c.assets.investment_classes(), venues=VENUES, error=error.message if error else "",
                   error_field=(error.field or "") if error else "",
-                  catalogue=instruments() if asset is None else [])
+                  catalogue=[{**row, "exchange": venue_name(row.get("mic"))} for row in instruments()] if asset is None else [])
 
 
 @router.get("/assets/new")

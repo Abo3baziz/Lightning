@@ -2,7 +2,7 @@
 
 The files live in ``lightning/samples/mohab_2026`` (``generate_mohab_2026.py`` writes them):
 
-- ``accounts.csv``: the six accounts and their 1 January balances.
+- ``accounts.csv``: the seven accounts and their 1 January balances (a Currency column: blank is the profile currency).
 - ``cib-payroll.csv``, ``cash-wallet.csv``, ``vodafone-cash.csv``: bank CSV format. They load through
   the same importer as Import CSV and need nothing reviewed. Import CIB Payroll first: its transfers
   fill the wallet, Vodafone Cash and THNDR.
@@ -10,6 +10,8 @@ The files live in ``lightning/samples/mohab_2026`` (``generate_mohab_2026.py`` w
   certificates, not cash).
 - ``thndr.csv``: buys, a sale and a dividend; ``gold-at-home.csv``: the gold pieces; ``prices.csv``:
   month-end prices, which drive the revaluations.
+- ``usd-brokerage.csv``: the dollar brokerage's Nasdaq ETF (its Exchange column makes the asset USD); ``fx.csv``:
+  what a dollar cost in pounds, typed month-end rates.
 
 ``load_mohab_2026`` fills an empty Lightning with all of it, then adds the plan (budget, emergency
 fund, recurring bills, a yearly course and bonus, the car loan), the same way the screens would.
@@ -25,7 +27,8 @@ from lightning.core.errors import NotFoundError
 
 MOHAB_2026 = Path(__file__).parent / "mohab_2026"
 BANK_FILES = ("cib-payroll.csv", "cash-wallet.csv", "vodafone-cash.csv")   # in this order
-FILES = ("accounts.csv", "nbe-3-year-certificate.csv", *BANK_FILES, "thndr.csv", "gold-at-home.csv", "prices.csv")
+FILES = ("accounts.csv", "nbe-3-year-certificate.csv", *BANK_FILES, "thndr.csv", "usd-brokerage.csv", "gold-at-home.csv",
+         "prices.csv", "fx.csv")
 GOLD_PRICES = {"GOLD21": "REF:GLD-21K", "GOLD24": "REF:GLD-24K"}
 
 
@@ -38,12 +41,12 @@ def _due(day: str, until: date) -> bool:
     return date.fromisoformat(day) <= until
 
 
-def _investment(c, name: str, class_code: str, ticker: str):
+def _investment(c, name: str, class_code: str, ticker: str, mic: str = ""):
     from lightning.assets.domain import INVESTMENT_KINDS
     try:
         return c.assets.get_asset_by_code(f"{INVESTMENT_KINDS[class_code].prefix}:{ticker}")
     except NotFoundError:
-        return c.assets.create_investment(name, class_code, ticker)
+        return c.assets.create_investment(name, class_code, ticker, mic=mic)
 
 
 def import_bank_file(c, account_id: int, name: str) -> dict:
@@ -69,10 +72,15 @@ def load_mohab_2026(c, as_of: date | None = None) -> dict:
     day = as_of or today()
     accounts = {}
     with c.db.transaction():
+        for code in sorted({row["Currency"] for row in rows("accounts.csv") if row.get("Currency")}):
+            c.currencies.register(code)
+        for row in rows("fx.csv"):
+            if _due(row["Date"], day):
+                c.fx.save(row["Currency"], row["Date"], row["Rate"])
         for row in rows("accounts.csv"):
             accounts[row["Name"]] = c.account_flows.open_account(
                 row["Name"], row["Type"], row["Opening date"], row["Opening balance"],
-                institution=row["Institution"]).id
+                institution=row["Institution"], currency=row.get("Currency") or None).id
     files = {row["File"]: accounts[row["Name"]] for row in rows("accounts.csv") if row["File"]}
     for row in rows("nbe-3-year-certificate.csv"):
         if _due(row["Date"], day):
@@ -85,19 +93,21 @@ def load_mohab_2026(c, as_of: date | None = None) -> dict:
         posted += import_bank_file(c, files[name], name)["posted"]
 
     with c.db.transaction():
-        thndr, gold = files["thndr.csv"], files["gold-at-home.csv"]
-        for row in rows("thndr.csv"):
-            if not _due(row["Date"], day):
-                continue
-            asset = _investment(c, row["Investment"], row["Class"], row["Ticker"])
-            if row["Action"] == "Dividend":
-                c.investments.dividend(row["Date"], thndr, asset.id, row["Total"], row["Notes"])
-                continue
-            trade = c.investments.buy_total if row["Action"] == "Buy" else c.investments.sell_total
-            trade(row["Date"], thndr, asset.id, row["Units"], row["Total"], notes=row["Notes"], fees=row["Fees"])
-            fees = float(row["Fees"] or 0)
-            gross = float(row["Total"]) - fees if row["Action"] == "Buy" else float(row["Total"]) + fees
-            c.assets.set_price(asset.id, row["Date"], f"{gross / float(row['Units']):.4f}")
+        gold = files["gold-at-home.csv"]
+        for name in ("thndr.csv", "usd-brokerage.csv"):
+            for row in rows(name):
+                if not _due(row["Date"], day):
+                    continue
+                account = files[name]
+                asset = _investment(c, row["Investment"], row["Class"], row["Ticker"], row.get("Exchange", ""))
+                if row["Action"] == "Dividend":
+                    c.investments.dividend(row["Date"], account, asset.id, row["Total"], row["Notes"])
+                    continue
+                trade = c.investments.buy_total if row["Action"] == "Buy" else c.investments.sell_total
+                trade(row["Date"], account, asset.id, row["Units"], row["Total"], notes=row["Notes"], fees=row["Fees"])
+                fees = float(row["Fees"] or 0)
+                gross = float(row["Total"]) - fees if row["Action"] == "Buy" else float(row["Total"]) + fees
+                c.assets.set_price(asset.id, row["Date"], f"{gross / float(row['Units']):.4f}")
         for row in rows("gold-at-home.csv"):
             if not _due(row["Date"], day):
                 continue
