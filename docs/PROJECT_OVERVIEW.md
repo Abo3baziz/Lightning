@@ -15,6 +15,14 @@ Read only the section your task needs (`grep -n '^## ' docs/PROJECT_OVERVIEW.md`
 | 3. What you can do today | You need the current feature list |
 | 4. Period and fixed-horizon visuals | You change a chart, card or the period picker |
 | 5. The questions Lightning answers | You change what a screen answers, or a known gap |
+| &nbsp;&nbsp;5.1. Where do I stand? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.2. How much can I spend? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.3. Where did my money go? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.4. Am I sticking to my plan? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.5. How are my investments doing? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.6. Am I safe if something goes wrong? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.7. Is my data right? | You change that screen’s main question or one of its follow-ups |
+| &nbsp;&nbsp;5.8. What changes when my pay changes? | You change that screen’s main question or one of its follow-ups |
 | 6. Reference workflow: a month with Mohab | You change Mohab's test or a screen he uses |
 | 7. Compared with the best budgeting apps | You plan a feature |
 | 8. UX plan (guideline 3.6) | You take a UX item, or answer the owner's open UX questions |
@@ -142,92 +150,98 @@ User feedback becomes steps Mohab takes: fixed points are checked as answers, an
 | Held for others | Whose money am I holding? | Balances by person |
 | Settings · Checks | Is my data right? | Configuration and integrity checks |
 
-**1. Where do I stand?**
+<a id="where-do-i-stand"></a>
+### 5.1. Where do I stand?
 
 | Follow-up | Answered by | Status |
 |---|---|---|
-| How does it add up? | Overview › Net worth rows and What it is made of | Answered |
-| What part is not mine? | Held for others; account headers | Answered |
-| What do I owe? | Overview › What you owe; Cash planning › Plan, Loans | Answered |
-| Did it grow this period? | Overview › Change in what you own | Answered |
-| *Why* did it change: saving, prices or new money? | No wealth bridge yet | Partial (M3.2) |
-| How has it moved over the year? | Overview › Net worth over time (last 12 month ends) | Answered; wealth-change bridge is still partial (M3.2) |
-
-**2. How much can I spend?**
-
-| Follow-up | Answered by | Status |
-|---|---|---|
-| Why is it lower than my bank balance? | Free cash = Cash you own − Reserves − Bills due, each part expandable | Answered |
-| How much until payday? | Cash planning › Safe to spend | Answered |
-| What is due next? | Overview › Needs you; Cash planning › Next 30 days | Answered |
-| Will I run short? | Cash forecast with its lowest point; Overview warns | Answered (3 months fixed) |
-| Is my salary late? | — | Left out by decision |
-| Can I afford this purchase now? | Safe to spend, before and after a new reserve | Partial: no "what if I buy it" check |
-| Does an early payday count twice? | Recurring shows a plausible early payment; once Mohab confirms it, the January plan is settled and the average attributes it to January, while the bank-date cash-flow report stays unchanged | Answered with confirmation (Mohab step 18) |
-| I have no salary this month: how long until the next one? | Safe to spend until the next scheduled income | Answered (Mohab step 27) |
-
-**3. Where did my money go?**
+| 5.1.1 How does it add up? | Overview › Net worth rows and What it is made of | Answered |
+| 5.1.2 What part is not mine? | Held for others; account headers | Answered |
+| 5.1.3 What do I owe? | Overview › What you owe; Cash planning › Plan, Loans | Answered |
+| 5.1.4 Did it grow this period? | Overview › Change in what you own | Answered |
+| 5.1.5 *Why* did it change: saving, prices or new money? | No wealth bridge yet | Partial (M3.2) |
+| 5.1.6 How has it moved over the year? | Overview › Net worth over time (last 12 month ends) | Answered; wealth-change bridge is still partial (M3.2) |
+<a id="how-much-can-i-spend"></a>
+### 5.2. How much can I spend?
 
 | Follow-up | Answered by | Status |
 |---|---|---|
-| Which categories, and which transactions? | Overview › Where it went; Expense analysis bars drill down to transactions | Answered |
-| More or less than last month? | Expense analysis › change from the comparable period | Answered |
-| How much did I keep? | Savings rate (Net flow ÷ Money in) | Answered |
-| What do subscriptions cost a year? | Cash planning › Recurring | Answered |
-| A merchant or a few categories I care about? | No saved watchlist | Missing |
-| A refund came back: did my spending go down? | It reduces the category in the month the refund arrives, not the month of the purchase | Partial (Mohab step 13) |
-| How much did I spend on work that my employer owes me back? | Work categories; the reimbursement is a refund in the same category | Partial: nothing lists what is still unreimbursed |
-| How much went in fees and bank charges this year? | Expense analysis › Fees & Charges, YTD | Answered |
-
-**4. Am I sticking to my plan?**
-
-| Follow-up | Answered by | Status |
-|---|---|---|
-| Which categories are over? | Budget meters, over plan first; Overview | Answered |
-| How much of my income does the plan take? | Spent and Planned as % of Average monthly income | Answered |
-| Is my loan in the plan? | "Includes … of loan payments scheduled this month" | Answered |
-| What about next month? | Rules repeat; a future month cannot be opened yet | Partial |
-| Where should the rest of my income go? | No "ready to assign" view | Missing |
-| Rent went up, or I got a raise: does the plan follow? | A changed amount prompts Mohab to confirm the payment, choose the future planned amount and review any reserve target; neither plan nor reserve changes silently | Answered with confirmation (Mohab steps 20, 24) |
-| What should I set aside for yearly bills (car licence, insurance, school fees)? | A reserve with a due date; Saving for goals spreads it over the months left | Answered (Mohab step 19) |
-| Have I actually set it aside? | The goal's assigned cash, which moves only when he assigns it | Partial: nothing asks him to assign the monthly amount |
-
-**5. How are my investments doing?**
+| 5.2.1 Why is it lower than my bank balance? | Free cash = Cash you own − Reserves − Bills due, each part expandable | Answered |
+| 5.2.2 How much until payday? | Cash planning › Safe to spend | Answered |
+| 5.2.3 What is due next? | Overview › Needs you; Cash planning › Next 30 days | Answered |
+| 5.2.4 Will I run short? | Cash forecast with its lowest point; Overview warns | Answered (3 months fixed) |
+| 5.2.5 Is my salary late? | — | Left out by decision |
+| 5.2.6 Can I afford this purchase now? | Safe to spend, before and after a new reserve | Partial: no "what if I buy it" check |
+| 5.2.7 Does an early payday count twice? | Recurring shows a plausible early payment; once Mohab confirms it, the January plan is settled and the average attributes it to January, while the bank-date cash-flow report stays unchanged | Answered with confirmation (Mohab step 18) |
+| 5.2.8 I have no salary this month: how long until the next one? | Safe to spend until the next scheduled income | Answered (Mohab step 27) |
+<a id="where-did-my-money-go"></a>
+### 5.3. Where did my money go?
 
 | Follow-up | Answered by | Status |
 |---|---|---|
-| Which class or holding did best? | Net gain or loss by asset class; biggest movers | Answered |
-| How much did I put in? | Money added | Answered |
-| What would I get if I sold? | Investments › Holdings after sale; Overview › If you sold today | Answered |
-| Am I on my target mix? | Investments › Set target allocation | Answered |
-| Why does a holding show no gain? | No price yet: valued at cost and flagged | Answered |
-| What did I make when I sold? | Gain from sales, after fees | Answered |
-| When does my certificate mature, and what then? | The bank's CD portfolio lists each certificate's terms and maturity; Cash planning shows estimated interest and principal proceeds. The user records statement interest and actual redemption proceeds | Partial: legacy account-level terms are not converted, and no automated bank reconciliation |
-| How are my dollar savings doing? | Currencies tab: native balance, translated value and month-end FX movement | Foreign cash supported; conversions and foreign securities still planned |
-
-**6. Am I safe if something goes wrong?** The emergency fund shows months covered. Saving for goals shows what to set aside each month. Loans show payments made, what is left and the last payment; a skipped payment moves to the end of the loan.
-
-| Follow-up | Answered by | Status |
-|---|---|---|
-| How long could I live if I lost my job? | Emergency fund in months of Average monthly income, or of Average monthly spending (Settings › Budget) | Answered (Mohab reads both after his job ends) |
-| I paid for a repair from the emergency fund: what now? | The fund shows what is left; Free cash is unchanged | Partial: nothing reminds him to refill it (Mohab step 14) |
-| When is the car loan paid off? | Loans › last payment | Answered |
-| Can I pay the loan off early? | — | Missing: no early payoff or lump-sum payment |
-| Is my debt under control? | Loans › Debt to net worth, Debt to cash, Loan payments to income: one KPI card each, with the two amounts divided | Answered (Mohab, 2026-09-30) |
-| How much of my income is already promised? | Recurring › Fixed costs to income (bills, subscriptions and loans a month) | Answered (Mohab, 2026-09-30) |
-
-
-**7. Is my data right?** Type the balance the bank shows and settle a small difference with one adjustment, review imports for gaps and duplicates, and run Checks. There is no stale-price warning yet (partial).
-
-**8. What changes when my pay changes?** A salaried user's pay is not one flat number: raises, a yearly bonus or profit share, a 13th month, Ramadan and Eid grants, and paydays moved early for holidays.
+| 5.3.1 Which categories, and which transactions? | Overview › Where it went; Expense analysis bars drill down to transactions | Answered |
+| 5.3.2 More or less than last month? | Expense analysis › change from the comparable period | Answered |
+| 5.3.3 How much did I keep? | Savings rate (Net flow ÷ Money in) | Answered |
+| 5.3.4 What do subscriptions cost a year? | Cash planning › Recurring | Answered |
+| 5.3.5 A merchant or a few categories I care about? | No saved watchlist | Missing |
+| 5.3.6 A refund came back: did my spending go down? | It reduces the category in the month the refund arrives, not the month of the purchase | Partial (Mohab step 13) |
+| 5.3.7 How much did I spend on work that my employer owes me back? | Work categories; the reimbursement is a refund in the same category | Partial: nothing lists what is still unreimbursed |
+| 5.3.8 How much went in fees and bank charges this year? | Expense analysis › Fees & Charges, YTD | Answered |
+<a id="am-i-sticking-to-my-plan"></a>
+### 5.4. Am I sticking to my plan?
 
 | Follow-up | Answered by | Status |
 |---|---|---|
-| Where did my bonus go? | Money in › Bonus; Expense analysis for the same period | Answered |
-| Does a bonus change my budget? | `BudgetService.income_average` excludes `EXP.WORK.BONUS` by default; a bonus does not lift Average monthly income | Answered; Mohab step 17's average is instead affected by January salary booked in December (step 18) |
-| I changed jobs: what happens to my income figures? | Stop the old salary (its history stays) and add the new one | End-of-service pay is irregular and excluded by default; the no-pay-month average still skips zero-income months (Mohab step 27) |
-| Was I paid my raise? | The account register shows the new amount; Cash planning › Recurring keeps the scheduled payment Due until he links it by hand | Partial |
+| 5.4.1 Which categories are over? | Budget meters, over plan first; Overview | Answered |
+| 5.4.2 How much of my income does the plan take? | Spent and Planned as % of Average monthly income | Answered |
+| 5.4.3 Is my loan in the plan? | "Includes … of loan payments scheduled this month" | Answered |
+| 5.4.4 What about next month? | Rules repeat; a future month cannot be opened yet | Partial |
+| 5.4.5 Where should the rest of my income go? | No "ready to assign" view | Missing |
+| 5.4.6 Rent went up, or I got a raise: does the plan follow? | A changed amount prompts Mohab to confirm the payment, choose the future planned amount and review any reserve target; neither plan nor reserve changes silently | Answered with confirmation (Mohab steps 20, 24) |
+| 5.4.7 What should I set aside for yearly bills (car licence, insurance, school fees)? | A reserve with a due date; Saving for goals spreads it over the months left | Answered (Mohab step 19) |
+| 5.4.8 Have I actually set it aside? | The goal's assigned cash, which moves only when he assigns it | Partial: nothing asks him to assign the monthly amount |
+<a id="how-are-my-investments-doing"></a>
+### 5.5. How are my investments doing?
 
+| Follow-up | Answered by | Status |
+|---|---|---|
+| 5.5.1 Which class or holding did best? | Net gain or loss by asset class; biggest movers | Answered |
+| 5.5.2 How much did I put in? | Money added | Answered |
+| 5.5.3 What would I get if I sold? | Investments › Holdings after sale; Overview › If you sold today | Answered |
+| 5.5.4 Am I on my target mix? | Investments › Set target allocation | Answered |
+| 5.5.5 Why does a holding show no gain? | No price yet: valued at cost and flagged | Answered |
+| 5.5.6 What did I make when I sold? | Gain from sales, after fees | Answered |
+| 5.5.7 When does my certificate mature, and what then? | The bank's CD portfolio lists each certificate's terms and maturity; Cash planning shows estimated interest and principal proceeds. The user records statement interest and actual redemption proceeds | Partial: legacy account-level terms are not converted, and no automated bank reconciliation |
+| 5.5.8 How are my dollar savings doing? | Currencies tab: native balance, translated value and month-end FX movement | Foreign cash supported; conversions and foreign securities still planned |
+<a id="am-i-safe-if-something-goes-wrong"></a>
+### 5.6. Am I safe if something goes wrong?
+
+The emergency fund shows months covered. Saving for goals shows what to set aside each month. Loans show payments made, what is left and the last payment; a skipped payment moves to the end of the loan.
+
+| Follow-up | Answered by | Status |
+|---|---|---|
+| 5.6.1 How long could I live if I lost my job? | Emergency fund in months of Average monthly income, or of Average monthly spending (Settings › Budget) | Answered (Mohab reads both after his job ends) |
+| 5.6.2 I paid for a repair from the emergency fund: what now? | The fund shows what is left; Free cash is unchanged | Partial: nothing reminds him to refill it (Mohab step 14) |
+| 5.6.3 When is the car loan paid off? | Loans › last payment | Answered |
+| 5.6.4 Can I pay the loan off early? | — | Missing: no early payoff or lump-sum payment |
+| 5.6.5 Is my debt under control? | Loans › Debt to net worth, Debt to cash, Loan payments to income: one KPI card each, with the two amounts divided | Answered (Mohab, 2026-09-30) |
+| 5.6.6 How much of my income is already promised? | Recurring › Fixed costs to income (bills, subscriptions and loans a month) | Answered (Mohab, 2026-09-30) |
+
+<a id="is-my-data-right"></a>
+### 5.7. Is my data right?
+
+Type the balance the bank shows and settle a small difference with one adjustment, review imports for gaps and duplicates, and run Checks. There is no stale-price warning yet (partial).
+<a id="what-changes-when-my-pay-changes"></a>
+### 5.8. What changes when my pay changes?
+
+A salaried user's pay is not one flat number: raises, a yearly bonus or profit share, a 13th month, Ramadan and Eid grants, and paydays moved early for holidays.
+
+| Follow-up | Answered by | Status |
+|---|---|---|
+| 5.8.1 Where did my bonus go? | Money in › Bonus; Expense analysis for the same period | Answered |
+| 5.8.2 Does a bonus change my budget? | `BudgetService.income_average` excludes `EXP.WORK.BONUS` by default; a bonus does not lift Average monthly income | Answered; Mohab step 17's average is instead affected by January salary booked in December (step 18) |
+| 5.8.3 I changed jobs: what happens to my income figures? | Stop the old salary (its history stays) and add the new one | End-of-service pay is irregular and excluded by default; the no-pay-month average still skips zero-income months (Mohab step 27) |
+| 5.8.4 Was I paid my raise? | The account register shows the new amount; Cash planning › Recurring keeps the scheduled payment Due until he links it by hand | Partial |
 Money held for others is left out of every owned, budget and performance view. Transfers are never income or spending. Refunds reduce spending in their original category.
 
 <a id="reference-workflow-a-month-with-mohab"></a>
@@ -411,7 +425,7 @@ Features worth building, each with the app it came from (added 2026-10-05). Unle
 <a id="roadmap"></a>
 ## 10. Roadmap
 
-### Pre-ZIP release readiness
+### 10.1. Pre-ZIP release readiness
 
 Verified UI fixes: Budget overlap at about 941px, the Cash planning tab strip and shared period pill at 390px, Settings data-card overflow, and account/all-transactions registers scrolling inside their cards. Holdings now uses five columns with expandable details, and the reviewed own-data fields have type-and-pick controls. Mohab's early salary, raise and rent scenarios pass with explicit confirmations; the CD terms and forecast mechanism is covered by focused tests. A full interactive click-through of every control and acceptance on an ordinary Windows PC remain outstanding before the ZIP release. No new ZIP is implied by these source changes.
 
