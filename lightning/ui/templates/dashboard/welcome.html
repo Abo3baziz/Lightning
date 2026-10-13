@@ -6,7 +6,7 @@
   <div class="label">{{ "First step"|tr(locale) }}</div>
   <form method="post" action="/setup/currency" class="welcome-currency">
     <label for="welcome-currency">{{ 'Profile currency'|tr(locale) }}</label>
-    <select id="welcome-currency" name="currency">{% for code, label in currencies %}<option value="{{ code }}"{% if code == base %} selected{% endif %}>{{ code }} — {{ label }}</option>{% endfor %}</select>
+    <select id="welcome-currency" name="currency" data-own-picker>{% for code, label in currencies %}<option value="{{ code }}"{% if code == base %} selected{% endif %}>{{ code }} — {{ label }}</option>{% endfor %}</select>
     <button class="btn small" type="submit">{{ 'Save currency'|tr(locale) }}</button>
     <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
   </form>

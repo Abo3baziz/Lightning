@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/static/lightning-mark.svg">
   <link rel="stylesheet" href="/static/fonts/fonts.css">
   {# Bricolage Grotesque and Manrope (guideline A06) are bundled in fonts.css: no outside request, in every mode. #}
-  <link rel="stylesheet" href="/static/style{{ '.rtl' if locale == 'ar' else '' }}.css?v=86">
+  <link rel="stylesheet" href="/static/style{{ '.rtl' if locale == 'ar' else '' }}.css?v=87">
 </head>
 <body data-base-currency="{{ base }}">
 <div class="shell">
@@ -42,7 +42,7 @@
     </nav>
     <details class="side-accounts" id="sidebar-accounts">
       <summary class="mobile-accounts-summary"><span>{{ 'Accounts'|tr(locale) }}</span><b dir="ltr">{{ sidebar_total|money(False, 2) }} {{ base }}</b></summary>
-      <div class="sidebar-heading">{{ 'Accounts'|tr(locale) }} <span>{{ "· Balances in"|tr(locale) }}<bdi dir="ltr">{{ base }}</bdi></span></div>
+      <div class="sidebar-heading">{{ 'Accounts'|tr(locale) }} <span>{{ "· Balances in"|tr(locale) }} <bdi dir="ltr">{{ base }}</bdi></span></div>
       <a class="side-row side-total {{ 'active' if path == '/transactions' }}" href="/transactions" {% if path == '/transactions' %}aria-current="page"{% endif %}>
         <span>{{ fig.in_your_accounts.label }}</span><span class="num" title="{{ fig.in_your_accounts.equation }}">{{ sidebar_total|money(False, 2) }}</span></a>
       {% for g in sidebar_groups %}

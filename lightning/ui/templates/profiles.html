@@ -7,7 +7,7 @@
   {% if mode == 'checking' %}<meta http-equiv="refresh" content="1">{% endif %}
   <title>{% if mode == 'choose' %}{{ 'Choose a profile'|tr(locale) }}{% elif mode == 'setup' %}{{ 'Create a profile'|tr(locale) }}{% elif mode == 'recovery-key' %}{{ 'Save your recovery key'|tr(locale) }}{% elif mode == 'unlock' %}{{ 'Unlock your profile'|tr(locale) }}{% elif mode == 'recover' %}{{ 'Reset your password'|tr(locale) }}{% elif mode == 'restore' %}{{ 'Restore a backup'|tr(locale) }}{% elif mode == 'resume-restore' %}{{ 'Resume a restore'|tr(locale) }}{% elif mode == 'manage' %}{{ 'Profile settings'|tr(locale) }}{% elif mode == 'devices' %}{{ 'Devices'|tr(locale) }}{% elif mode in ['connect', 'connected'] %}{{ 'Connect to your phone'|tr(locale) }}{% elif mode == 'borrowed' %}{{ 'Open from your phone'|tr(locale) }}{% elif mode == 'receive' %}{{ 'Bring a profile from your PC'|tr(locale) }}{% elif mode == 'checking' %}{{ 'One moment'|tr(locale) }}{% else %}{{ 'Profiles'|tr(locale) }}{% endif %} · Lightning</title>
   <link rel="stylesheet" href="/static/fonts/fonts.css">
-  <link rel="stylesheet" href="/static/profiles{{ '.rtl' if locale == 'ar' else '' }}.css?v=3">
+  <link rel="stylesheet" href="/static/profiles{{ '.rtl' if locale == 'ar' else '' }}.css?v=4">
 </head>
 <body>
   <main class="profile-page" id="profile-ready">
@@ -127,7 +127,7 @@
           <form method="post" action="/profiles/new" class="form-stack">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div class="field"><label for="profile-name">{{ 'Profile name'|tr(locale) }}</label><input id="profile-name" name="name" type="text" value="{{ name }}" required autocomplete="off" maxlength="80"></div>
-            <div class="field"><label for="profile-currency">{{ 'Profile currency'|tr(locale) }}</label><select id="profile-currency" name="currency">{% for code, label in profile_currencies %}<option value="{{ code }}"{% if currency == code %} selected{% endif %}>{{ code }} — {{ label }}</option>{% endfor %}</select><small>{{ 'Choose the currency used for totals. You can change it before recording money or exchange rates.'|tr(locale) }}</small></div>
+            <div class="field"><label for="profile-currency">{{ 'Profile currency'|tr(locale) }}</label><select id="profile-currency" name="currency" data-own-picker>{% for code, label in profile_currencies %}<option value="{{ code }}"{% if currency == code %} selected{% endif %}>{{ code }} — {{ label }}</option>{% endfor %}</select><small>{{ 'Choose the currency used for totals. You can change it before recording money or exchange rates.'|tr(locale) }}</small></div>
             <input type="hidden" name="suggestion" value="{{ suggestion }}">
             <div class="suggestion" aria-labelledby="suggestion-label">
               <p id="suggestion-label">{{ 'A strong password you can remember: four random words.'|tr(locale) }}</p>
@@ -402,6 +402,7 @@
   </main>
   <script nonce="{{ request.state.csp_nonce|default('') }}">window.LIGHTNING_UI={{ arabic_translations|tojson }};window.lightningT=(text,values)=>{const raw=String(text);let out=window.LIGHTNING_UI[raw];if(!out){for(const [pattern,translated] of Object.entries(window.LIGHTNING_UI)){if(!pattern.includes('{'))continue;const names=[...pattern.matchAll(/\{([a-z_]+)\}/g)].map(m=>m[1]);const parts=pattern.split(/\{[a-z_]+\}/g).map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));const match=new RegExp('^'+parts.join('(.+?)')+'$').exec(raw);if(match){out=translated;names.forEach((name,i)=>out=out.replaceAll(`{${name}}`,match[i+1]));break;}}}out=out||raw;for(const [key,value] of Object.entries(values||{}))out=out.replaceAll(`{${key}}`,String(value));return out;};</script>
   <script nonce="{{ request.state.csp_nonce|default('') }}">document.querySelectorAll("[data-locale-auto]").forEach(control=>control.addEventListener("change",()=>control.form?.requestSubmit()));</script>
+  <script src="/static/app.js?v=38" defer></script>
   <script src="/static/session.js?v=4" defer></script>
 </body>
 </html>
