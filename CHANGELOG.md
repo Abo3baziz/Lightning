@@ -27,6 +27,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-13 · Claude: v1.1 review: brand audit of the post-beta screens, FX gaps (no conversion, typed rates only, no age limit, no FX cost or gains, foreign stocks booked in EGP) and the US-stock plan in `docs/proposals/v1_1_presentable.md`; packages A and B claimed.
 - 2026-10-12 · Claude: red suite fixed. Code: income plan items offer ± categories (Internal transfers, Capital allocation, Adjustment); the section tabs show on `/accounts/currencies` and other non-numeric account pages.
   Tests follow the Codex 10-10 UI (spreadsheet register, System Categories, Settings currencies tab, collapsed investments row); the profile test reads the currency through a screen, not the app thread.
 - 2026-10-12 · Claude: bank SMS reads are one transaction (staging, seen, cursor); inbox messages are known by text plus time, with a 10-minute overlap; phone hides Add transaction while lent, loads `session.js?v=4`, and the second PC's refusal names the PC.
