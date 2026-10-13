@@ -197,6 +197,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
                                                          fx_rate.rate)
                 fx_part = value - b["cost"] - price_part  # the two parts add to the gain to the cent
         holdings.append({"account": account_by_id[account_id].label, "asset": asset.name,
+                         "account_id": account_id, "asset_id": asset.id,
                          "units": b["units"], "cost": b["cost"], "value": value,
                          "realized": b["realized"], "unrealized": None if value is None else value-b["cost"],
                          "price_date": valuation.price_date, "price_source": valuation.source,

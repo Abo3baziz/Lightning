@@ -72,7 +72,7 @@
   <td class="num">{{ r.cost|money }}</td>
   <td class="num"><b>{{ r.value|money if r.value is not none else 'Unavailable' }}</b></td>
   <td class="num">{{ '%.1f'|format(r.weight) }}%</td>
-  <td class="num gain">{% if r.gain is not none %}<span class="{{ r.gain|tone }}">{{ r.gain|money(True) }}</span>{% else %}—{% endif %}</td>
+  <td class="num gain">{% if r.gain is not none %}<span class="{{ r.gain|tone }}">{{ r.gain|money(True) }}</span>{% if r.price_part is defined %}<small class="gain-split">{{ fig.price_part.label }} {{ r.price_part|money(True) }} · {{ fig.fx_part.label }} {{ r.fx_part|money(True) }}</small>{% endif %}{% else %}—{% endif %}</td>
   <td class="num">{{ pct(r.gain_pct) }}</td>
   <td class="num">{{ pct(r.xirr) }}</td>
   <td><button type="button" class="horizon-word{{ ' is-unset' if r.horizon == 'Unassigned' }}" data-horizon-edit title="Change the horizon" aria-label="Horizon {{ r.horizon }}, change">{{ 'Set' if r.horizon == 'Unassigned' else r.horizon }}</button><form method="post" action="/investments/asset-plan/{{ h.asset_id }}" class="horizon-pick" hidden><input type="hidden" name="allocation_bucket" value="{{ g.name }}"><input type="hidden" name="return_to" value="{{ request.url.path }}{{ '?' ~ request.url.query if request.url.query }}"><select name="investment_horizon" aria-label="Horizon for {{ h.asset_name }}" data-submit-on-change class="horizon-{{ r.horizon|lower }}">{% for value, text in [('', 'Unassigned'), ('Short', 'Short'), ('Medium', 'Medium'), ('Long', 'Long')] %}<option value="{{ value }}" {{ 'selected' if (value or 'Unassigned') == r.horizon }}>{{ text }}</option>{% endfor %}</select><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form></td>

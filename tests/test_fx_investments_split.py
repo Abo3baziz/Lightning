@@ -37,3 +37,28 @@ def test_a_dollar_holding_reports_price_and_fx_apart(c, setup):
     assert (row["price_part"], row["fx_part"]) == (D("5200"), D("1000.000000"))
     assert row["price_part"] + row["fx_part"] == row["unrealized"]
     assert (row["currency"], row["cost_native"]) == ("USD", D("500"))
+
+
+def test_the_investments_table_shows_a_dollar_holdings_price_and_fx_parts(c, setup, monkeypatch):
+    """Bought through the investment service at the account's rate, a Nasdaq listing is a USD asset; the holdings
+    table shows its gain with the price part and FX part under it, adding up to the gain."""
+    from fastapi.testclient import TestClient
+    from lightning.ui.web import create_app
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-30")
+    monkeypatch.setenv("LIGHTNING_PRICES_OFFLINE", "1")
+    accounts, _ = setup
+    CurrencyRegistry(c.db).register("USD")
+    c.fx.save("USD", "2026-09-01", "50")
+    broker = c.account_flows.open_account("US broker", "BROKERAGE", "2026-09-01", "0", currency="USD",
+                                          opening_balance_date="2026-09-01")
+    c.transactions.record_conversion("2026-09-02", accounts["cib"].id, broker.id, "40000", "800")
+    etf = c.assets.create_investment("Nasdaq 100 ETF", "FUND.EQUITY", "QQQT", mic="XNAS")
+    assert etf.currency == "USD"
+    c.investments.buy_total("2026-09-03", broker.id, etf.id, "10", "500")
+    c.assets.set_price(etf.id, "2026-09-30", "60")
+    c.fx.save("USD", "2026-09-30", "52")
+    page = TestClient(create_app(c)).get("/investments?period=month&month=2026-09").text
+    table = page[page.index('class="holding-group"'):]
+    row = table[table.index("Nasdaq 100 ETF"):]
+    row = row[:row.index("</tr>")]
+    assert "+6,200" in row and "Price part +5,200" in row and "FX part +1,000" in row

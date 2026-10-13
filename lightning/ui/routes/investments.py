@@ -218,6 +218,16 @@ async def portfolio(request: Request):
                   investment_report=investment_report, base=c.reporting.base_currency)
 
 
+def _owned_split(split, units, quantity, gain) -> dict:
+    """Your share of a foreign holding's price part and FX part; the FX part takes the rounding so the two add to
+    the gain shown."""
+    if split is None or gain is None or not quantity:
+        return {}
+    share = units / quantity
+    price_part = (split[0] * share).quantize(Decimal("0.01"))
+    return {"price_part": price_part, "fx_part": gain - price_part}
+
+
 def _first_trade_dates(c, day: str) -> dict[tuple[int, int], str]:
     first: dict[tuple[int, int], str] = {}
     for line in c.reporting.investment_lines(day):
@@ -279,6 +289,9 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
         horizons["Unassigned"] += item.value
     first_dates = _first_trade_dates(c, day)
     end_day = parse_date(day)
+    # A holding in another currency: its gain from the price and from the exchange rate (Overview #16).
+    splits = {(r["account_id"], r["asset_id"]): (r["price_part"], r["fx_part"]) for r in report.get("holdings", [])
+              if r.get("price_part") is not None and "account_id" in r}
     groups: dict[str, dict] = {}
     for h, yours, bucket, horizon, capital, unrealized, units in owned_rows:
         name = h.asset_class.split(" › ")[-1]
@@ -291,7 +304,8 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
                           "price": h.price, "value": yours, "gain": unrealized,
                           "gain_pct": unrealized / capital * 100 if unrealized is not None and capital else None,
                           "xirr": h.xirr * 100 if h.xirr is not None and held_a_year and units == h.quantity else None,
-                          "horizon": horizon, "weight": (yours or ZERO) / holdings_total * 100 if holdings_total else ZERO})
+                          "horizon": horizon, "weight": (yours or ZERO) / holdings_total * 100 if holdings_total else ZERO,
+                          **_owned_split(splits.get((h.account_id, h.asset_id)), units, h.quantity, unrealized)})
     for name, item in balances:
         g = groups.setdefault(name, {"name": name, "value": ZERO, "cost": ZERO, "rows": []})
         g["value"] += item.value
