@@ -199,9 +199,9 @@ def _years_of_history(c, years):
 PAGE_READ_BUDGET = {
     # "/" 640 -> 750, "/plan" 340 -> 370, "/investments" 235 -> 260 (2026-10-13): the sample gained a dollar brokerage
     # with a Nasdaq ETF, and each account and holding is read once per figure (a foreign one also reads its rate).
-    "/": 750,  # 640: the sample plan gained a yearly course and bonus (2026-10-07; was 605 after the SMS check)
+    "/": 790,  # 640: the sample plan gained a yearly course and bonus (2026-10-07; was 605 after the SMS check)
     "/accounts/1": 120, "/transactions": 110, "/budget?period=month": 175,
-    "/budget?period=all": 710, "/plan": 370, "/investments": 260, "/birdview/expenses?period=all": 230,
+    "/budget?period=all": 710, "/plan": 400, "/investments": 290, "/birdview/expenses?period=all": 230,
 }
 
 

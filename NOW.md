@@ -6,8 +6,6 @@
 |---|---|---|---|
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk and [OWNER.md](OWNER.md). | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
-| Claude, package A | v1.1 brand fixes on new screens, then US stocks: [proposal](docs/proposals/v1_1_presentable.md) §5 A | `lightning/ui/static/*.css` (not the FX block), `lightning/ui/templates/` (not currencies/convert), `lightning/assets/`, `lightning/market/iso.py` | 2026-10-13 |
-| Claude, package B | v1.1 FX: rate lookup, conversion, FX positions tab: [proposal](docs/proposals/v1_1_presentable.md) §5 B | `lightning/fx.py`, `lightning/transactions/`, `lightning/reporting/`, `lightning/reevaluations.py`, `lightning/workflows/{live,market}_prices.py`, currencies/convert routes and templates | 2026-10-13 |
 
 ## Messages
 
@@ -26,7 +24,7 @@
 
 1. **Arabic release acceptance:** PC/phone type, dates, charts to A06.2 (`style.css` sets Tahoma under rtl); check devices, full suite, Mohab; ship builds. **Read:** `tools/guideline.py --ar A06`; Architecture › UI contract.
 2. **HIGH PRIORITY: Expand listed shares beyond EGX to Nasdaq, leading European exchanges and all GCC markets.** Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
-3. **v1.1 (claimed, packages A and B):** conversion, automatic rates, FX positions, US stocks, brand fixes. **Read:** `docs/proposals/v1_1_presentable.md`.
+3. **v1.1 follow-ups:** Mohab's dollar steps run last; check Overview and Investments agree on dollar brokerage cash, then move them into the year. Translate the buy form's "Priced in USD" note. Owner: bump to 1.1.0 and build. **Read:** `docs/proposals/v1_1_presentable.md` §5–6.
 4. **Multi-currency phone/import:** check foreign entry, reporting, FX and bank imports. **Read:** Architecture › UI contract; phone test; bank import route.
 5. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
 6. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.

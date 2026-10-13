@@ -159,7 +159,7 @@ def test_the_convert_page_speaks_arabic(c, wallets_for_arabic):
     accounts = wallets_for_arabic
     c.settings.set("locale", "ar")
     page = TestClient(create_app(c), follow_redirects=False).get(f"/accounts/{accounts['cib'].id}/convert").text
-    body = page.split("<script")[0]
+    body = page.split("</head>", 1)[1].split("<script")[0]
     assert "اللي بعتّه" in body and "اللي استلمته" in body and "You sent" not in body and "Convert money" not in body
 
 
