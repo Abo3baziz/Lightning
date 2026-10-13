@@ -1,0 +1,42 @@
+{# Currencies on a phone (guideline Part C): the value of foreign money as the lead, then one card per currency
+   with its figures as rows (C07.2: a table of figures becomes rows), accounts as links, one chart. #}
+{% extends "base.html" %}
+{% from "partials/charts.html" import trend as trend_chart %}
+{% block title %}{{ 'Currencies'|tr(locale) }}{% endblock %}
+{% block heading %}<h1>{{ 'Currencies'|tr(locale) }}</h1>
+<p>{{ 'Foreign money'|tr(locale) }}</p>
+<div class="phone-lead">{% if totals.complete %}{{ totals.value|money(False, 0) }}{% else %}{{ 'Unavailable'|tr(locale) }}{% endif %} <small>{{ base }}</small></div>{% endblock %}
+{% block top_actions %}{% from "partials/macros.html" import period_control with context %}{{ period_control("/accounts/currencies", period.key, period.start_text[:7], this_month, period.start_text, period.end_text) }}{% endblock %}
+{% macro gain(value) -%}{%- if value is none -%}<span class="muted">{{ 'Unavailable'|tr(locale) }}</span>{%- else -%}<span class="{{ 'pos' if value > 0 }}">{{ value|money(True, 0) }}</span>{%- endif -%}{%- endmacro %}
+{% block content %}
+{% if period_error %}<p class="flash error">{{ period_error|tr(locale) }}</p>{% endif %}
+{% if positions %}
+<section class="card phone-card" aria-label="{{ 'Foreign money'|tr(locale) }}"><div class="phone-rows">
+  <div class="phone-row"><span>{{ fig.unrealized_fx_gain.label }}</span><b>{{ gain(totals.unrealized if totals.complete else none) }}</b></div>
+  <div class="phone-row"><span>{{ fig.realized_fx_gain.label }}<small>{{ period.start_text }} → {{ period.end_text }}</small></span><b>{{ gain(totals.realized) }}</b></div>
+  <div class="phone-row"><span>{{ fig.spread_paid.label }}</span><b>{{ totals.spread|money(False, 0) }}</b></div>
+</div></section>
+{% if trend %}<section class="card phone-card"><h2 class="phone-card-title">{{ chosen.currency }} · {{ 'Value against cost'|tr(locale) }}</h2>
+  {{ trend_chart(trend, 'Value of {currency} you hold against what it cost, by month'|tr(locale, currency=chosen.currency)) }}</section>{% endif %}
+{% for p in positions %}
+<section class="card phone-card" id="currency-{{ p.currency }}"><h2 class="phone-card-title">{{ p.currency }}{% if p.currency != chosen.currency %} <a href="/accounts/currencies?{{ {'period': period.key, 'month': period.start_text[:7], 'date_from': period.start_text, 'date_to': period.end_text, 'currency': p.currency}|urlencode }}">{{ 'Show chart'|tr(locale) }}</a>{% endif %}</h2>
+  <div class="phone-rows">
+    <div class="phone-row"><span>{{ 'Held'|tr(locale) }}</span><b>{{ p.units|money(False, 2) }} {{ p.currency }}</b></div>
+    <div class="phone-row"><span>{{ 'Value'|tr(locale) }}<small>{% if p.rate %}1 {{ p.currency }} = {{ p.rate.rate }} {{ base }}{% if p.rate_as_of %} · {{ 'as of {date}'|tr(locale, date=p.rate_as_of) }}{% endif %}{% else %}{{ 'Add a dated {currency} rate to see this value in {base}.'|tr(locale, currency=p.currency, base=base) }}{% endif %}</small></span><b>{% if p.value is none %}{{ 'Unavailable'|tr(locale) }}{% else %}{{ p.value|money(False, 0) }}{% endif %}</b></div>
+    <div class="phone-row"><span>{{ fig.average_rate.label }}</span><b>{% if p.average_rate is none %}—{% else %}{{ '{:,.4f}'.format(p.average_rate) }}{% endif %}</b></div>
+    <div class="phone-row"><span>{{ fig.unrealized_fx_gain.label }}</span><b>{{ gain(p.unrealized) }}</b></div>
+    <div class="phone-row"><span>{{ fig.realized_fx_gain.label }}</span><b>{{ gain(p.realized) }}</b></div>
+    <div class="phone-row"><span>{{ fig.spread_paid.label }}</span><b>{{ p.spread|money(False, 0) }}</b></div>
+  </div>
+  {% if p.accounts %}<div class="phone-rows is-list">{% for a in p.accounts %}<a class="phone-row" href="/accounts/{{ a.account_id }}"><span>{{ a.label }}</span><b>{{ a.owned|money(False, 2) }} {{ p.currency }}</b></a>{% endfor %}</div>{% endif %}
+</section>
+{% endfor %}
+{% if other %}<section class="card phone-card"><h2 class="phone-card-title">{{ 'Other'|tr(locale) }}</h2><p class="phone-note">{{ other.currencies|join(', ') }}</p>
+  <div class="phone-rows">
+    <div class="phone-row"><span>{{ 'Value'|tr(locale) }}</span><b>{% if other.complete %}{{ other.value|money(False, 0) }}{% else %}{{ 'Unavailable'|tr(locale) }}{% endif %}</b></div>
+    <div class="phone-row"><span>{{ fig.unrealized_fx_gain.label }}</span><b>{{ gain(other.unrealized if other.complete else none) }}</b></div>
+    <div class="phone-row"><span>{{ fig.realized_fx_gain.label }}</span><b>{{ gain(other.realized) }}</b></div>
+    <div class="phone-row"><span>{{ fig.spread_paid.label }}</span><b>{{ other.spread|money(False, 0) }}</b></div>
+  </div></section>{% endif %}
+{% else %}<section class="card phone-card"><p class="phone-note">{{ 'No accounts use another currency yet.'|tr(locale) }}</p><a class="btn primary phone-save" href="/accounts/new">{{ 'Add an account'|tr(locale) }}</a></section>{% endif %}
+{% endblock %}

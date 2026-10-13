@@ -158,6 +158,19 @@ _TABLE = [
     ("average_cost", "Average cost", "What you paid for each unit you still hold, fees included.", "Cost ÷ Units"),
     ("period_growth", "Growth", "Net gain or loss as a share of what the portfolio started the period with, plus money added.",
      "Net gain or loss ÷ (Portfolio value at the start + Money added)"),
+    # ------------------------------------------------------------ foreign money (a period)
+    ("average_rate", "Average rate", "What each unit of a foreign currency you still hold cost you, in the profile "
+     "currency: conversions count at the rate you got, money in at the day's rate, and money out takes units at this rate."),
+    ("unrealized_fx_gain", "Unrealized FX gain", "Today's value of the foreign money you hold minus what it cost: the "
+     "exchange-rate gain or loss not yet locked in."),
+    ("realized_fx_gain", "Realized FX gain", "For foreign money that left in the period (spent or converted), what it "
+     "fetched minus what it cost at the average rate."),
+    ("spread_paid", "Spread paid", "What conversions in the period cost beyond the market rate of their day: the market "
+     "value of what you sent minus the market value of what you received. Fees are separate."),
+    ("price_part", "Price part", "The part of a foreign holding's unrealized gain that comes from its price in its own "
+     "currency, at today's rate."),
+    ("fx_part", "FX part", "The part of a foreign holding's unrealized gain that comes from the exchange rate.",
+     "Unrealized gain − Price part"),
     # ------------------------------------------------------------ cash planning
     ("safe_to_spend", "Safe to spend", "Free cash after what is promised before your next income. An estimate. Budget left to spend, Saving for goals, Emergency fund top-up and Rest of savings target count for every month until that income (only the days before it in the month it lands), so a long gap between pays is covered.",
      "Free cash − Bills and loan payments before next income − Budget left to spend − Saving for goals − Emergency fund top-up − Rest of savings target"),
@@ -237,6 +250,12 @@ _SOURCES = {
     "new_money_in": (LEDGER, f"{INV}.build_investment_report"),
     "average_cost": (LEDGER, "lightning.investments.domain.Position.average_cost"),
     "period_growth": (LEDGER, f"{INV}.period_growth"),
+    "average_rate": (LEDGER, "lightning.reporting.fx_positions.Position.average_rate"),
+    "unrealized_fx_gain": (LEDGER, "lightning.reporting.fx_positions.Position.unrealized"),
+    "realized_fx_gain": (LEDGER, "lightning.reporting.fx_positions.Position.realized"),
+    "spread_paid": (LEDGER, "lightning.fx.spread_cost"),
+    "price_part": (LEDGER, f"{INV}.foreign_gain_split"),
+    "fx_part": (LEDGER, f"{INV}.foreign_gain_split"),
     "safe_to_spend": (BOTH, f"{FC}._safe_to_spend"),
     "bills_inside_the_plan": (PLAN, f"{FC}.forecast"),
     "left_in_plan_after_bills": (BOTH, "lightning.planning.domain.ForecastMonth.budget_spending"),

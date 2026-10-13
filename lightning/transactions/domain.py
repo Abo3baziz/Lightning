@@ -94,6 +94,9 @@ class TxnSummary:
     account_id: int | None
     to_account_id: int | None
     category_id: int | None
+    to_amount: Decimal = Decimal(0)  # conversions only: what arrived, in `to_currency`
+    to_currency: str = ""
+    rate: Decimal | None = None      # conversions only: the executed rate
 
 
 @dataclass

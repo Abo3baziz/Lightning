@@ -3259,3 +3259,11 @@ html[dir="rtl"] svg:has(> path[d="M15 18l-6-6 6-6"]), html[dir="rtl"] svg:has(> 
 html[dir="rtl"] svg:has(> path[d="M9 6l6 6-6 6"]) { transform: scaleX(-1); }
 html[dir="rtl"] .main .timeline { direction: ltr; }
 html[dir="rtl"] td[dir="ltr"], html[dir="rtl"] li.code { text-align: right; }
+
+/* FX positions and conversion (v1.1) */
+.convert-form { max-width: 760px; }
+.convert-quote { min-height: 1.5em; margin: 0 0 14px; font-size: var(--fs-2); }
+.fx-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
+.fx-chart, .fx-currency { margin-top: 16px; }
+@media (max-width: 760px) { .fx-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .fx-figures { grid-template-columns: 1fr; } }

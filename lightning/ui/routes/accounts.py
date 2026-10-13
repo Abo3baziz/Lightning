@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from lightning.accounts.domain import DEFAULT_CASH_CLASS, OFFERED_TYPES, TYPE_LABELS
 from lightning.core.dates import fmt_date, parse_date, today
@@ -8,6 +9,8 @@ from lightning.core.errors import LightningError, ValidationError
 from lightning.core.money import to_decimal
 
 from . import register
+from .. import charts
+from ..periods import parse_period
 from ..web import container, redirect, render
 
 router = APIRouter(prefix="/accounts")
@@ -57,8 +60,89 @@ async def list_accounts(request: Request):
 
 @router.get("/currencies")
 async def currency_accounts(request: Request):
+    """Foreign money: held, worth, average rate, gains and spread, with one chart (Architecture › FX positions)."""
     c = container(request)
-    return render(request, "accounts/currencies.html", groups=c.reporting.foreign_currency_accounts(today()))
+    asked = {"period": "ytd"} | dict(request.query_params)
+    period_error = ""
+    try:
+        period = parse_period(asked, today(), c.reporting.first_activity_date())
+    except LightningError as exc:  # say why this year is shown instead of the range asked for
+        period, period_error = parse_period({"period": "ytd"}, today()), exc.message
+    positions = c.reporting.fx_positions.all(period.start_text, period.end_text)
+    shown, other = c.reporting.fx_positions.split(positions)
+    chosen = next((p for p in shown if p.currency == request.query_params.get("currency")), shown[0] if shown else None)
+    trend = None
+    if chosen:
+        points = [point for point in chosen.series]
+        trend = charts.trend([point.day[:7] for point in points], [
+            {"name": "Value of what you hold", "tone": "hold", "values": [point.value for point in points]},
+            {"name": "What it cost", "tone": "other", "dashed": True, "values": [point.cost for point in points]}])
+    totals = c.reporting.fx_positions.totals(positions)
+    return render(request, "accounts/currencies.html", positions=shown, other=other, chosen=chosen, trend=trend,
+                  totals=totals, period=period, period_error=period_error)
+
+
+CONVERT_FIELDS = ("date", "from_account_id", "to_account_id", "sent", "received", "fee", "notes")
+
+
+def convert_context(request: Request, values: dict, action: str, title: str, error: LightningError | None = None):
+    """The Convert form (accounts of two currencies, amounts both ways, an optional fee)."""
+    c = container(request)
+    choices = [a for a in c.accounts.list(active_only=True) if a.account_type.value in ("CASH", "BANK", "BROKERAGE")]
+    return dict(values=values, action=action, title=title, accounts=choices, back=values.get("return_to", "/accounts"),
+                error=error.message if error else "", error_field=(error.field or "") if error else "")
+
+
+def convert_values(form) -> dict:
+    return {key: str(form.get(key, "")).strip() for key in CONVERT_FIELDS}
+
+
+@router.get("/convert/quote")
+async def convert_quote(request: Request):
+    """The executed rate and, when the market has one for the day, how far it is from it (computed in Python)."""
+    c = container(request)
+    q = request.query_params
+    try:
+        answer = c.transactions.conversion_quote(q.get("date") or fmt_date(today()), int(q.get("from") or 0),
+                                                 int(q.get("to") or 0), q.get("sent") or "", q.get("received") or "")
+    except (LightningError, ValueError):
+        answer = None
+    return JSONResponse(answer or {})
+
+
+@router.get("/{account_id:int}/convert")
+async def new_conversion(request: Request, account_id: int):
+    c = container(request)
+    account = c.accounts.require_usable(account_id)
+    other = next((a for a in c.accounts.list(active_only=True) if a.currency != account.currency
+                  and a.account_type.value in ("CASH", "BANK", "BROKERAGE")), None)
+    values = {"date": fmt_date(today()), "from_account_id": str(account.id),
+              "to_account_id": str(other.id) if other else "", "sent": "", "received": "", "fee": "", "notes": "",
+              "return_to": _safe_return(request.query_params.get("return_to"), f"/accounts/{account_id}")}
+    return render(request, "accounts/convert.html",
+                  **convert_context(request, values, f"/accounts/{account_id}/convert", "Convert money"))
+
+
+@router.post("/{account_id:int}/convert")
+async def save_conversion(request: Request, account_id: int):
+    c = container(request)
+    form = await request.form()
+    values = convert_values(form) | {"return_to": _safe_return(form.get("return_to"), f"/accounts/{account_id}")}
+    try:
+        txn = c.transactions.record_conversion(
+            values["date"], _account_id(values["from_account_id"], "from_account"),
+            _account_id(values["to_account_id"], "to_account"), values["sent"], values["received"],
+            values["fee"] or None, notes=values["notes"])
+    except LightningError as exc:
+        return render(request, "accounts/convert.html", status_code=400,
+                      **convert_context(request, values, f"/accounts/{account_id}/convert", "Convert money", exc))
+    return redirect(values["return_to"], f"Saved {txn.ref}.")
+
+
+def _account_id(text: str, field: str) -> int:
+    if not text.isdigit():
+        raise ValidationError("Choose an account.", field)
+    return int(text)
 
 
 @router.get("/add-transaction")

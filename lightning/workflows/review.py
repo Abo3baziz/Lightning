@@ -36,7 +36,9 @@ class ReviewInbox:
     def items(self, on: date) -> list[dict]:
         """Everything waiting on the user on `on`, most urgent first (priority 0, then 1, then 2)."""
         c = self.c
-        items = [{"label": "Missing valuation", "detail": item, "href": "/investments/prices", "priority": 0}
+        items = [{"label": "Missing valuation", "detail": item, "priority": 0,
+                  # a missing exchange rate is typed in Settings; a missing price on the prices page
+                  "href": "/settings?section=currencies&tab=rates" if " rate within " in item else "/investments/prices"}
                  for item in c.reporting.net_worth(on).unvalued]
         items.extend(self._statements())
         items.extend(self._sms())

@@ -40,6 +40,7 @@ from datetime import date, datetime, time as clock, timedelta, timezone
 from decimal import Decimal
 
 from lightning.core.dates import fmt_date
+from lightning.fx import rate_for, save_rate
 from lightning.market.http import APP_AGENT, Polite
 from lightning.market.model import Quote, SourceError
 from lightning.market.packs import PACKS
@@ -52,6 +53,7 @@ OFFLINE_ENV = "LIGHTNING_PRICES_OFFLINE"  # "1": never fetch (tests, and anyone 
 FAILS_SETTING = "prices_online_fails"    # fetches in a row that left month-ends missing because a source failed
 NEAR_DAYS = 10                           # a close this close to a month-end stands for it (as revaluation reads it)
 CURRENCY = {"egx": "EGP", "eg-funds": "EGP", "us": "USD", "gold": "EGP"}
+RATE_PIVOT = "EGP"                          # Yahoo quotes currencies against the pound here
 OUNCE = Decimal("31.1034768")              # grams in a troy ounce
 
 
@@ -66,21 +68,29 @@ class Want:
 
 
 @dataclass
+class RateWant:
+    currency: str        # quoted against the pound: Yahoo's <CCY>EGP=X
+    days: list[str] = field(default_factory=list)   # month-ends and activity days without a fresh rate
+
+
+@dataclass
 class Plan:
     on: str
     wants: list[Want] = field(default_factory=list)
+    rates: list[RateWant] = field(default_factory=list)
     unknown: list[str] = field(default_factory=list)          # held, but no source can name it (type its price)
     other_currency: list[str] = field(default_factory=list)   # priced in another currency than the holding
     unlinked: list[Want] = field(default_factory=list)        # held funds without a Mubasher number yet
     linked: dict[int, str] = field(default_factory=dict)      # asset id -> the number its name matched
 
     def month_ends_missing(self) -> int:
-        return sum(len(w.month_ends) for w in self.wants + self.unlinked)
+        return sum(len(w.month_ends) for w in self.wants + self.unlinked) + sum(len(r.days) for r in self.rates)
 
 
 @dataclass
 class Report:
     saved: int = 0
+    rates: int = 0                                           # exchange rates saved
     priced: list[str] = field(default_factory=list)
     failed: list[str] = field(default_factory=list)         # sources that did not answer
     missing: list[tuple[str, str]] = field(default_factory=list)  # (investment, month-end) still without a price
@@ -93,6 +103,8 @@ class Report:
     def summary(self) -> str:
         parts = [f"Fetched {self.saved} price{'s' if self.saved != 1 else ''} for {len(self.priced)} "
                  f"investment{'s' if len(self.priced) != 1 else ''}." if self.saved else "No new prices fetched."]
+        if self.rates:
+            parts.append(f"Fetched {self.rates} exchange rate{'s' if self.rates != 1 else ''}.")
         if self.failed:
             parts.append(f"Not reachable now: {', '.join(self.failed)}.")
         if self.missing:
@@ -227,6 +239,15 @@ def plan(c, on: date, now: datetime | None = None) -> Plan:
         asset = c.assets.get_asset(asset_id)
         if asset.purity and asset.currency == CURRENCY["gold"]:
             result.wants.append(Want(asset.id, asset.name, "XAU/USD", "gold", sorted(month_ends), asset.purity))
+    foreign = {a.currency for a in c.accounts.list() if a.currency != c.base_currency}
+    first_foreign = c.db.scalar("SELECT MIN(le.date) FROM ledger_entries le JOIN financial_assets a "
+                                "ON a.id=le.asset_id WHERE a.currency<>?", (c.base_currency,))
+    if foreign and first_foreign:  # exchange rates: each foreign currency (and the profile's) against the pound
+        days = due_month_ends(on, date.fromisoformat(first_foreign[:10]), now) + [fmt_date(on)]
+        for code in sorted(({c.base_currency} | foreign) - {RATE_PIVOT}):
+            lacking = [d for d in days if (r := rate_for(c.db, code, RATE_PIVOT, d)) is None or r.stale]
+            if lacking:
+                result.rates.append(RateWant(code, sorted(set(lacking))))
     return result
 
 
@@ -320,6 +341,25 @@ def gather(work: Plan, session=None, now: datetime | None = None, budget: float 
             for want in golds:
                 pick(want, [Quote(want.key, q.date, (q.close * want.purity).quantize(Decimal("0.000001")), q.source)
                             for q in grams], False)
+    for rate in work.rates:  # exchange rates: the closes that stand for each day lacking one, and the latest
+        if time.monotonic() > deadline:
+            break
+        try:
+            quotes = yahoo.fetch_history(session, f"{rate.currency}/{RATE_PIVOT}", _range(date.fromisoformat(min(rate.days)), on))
+        except SourceError:
+            if "Yahoo Finance" not in failed:
+                failed.append("Yahoo Finance")
+            continue
+        final = min(now.astimezone(timezone.utc).date() - timedelta(days=1), on)  # a currency trades round the clock
+        ordered = sorted((q for q in quotes if date.fromisoformat(q.date) <= final), key=lambda q: q.date)
+        chosen: dict[str, Decimal] = {}
+        for day in rate.days:
+            before = [q for q in ordered if q.date <= day]
+            if before and (date.fromisoformat(day) - date.fromisoformat(before[-1].date)).days <= NEAR_DAYS:
+                chosen[before[-1].date] = before[-1].close
+        if ordered:
+            chosen[ordered[-1].date] = ordered[-1].close
+        found.setdefault(f"fx:{rate.currency}", {}).update(chosen)
     for want in work.wants:  # history: month-ends still missing, and a latest close the board did not give
         latest_known = bool(found.get(want.asset_id))
         if want.pack == "gold" or (not want.month_ends and latest_known) or time.monotonic() > deadline:
@@ -362,6 +402,10 @@ def save(c, work: Plan, found: dict, failed: list[str]) -> Report:
             report.priced.append(want.name)
             if want.pack == "gold":
                 report.gold.append(want.name)
+    for rate in work.rates:
+        for day, close in sorted(found.get(f"fx:{rate.currency}", {}).items()):
+            save_rate(c.db, day, rate.currency, RATE_PIVOT, Decimal(close), SOURCE)
+            report.rates += 1
     c.reevaluations.process_due()
     missing_ids = []
     for want in work.wants:
@@ -394,7 +438,7 @@ def failures(c) -> int:
 def fetch_now(c, on: date, session=None, now: datetime | None = None) -> Report:
     """Update prices: every held investment's latest close and every month-end it lacks, now."""
     work = plan(c, on, now)
-    found, failed = gather(work, session, now) if work.wants or work.unlinked else ({}, [])
+    found, failed = gather(work, session, now) if work.wants or work.unlinked or work.rates else ({}, [])
     return save(c, work, found, failed)
 
 

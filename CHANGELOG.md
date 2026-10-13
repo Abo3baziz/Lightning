@@ -27,6 +27,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-13 · Claude: v1.1 FX (package B), rates and conversion: one rate lookup (`fx.py`: direct, inverse, cross through EGP; MANUAL > TRADE > MARKET > ONLINE; "as of" after 10 days, missing after 45) filled from the `fx` price file and Yahoo `<CCY>EGP=X`. *Convert* (`CNV`) between two currencies with the executed rate, a fee in Fees & Charges, spread against the market rate, edit and delete; the transfer refusal now points to it.
+- 2026-10-13 · Claude: v1.1 FX positions: the Currencies tab shows per currency what you hold, its value, Average rate, Unrealized and Realized FX gain, Spread paid and a value-against-cost chart (`reporting/fx_positions.py`; unrealized + realized = the revaluation journals + the change since, tested). Investments report splits a foreign holding's gain into Price part and FX part. Mohab buys dollars in his last step. Glossary and Architecture updated.
 - 2026-10-13 · Claude: v1.1 review: brand audit of the post-beta screens, FX gaps (no conversion, typed rates only, no age limit, no FX cost or gains, foreign stocks booked in EGP) and the US-stock plan in `docs/proposals/v1_1_presentable.md`; packages A and B claimed.
 - 2026-10-12 · Claude: red suite fixed. Code: income plan items offer ± categories (Internal transfers, Capital allocation, Adjustment); the section tabs show on `/accounts/currencies` and other non-numeric account pages.
   Tests follow the Codex 10-10 UI (spreadsheet register, System Categories, Settings currencies tab, collapsed investments row); the profile test reads the currency through a screen, not the app thread.

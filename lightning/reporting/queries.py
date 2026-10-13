@@ -279,14 +279,6 @@ class ReportQueries:
             "WHERE a.account_type='DEPOSIT' AND fa.is_cash=0 AND le.owner_id IS NULL AND le.date <= ? "
             "ORDER BY le.date, t.id, le.line_no", (as_of,))]
 
-    def latest_fx(self, base: str, quote: str, as_of: str) -> dict | None:
-        row = self.db.one(
-            "SELECT rate_e6, date, source FROM fx_rates WHERE base = ? AND quote = ? AND date <= ?"
-            " ORDER BY date DESC, CASE source WHEN 'MANUAL' THEN 0 ELSE 1 END LIMIT 1",
-            (base, quote, as_of),
-        )
-        return dict(row) if row else None
-
     def opening_total(self, start: str, end: str) -> int:
         """Owned opening balances and existing holdings recorded between two dates, in base e6."""
         return self.db.scalar(f"SELECT COALESCE(SUM(le.amount_base_e6),0) FROM ledger_entries le {POSTED} "

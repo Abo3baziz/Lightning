@@ -223,6 +223,8 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
     total_pages = max(1, -(-total_rows // page_size))
     tag_flows = c.reporting.money_in_out({row.txn_id for row in all_rows}) if filter_tag else None
     custody_owners = c.money_from_others.transaction_owners(row.txn_id for row in rows)
+    conversions = {row.txn_id: c.transactions.conversion_of(c.transactions.get(row.txn_id))
+                   for row in rows if row.type == DocType.CNV}
     edit_id = edit_id or _int(qp.get("edit"))
     edit_acct = edit_acct or _int(qp.get("acct")) or account_id
     if edit_id and edit_values is None:
@@ -278,6 +280,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         reserve_suggestions={row.txn_id: c.reserves.suggested_reserves(row.txn_id)
                              for row in rows if row.type == DocType.OUT},
         custody_owners=custody_owners,
+        conversions=conversions,
         custody_present=any(custody_owners.values()),
         entry=entry or {"date": qp.get("date") or fmt_date(today()), "account_id": qp.get("new_acct", "")},
         edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {},

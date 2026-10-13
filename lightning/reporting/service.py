@@ -22,6 +22,7 @@ from lightning.money_from_others import MoneyFromOthersService
 from lightning.core.refs import DOC_LABELS, DocType
 from lightning.database.connection import Database
 
+from .fx_positions import FxPositions
 from .queries import ReportQueries
 from .valuation import Valuer
 
@@ -180,6 +181,11 @@ class ReportingService:
         self.money_from_others = money_from_others
         self.valuer = Valuer(self.q, base_currency)
         self.other_asset_values = OtherAssetValuationRepository(db)
+        self.fx_positions = FxPositions(db, accounts, assets, base_currency, self._balance_and_owned)
+
+    def _balance_and_owned(self, account_id: int, day: str) -> tuple[Decimal, Decimal]:
+        balance = self.account_balance(account_id, day)
+        return balance, balance - self.money_from_others.cash_total_for_account(account_id, day)
 
     # -- holdings & net worth ---------------------------------------------
     def holdings(self, as_of: date | str) -> tuple[list[HoldingValue], list[str]]:
@@ -433,8 +439,10 @@ class ReportingService:
                    "value": valuation.value, "reason": valuation.reason}
             group = groups.setdefault(account.currency, {"currency": account.currency, "rows": [],
                                                            "balance": ZERO, "owned": ZERO, "value": ZERO,
-                                                           "available": True})
+                                                           "available": True, "rate_as_of": None})
             group["rows"].append(row)
+            if valuation.fx_as_of and (group["rate_as_of"] is None or valuation.fx_as_of < group["rate_as_of"]):
+                group["rate_as_of"] = valuation.fx_as_of
             group["balance"] += balance
             group["owned"] += owned
             if valuation.value is None:

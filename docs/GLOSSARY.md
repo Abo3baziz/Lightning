@@ -169,6 +169,12 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Fall from its high** | How far a holding's month-end price sits below the highest month-end price before it, in percent. | Read directly from the ledger | `investments.journey.holding_history` |
 | **Average cost** | What you paid for each unit you still hold, fees included. | Cost ÷ Units | `investments.domain.Position.average_cost` |
 | **Growth** | Net gain or loss as a share of what the portfolio started the period with, plus money added. | Net gain or loss ÷ (Portfolio value at the start + Money added) | `investments.report.period_growth` |
+| **Average rate** | What each unit of a foreign currency you still hold cost you, in the profile currency: conversions count at the rate you got, money in at the day's rate, and money out takes units at this rate. | Read directly from the ledger | `reporting.fx_positions.Position.average_rate` |
+| **Unrealized FX gain** | Today's value of the foreign money you hold minus what it cost: the exchange-rate gain or loss not yet locked in. | Read directly from the ledger | `reporting.fx_positions.Position.unrealized` |
+| **Realized FX gain** | For foreign money that left in the period (spent or converted), what it fetched minus what it cost at the average rate. | Read directly from the ledger | `reporting.fx_positions.Position.realized` |
+| **Spread paid** | What conversions in the period cost beyond the market rate of their day: the market value of what you sent minus the market value of what you received. Fees are separate. | Read directly from the ledger | `fx.spread_cost` |
+| **Price part** | The part of a foreign holding's unrealized gain that comes from its price in its own currency, at today's rate. | Read directly from the ledger | `investments.report.foreign_gain_split` |
+| **FX part** | The part of a foreign holding's unrealized gain that comes from the exchange rate. | Unrealized gain − Price part | `investments.report.foreign_gain_split` |
 
 ### From the plan — what-if
 
@@ -556,6 +562,12 @@ An investment overview is a filtered/calculated view, not a separate place for b
 | Fall from its high | الانخفاض من أعلى قيمة | النسبة التي يقل بها سعر نهاية الشهر عن أعلى سعر نهاية شهر سابق. |
 | Average cost | متوسط التكلفة | التكلفة ÷ عدد الوحدات التي لا تزال تملكها؛ الرسوم محسوبة ضمن التكلفة. |
 | Growth | النمو | صافي الربح أو الخسارة ÷ (قيمة المحفظة في بداية الفترة + الفلوس المضافة). |
+| Average rate | متوسط السعر | تكلفة كل وحدة من العملة الأجنبية التي لا تزال تملكها بعملة الملف: التحويلات بسعر ما حصلت عليه، والمال الداخل بسعر اليوم، والخارج يأخذ وحداته بهذا السعر. |
+| Unrealized FX gain | ربح فروق العملة غير المحقق | قيمة الأموال الأجنبية اليوم − تكلفتها. |
+| Realized FX gain | ربح فروق العملة المحقق | لما خرجت أموال أجنبية في الفترة (صُرفت أو تحولت): ما حصلت عليه − تكلفتها بمتوسط السعر. |
+| Spread paid | فرق السعر المدفوع | ما كلفتك التحويلات في الفترة فوق سعر السوق في يومها: قيمة ما أرسلته بسعر السوق − قيمة ما استلمته بسعر السوق. الرسوم منفصلة. |
+| Price part | جزء السعر | جزء الربح غير المحقق للأصل الأجنبي الذي يأتي من سعره بعملته، بسعر صرف اليوم. |
+| FX part | جزء العملة | جزء الربح غير المحقق للأصل الأجنبي الذي يأتي من سعر الصرف: الربح غير المحقق − جزء السعر. |
 | Safe to spend | المتاح الآمن للصرف | تقدير: النقدية المتاحة − الفواتير والأقساط قبل الدخل القادم − المتبقي للإنفاق من الميزانية − الادخار للأهداف − زيادة صندوق الطوارئ − باقي هدف الادخار. |
 | Bills inside the plan | الفواتير ضمن الخطة | فواتير الشهر المستحقة أو القادمة في فئة لها ميزانية؛ محسوبة داخل ميزانيتها. |
 | Budget left to spend | المتبقي من الميزانية للصرف | المتبقي في الخطة − الفواتير المدرجة فيها، لتجنب حساب الفاتورة مرتين. |

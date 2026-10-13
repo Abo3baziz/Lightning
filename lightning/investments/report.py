@@ -69,6 +69,17 @@ def saved_and_invested(flow, money_added: Decimal) -> dict:
 
 
 @request_cached(deep=True)
+def foreign_gain_split(units: Decimal, cost_native: Decimal, cost_base: Decimal, price: Decimal,
+                       rate: Decimal) -> tuple[Decimal, Decimal]:
+    """(price part, FX part) of a foreign holding's unrealized gain in the profile currency.
+
+    price part = (value - cost) in the holding's own currency x today's rate
+    FX part    = cost in the holding's own currency x today's rate - cost in the profile currency
+    They add up to value x rate - cost in the profile currency: the unrealized gain the Investments tab shows."""
+    value_native = units * price
+    return (value_native - cost_native) * rate, cost_native * rate - cost_base
+
+
 def build_investment_report(db, accounts, assets, reporting, start: str, end: str):
     """Return period flows and end positions for the user's own investment portfolio."""
     account_rows = accounts.list(active_only=False)
@@ -100,7 +111,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
     # local to this report (no cross-request invalidation concerns).
     asset_by_id = {a.id: a for a in assets.list_assets()}
     # Average cost is retained independently for each account and asset.
-    books = defaultdict(lambda: {"units": ZERO, "cost": ZERO, "realized": ZERO})
+    books = defaultdict(lambda: {"units": ZERO, "cost": ZERO, "cost_native": ZERO, "realized": ZERO})
     movements = defaultdict(Decimal)
     dividends = ZERO
     cash_quantities = defaultdict(Decimal)
@@ -127,14 +138,17 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
         if q > ZERO:
             b["units"] += q
             b["cost"] += amount
+            b["cost_native"] += from_e6(row["amount_e6"])
         elif q < ZERO:
             removed = b["cost"] / b["units"] * -q if b["units"] else ZERO
+            removed_native = b["cost_native"] / b["units"] * -q if b["units"] else ZERO
             if row["type"] == "SEL":
                 b["realized"] += -amount - removed
             b["cost"] -= removed
+            b["cost_native"] -= removed_native
             b["units"] += q
             if not b["units"]:
-                b["cost"] = ZERO
+                b["cost"] = b["cost_native"] = ZERO
     # A certificate's interest lands on the bank account; it is still the certificate's return.
     dividends += sum((paid["amount"] for paid in reporting.certificate_interest(end) if paid["date"] >= start), ZERO)
     # Portfolio boundary movement per source transaction: inside-to-inside lines cancel. Deposit
@@ -174,10 +188,20 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
             total_value += value
             unrealized += value-b["cost"]
         total_cost += b["cost"]
+        price_part = fx_part = None  # a holding in another currency: its gain from price and from the exchange rate
+        if (value is not None and asset.currency != reporting.base_currency and valuation.price is not None
+                and valuation.source != "COST"):
+            fx_rate = reporting.valuer.fx(asset.currency, end)
+            if fx_rate:
+                price_part, fx_part = foreign_gain_split(b["units"], b["cost_native"], b["cost"], valuation.price,
+                                                         fx_rate.rate)
+                fx_part = value - b["cost"] - price_part  # the two parts add to the gain to the cent
         holdings.append({"account": account_by_id[account_id].label, "asset": asset.name,
                          "units": b["units"], "cost": b["cost"], "value": value,
                          "realized": b["realized"], "unrealized": None if value is None else value-b["cost"],
-                         "price_date": valuation.price_date, "price_source": valuation.source})
+                         "price_date": valuation.price_date, "price_source": valuation.source,
+                         "currency": asset.currency, "cost_native": b["cost_native"],
+                         "price_part": price_part, "fx_part": fx_part})
     for (account_id, cash_asset_id), quantity in asset_balances.items():
         if quantity == ZERO:
             continue
