@@ -208,3 +208,18 @@ def test_the_convert_form_saves_and_the_register_and_detail_show_both_amounts(c,
     assert bad.status_code == 400 and "same currency" in bad.text
     assert client.post(f"/transactions/{txn}/delete", data={}).status_code in (200, 303)
     assert c.db.scalar("SELECT COUNT(*) FROM fx_rates WHERE source='TRADE'") == 0
+
+
+def test_conversion_preview_rejects_invalid_amounts_without_crashing(c, wallets):
+    from fastapi.testclient import TestClient
+    from lightning.ui.web import create_app
+    accounts, _ = wallets
+    client = TestClient(create_app(c))
+    params = {"date": "2026-09-10", "from": accounts["cib"].id, "to": accounts["usd"].id,
+              "sent": "40000", "received": "824"}
+    for field in ("sent", "received"):
+        for value in ("NaN", "Infinity", "1e100", "0.000000000000000000000000000001"):
+            response = client.get("/accounts/convert/quote", params=params | {field: value})
+            assert response.status_code == 200 and response.json() == {}
+    # Preview uses the same parser as posting, including Arabic digits.
+    assert client.get("/accounts/convert/quote", params=params | {"received": "٨٢٤"}).json()["rate"] == "48.543689"

@@ -25,6 +25,7 @@ from lightning.core.refs import DocType
 from lightning.transactions.tags import normalize as normal_tag
 
 from ..web import container, render
+from ..i18n import translate
 
 ENTRY_FIELDS = ("date", "account_id", "counterparty", "counterparty_choice", "counterparty_typed", "category", "category_choice", "whom", "notes", "amount")
 FAR_PAST, FAR_FUTURE = "1900-01-01", "9999-12-31"
@@ -137,18 +138,18 @@ def _trade_choices(c, account, positions) -> list[dict]:
     held = {position.asset_id: position.quantity for position in positions}
     choices, included_ids = [], set()
     accounts_in = {a.currency for a in c.accounts.list(active_only=True)}
-    rates_for = {row["currency"] for row in c.fx.list()}
 
     def currency_note(currency: str) -> str:
         """One line when a foreign listing cannot be paid for yet: its currency needs an account and a rate."""
         if currency == c.base_currency:
             return ""
         missing = [what for ok, what in ((currency in accounts_in, f"a {currency} account"),
-                                         (currency in rates_for, f"a {currency} rate")) if not ok]
+                                         (c.reporting.valuer.fx(currency, fmt_date(today())) is not None,
+                                          f"a {currency} rate")) if not ok]
         if missing:
-            return f"Priced in {currency}: add {' and '.join(missing)} first."
+            return translate(f"Priced in {currency}: add {' and '.join(missing)} first.", c.settings.get("locale") or "en")
         if account.currency != currency:
-            return f"Priced in {currency}: buy it from a {currency} account."
+            return translate(f"Priced in {currency}: buy it from a {currency} account.", c.settings.get("locale") or "en")
         return ""
 
     for item in catalog_instruments():

@@ -261,6 +261,10 @@ class SmsImportService:
         texts = {e for e in seen if "@" not in e}
         stamped = {e.split("@")[0] for e in seen if "@" in e}
         endings = self.endings()
+        # The current SMS patterns read EGP amounts only. A saved mapping must never turn pounds into
+        # dollars merely because a foreign account was selected (or an old mapping became unusable).
+        usable = {a.id for a in self.accounts.list(active_only=True) if a.currency == "EGP"}
+        endings = {ending: account_id for ending, account_id in endings.items() if account_id in usable}
         waiting = self._json(WAITING_KEY, [])
         by_account: dict[int, list[SmsTransaction]] = {}
         skipped = 0
@@ -357,6 +361,8 @@ class SmsImportService:
         if not (re.fullmatch(r"\d{4}", ending) or ending == SALARY_ENDING):
             raise ValidationError("Choose the account for these messages.", "ending")
         account = self.accounts.require_usable(account_id)
+        if account.currency != "EGP":
+            raise ValidationError("Bank SMS are in EGP. Choose an EGP account.", "account_id")
         endings = self.endings() | {ending: int(account.id)}
         waiting = self._json(WAITING_KEY, [])
         mine = [_from_json(item) for item in waiting if item["ending"] == ending]
@@ -368,7 +374,8 @@ class SmsImportService:
         return batch
 
     def _cash_account_name(self) -> str:
-        cash = [a for a in self.accounts.list(active_only=True) if a.account_type.value == "CASH"]
+        cash = [a for a in self.accounts.list(active_only=True)
+                if a.account_type.value == "CASH" and a.currency == "EGP"]
         return cash[0].name if len(cash) == 1 else ""
 
     def _pair_transfers(self, by_account: dict[int, list[SmsTransaction]], held: list[dict]) -> dict[int, str]:

@@ -6,6 +6,7 @@ sideways. Starts the phone app on a dummy profile with the sample household. Nee
 from __future__ import annotations
 
 import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -37,7 +38,9 @@ def run(shots: Path | None = None) -> list[str]:
         host = Host(lambda c: profile_app(c, root / "docs", devices=Devices(root / "app", port=0), phone=True)).start()
         try:
             with sync_playwright() as p:
-                browser = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
+                chromium = Path("/opt/pw-browsers/chromium")
+                browser = p.chromium.launch(executable_path=str(chromium) if chromium.exists()
+                                           else shutil.which("chromium"))
                 page = browser.new_page(viewport={"width": 360, "height": 800}, device_scale_factor=2, is_mobile=True,
                                         has_touch=True)
                 page.goto(host.launch_url)

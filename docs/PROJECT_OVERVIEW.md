@@ -1,6 +1,6 @@
 # Lightning — Project Overview
 
-**Last reviewed 2026-10-13 · app 1.0.0-beta.1** (v1.1 work is merged to `main` but not yet versioned or released).
+**Last reviewed 2026-10-13 · app 1.1.0-beta.1** (release build and publication are tracked in `NOW.md`).
 
 What Lightning is, who it is for, what it answers and where it goes. Technical contracts: [Architecture](ARCHITECTURE.md). Look: [guideline](../guideline/). Terms and figures: [Glossary](GLOSSARY.md). Shipped changes: `CHANGELOG.md`. Hand-off between AIs: [NOW.md](../NOW.md). Unbuilt designs: [docs/proposals](proposals/).
 

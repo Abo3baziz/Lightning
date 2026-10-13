@@ -145,8 +145,9 @@ def executed(base: str, sent_ccy: str, received_ccy: str, sent: Decimal, receive
 def quote(svc, day: str, src, dst, sent, received) -> dict | None:
     """What the form shows while you type: the executed rate and how far it is from the day's market rate."""
     try:
-        sent, received = Decimal(str(sent).replace(",", "")), Decimal(str(received).replace(",", ""))
-    except ArithmeticError:
+        sent = svc._positive_amount(sent, svc.assets.cash_asset(src.currency).quantity_decimals)
+        received = svc._positive_amount(received, svc.assets.cash_asset(dst.currency).quantity_decimals)
+    except (ValidationError, ArithmeticError):
         return None
     if sent <= 0 or received <= 0 or src.currency == dst.currency:
         return None

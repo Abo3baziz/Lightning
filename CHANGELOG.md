@@ -30,6 +30,11 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+## [1.1.0b1] — 2026-10-13 — Windows and Android beta
+
+- 2026-10-13 · Codex: v1.1 beta acceptance: conversion previews use the posting parser (invalid amounts stay blank; Arabic digits work), foreign-stock requirements are translated and use the dated FX lookup, Mohab’s dollar brokerage participates in cross-tab reconciliation, and EGP bank SMS cannot be assigned to foreign accounts.
+  Validation: 1,447 passed, 10 skipped; four import contracts, encrypted profile self-check, PC brand and 320/360px phone layout checks passed.
+
 - 2026-10-13 · Codex: Batch 002 audit (42 rows): short-period XIRR, partial-allocation warnings, fresh reserve summaries, bounded help tips, setup dismissal, correct sale-estimate hierarchy/phone values, and aligned phone arrows.
   Remaining requests and evidence: `user feedback/user-feedback-batch-002.md`. Full suite: 1,381 passed, 9 skipped; post-v1.1 checks: 208 passed; documentation checks rerun after the concurrent cleanup.
 

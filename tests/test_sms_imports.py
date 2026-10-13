@@ -285,3 +285,22 @@ def test_an_old_format_seen_list_still_counts_as_text_read(c, setup):
     c.settings.set(SEEN_KEY, json.dumps([fingerprint(NBE_BUY)]))
     result = c.sms_imports.read([("NBE", NBE_BUY, datetime(2026, 10, 6, 11, 14), _ms("2026-10-06T11:14"))])
     assert result["staged"] == {} and result["skipped"] == 1 and _rows(c) == 0
+
+
+def test_egp_sms_cannot_be_assigned_or_staged_as_dollars(c, setup):
+    from lightning.core.errors import ValidationError
+    from lightning.sms_imports import ENDINGS_KEY
+    c.currencies.register("USD")
+    c.fx.save("USD", "2026-09-01", "50")
+    usd = c.account_flows.open_account("Dollar bank", "BANK", "2026-09-01", "0", currency="USD")
+    c.sms_imports.read([("NBE", NBE_BUY, datetime(2026, 10, 6, 11, 14))])
+    with pytest.raises(ValidationError, match="EGP account"):
+        c.sms_imports.assign("2093", usd.id)
+    assert _rows(c) == 0 and c.sms_imports.waiting()
+    # An existing mapping from an older build is held for reassignment, preserving its native currency.
+    c.settings.set(ENDINGS_KEY, json.dumps({"2093": usd.id}))
+    later = NBE_BUY.replace("147.87", "99.10")
+    result = c.sms_imports.read([("NBE", later, datetime(2026, 10, 7, 11, 14))])
+    assert not result["staged"] and result["waiting"] == 2 and _rows(c) == 0
+    assert c.sms_imports.assign("2093", setup[0]["cib"].id)
+    assert _rows(c) == 2

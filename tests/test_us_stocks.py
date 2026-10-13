@@ -90,3 +90,18 @@ def test_the_rebuild_tool_writes_the_same_columns_from_a_screener_answer(tmp_pat
         rows = list(csv.DictReader(source))
     assert [(r["ticker"], r["kind"], r["class_code"], r["mic"], r["currency"]) for r in rows] == [
         ("AAPL", "Stocks", "STOCK", "XNAS", "USD"), ("GLD", "ETFs", "FUND.GOLD", "ARCX", "USD")]
+
+
+def test_foreign_listing_requirements_are_arabic_in_the_picker(c, monkeypatch):
+    from lightning.ui.routes.register import _trade_choices
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-01")
+    c.settings.set("locale", "ar")
+    broker = c.account_flows.open_account("Broker", "BROKERAGE", "2026-09-01", "0")
+    choice = next(r for r in _trade_choices(c, broker, []) if r["ticker"] == "QQQM")
+    assert "مسعّر" in choice["note"] and "سعر صرف" in choice["note"] and "حساب" in choice["note"]
+    assert "Priced" not in choice["note"] and "account" not in choice["note"]
+    c.currencies.register("USD")
+    c.fx.save("USD", "2026-09-01", "50")
+    c.account_flows.open_account("US broker", "BROKERAGE", "2026-09-01", "0", currency="USD")
+    choice = next(r for r in _trade_choices(c, broker, []) if r["ticker"] == "QQQM")
+    assert "اشتريه من حساب" in choice["note"] and "buy" not in choice["note"]

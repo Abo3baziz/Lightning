@@ -355,3 +355,26 @@ def test_review_with_a_row_error_rerenders_typed_amounts(c, setup):
     })
     assert posted.status_code == 200
     assert "Nothing was imported" in posted.text and "Fix 1 row" in posted.text
+
+
+def test_foreign_statement_keeps_native_amounts_and_values_both_frames_at_dated_fx(c, monkeypatch):
+    from decimal import Decimal
+    from fastapi.testclient import TestClient
+    from lightning.ui.web import create_app
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-30")
+    c.currencies.register("USD")
+    c.fx.save("USD", "2026-09-01", "50")
+    c.fx.save("USD", "2026-09-30", "50")
+    account = c.account_flows.open_account("Dollar bank", "BANK", "2026-09-01", "100", currency="USD")
+    batch, _ = c.bank_imports.stage(account.id, "usd.csv", b"Date,Counterparty,Amount,Category\n2026-09-20,Cafe,-10.50,Food & Groceries\n")
+    _, rows = c.bank_imports.preview(batch)
+    assert c.bank_imports.confirm(batch, {rows[0]["_import_row_id"]: {}})["posted"] == 1
+    assert c.reporting.account_balance(account.id, "2026-09-30") == Decimal("89.50")
+    assert c.reporting.account_value(account.id, "2026-09-30") == Decimal("4475")
+    app = create_app(c)
+    async def phone(scope, receive, send):
+        scope.setdefault("state", {})["phone"] = True
+        await app(scope, receive, send)
+    for frame in (app, phone):
+        page = TestClient(frame).get(f"/accounts/{account.id}")
+        assert page.status_code == 200 and "USD" in page.text and "10.50" in page.text

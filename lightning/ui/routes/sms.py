@@ -41,7 +41,8 @@ def _page(request, c, **context):
         permission = source.permission() if source is not None else "unavailable"
     except Exception:  # noqa: BLE001
         permission = "unavailable"
-    accounts = [a for a in c.accounts.list(active_only=True) if a.account_type.value in ("BANK", "CASH")]
+    accounts = [a for a in c.accounts.list(active_only=True)
+                if a.account_type.value in ("BANK", "CASH") and a.currency == "EGP"]
     names = {a.id: a.name for a in c.accounts.list()}
     batches = [b | {"account": names.get(b["account_id"], "")} for b in c.bank_imports.waiting_all()
                if str(b["file_name"]).startswith("SMS ")]

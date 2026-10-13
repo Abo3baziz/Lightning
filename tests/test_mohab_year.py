@@ -573,6 +573,7 @@ def _live_the_year(o: Mohab) -> None:
     _the_feedback_round(o)
     _exercise_cash_ownership(o)
     _a_rule_for_vodafone(o)
+    _a_dollar_account_and_a_nasdaq_etf(o)
 
 
 def _a_rule_for_vodafone(o: Mohab) -> None:
@@ -1403,9 +1404,18 @@ def test_a_figure_reads_the_same_on_every_tab(mohab, period):
     gain = {"Overview": _figure(overview, r"<span>Net gain or loss</span><b[^>]*>([^<]+)</b>"),
             "Investments": _figure(investments, r'inv-result-tile.*?stat-tile-value[^>]*>([^<]+)<')}
     assert len({v.strip() for v in gain.values() if v}) == 1, gain
-    cash = {"Overview": _figure(flat(overview), r"Brokerage cash ([\d,]+)"),
-            "Investments": _figure(flat(investments), r"Brokerage cash ([\d,]+)")}
-    assert len({v for v in cash.values() if v}) == 1, cash
+    # Overview lists each brokerage's cash as of today; Investments totals it at the selected period end.
+    # Sum all account rows instead of comparing the first brokerage with the entire portfolio.
+    cash_rows = re.findall(r'<small>Brokerage cash</small></span><b>([^<]+)</b>', overview)
+    current_cash = sum((money(v) for v in cash_rows), D(0))
+    assert current_cash == mohab.c.reporting.owned_brokerage_cash("2027-09-30")
+    cash_day = ("2026-12-31" if "month=2026-12" in period else
+                "2027-03-31" if "2027-03-31" in period else "2027-09-30")
+    investment_cash = _figure(flat(investments), r"Brokerage cash ([\d,]+)")
+    assert investment_cash is not None
+    assert money(investment_cash) == mohab.c.reporting.owned_brokerage_cash(cash_day)
+    if cash_day == "2027-09-30":
+        assert money(investment_cash) == current_cash
     if "2027-03-31" not in period and "2026-12" not in period:   # the Investments tile is as of today
         # Deposits are their own figure: the CD used to count in Portfolio value on Investments only.
         portfolio = {"Overview": _figure(flat(overview), r"Portfolio value ([\d,]+)"),
@@ -1424,18 +1434,7 @@ def test_a_rule_files_a_new_phone_as_shopping_and_keeps_the_monthly_bill(mohab):
 
 
 # ------------------------------------------------------------------ US stocks (v1.1)
-# Last in the file on purpose: the dollar account joins the year after every cross-tab check above has run, because
-# package B has not yet made the Overview and Investments agree on foreign cash (see NOW.md, package B).
-
-def dollars(mohab) -> None:
-    """Run Mohab's dollar step once, however many tests ask for it."""
-    if not mohab.notes.get("dollars_done"):
-        _a_dollar_account_and_a_nasdaq_etf(mohab)
-        mohab.notes["dollars_done"] = True
-
-
 def test_a_nasdaq_etf_is_bought_with_dollars_in_a_dollar_account(mohab):
-    dollars(mohab)
     c, notes = mohab.c, mohab.notes
     assert notes["usd_account"].shows("Dollar brokerage")
     etf = next(a for a in c.assets.investments() if a.code == "FND:QQQM")
@@ -1448,7 +1447,6 @@ def test_a_nasdaq_etf_is_bought_with_dollars_in_a_dollar_account(mohab):
 
 
 def test_the_buy_form_says_what_a_us_listing_needs_and_refuses_the_wrong_account(mohab):
-    dollars(mohab)
     assert notes_exchange(mohab.notes["etf_in_pounds_choice"]) == ("Nasdaq", "USD")
     assert "buy it from a USD account" in mohab.notes["etf_in_pounds_choice"]["note"]
     assert mohab.notes["etf_in_dollars_choice"]["note"] == ""

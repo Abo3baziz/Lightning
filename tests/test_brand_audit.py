@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -13,6 +14,8 @@ import pytest
 
 pytest.importorskip("playwright")
 CHROMIUM = Path("/opt/pw-browsers/chromium")
+if not CHROMIUM.exists():
+    CHROMIUM = Path(shutil.which("chromium") or str(CHROMIUM))
 
 PAGES = ("/", "/transactions", "/accounts", "/accounts/1", "/accounts/currencies", "/settings", "/investments",
          "/investments/prices", "/budget", "/plan", "/birdview/expenses", "/financial-health", "/categories",

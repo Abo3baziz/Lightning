@@ -23,9 +23,7 @@
 
 ## Next
 
-1. **Arabic release acceptance:** PC/phone type, dates, charts to A06.2 (`style.css` sets Tahoma under rtl); check devices, full suite, Mohab; ship builds. **Read:** `tools/guideline.py --ar A06`; Architecture › UI contract.
+1. **v1.1 beta publication:** automated Arabic, PC/phone, foreign cash/import and browser acceptance checked; build and verify the tagged Windows/Android pair, then update the website. Physical-device acceptance remains in OWNER.md. **Read:** Architecture › Build and release.
 2. **HIGH PRIORITY: Expand listed shares beyond EGX to Nasdaq, leading European exchanges and all GCC markets.** Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
-3. **v1.1 follow-ups:** Mohab's dollar steps run last; check Overview and Investments agree on dollar brokerage cash, then move them into the year. Translate the buy form's "Priced in USD" note. Owner: bump to 1.1.0 and build. **Read:** `docs/proposals/v1_1_presentable.md` §5–6.
-4. **Multi-currency phone/import:** check foreign entry, reporting, FX and bank imports. **Read:** Architecture › UI contract; phone test; bank import route.
-5. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
-6. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.
+3. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
+4. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.
