@@ -1169,7 +1169,7 @@ def test_the_emergency_fund_in_months_of_spending(mohab):
 def test_the_year_on_the_overview(mohab):
     answer = mohab.answers["year"]
     assert answer.figure("Savings rate 2026-10-01 to 2027-09-30") == D("50.5")
-    assert answer.figure("Change in net worth 2026-10-01 to 2027-09-30") == D("341284")
+    assert answer.figure("Change in net worth 2026-10-01 to 2027-09-30") == D("383284")  # dated receipts: 42,000 debt paydown belongs to this year
     assert answer.figure("Loans still to pay") == D("34500")
 
 

@@ -73,6 +73,15 @@ def workbook_bytes(sheets: list[tuple[str, list[str], list[tuple], list[int]]]) 
     """Write (sheet name, headings, rows, widths) tables to one XLSX entirely in memory."""
     if len(sheets) != 4 or [sheet[0] for sheet in sheets] != ["Summary", "Transactions", "Investment ledger", "Categories"]:
         raise ValueError("AI analysis workbooks must contain the four required sheets in order.")
+    return tabular_workbook_bytes(sheets)
+
+
+def tabular_workbook_bytes(sheets: list[tuple[str, list[str], list[tuple], list[int]]]) -> bytes:
+    """The same inline-text writer, for complete local data exports with any set of tables."""
+    names = [sheet[0] for sheet in sheets]
+    if not names or len(set(name.casefold() for name in names)) != len(names) or any(
+            not name or len(name) > 31 or any(ch in name for ch in '[]:*?/\\') for name in names):
+        raise ValueError("Workbook sheet names must be unique and at most 31 characters.")
     output = BytesIO()
     with ZipFile(output, "w", compression=ZIP_DEFLATED, compresslevel=6) as archive:
         content_overrides = ''.join(

@@ -273,6 +273,36 @@ async def setup_guide(request: Request):
     return redirect("/")
 
 
+def _salary_form(request, values=None, error="", status_code=200, error_field=""):
+    c = container(request)
+    accounts = [a for a in c.accounts.list(active_only=True)
+                if a.account_type.value in ("BANK", "CASH") and a.currency == c.base_currency]
+    values = values or {"account_id": request.query_params.get("account", str(accounts[0].id) if accounts else ""),
+                        "amount": "", "payday": ""}
+    return render(request, "dashboard/salary_setup.html", values=values, accounts=accounts,
+                  error=error, status_code=status_code, error_field=error_field)
+
+
+@router.get("/setup/salary")
+async def salary_setup(request: Request):
+    from lightning.planning.domain import PlanKind
+    if container(request).planning.items((PlanKind.INCOME,)):
+        return redirect("/plan/recurring", "Your income is already set up. Edit it in Recurring.")
+    return _salary_form(request)
+
+
+@router.post("/setup/salary")
+async def save_salary_setup(request: Request):
+    from lightning.workflows.salary_setup import set_up_salary
+    form = await request.form()
+    values = {key: str(form.get(key, "")) for key in ("account_id", "amount", "payday")}
+    try:
+        set_up_salary(container(request), **values)
+    except LightningError as exc:
+        return _salary_form(request, values, exc.message, 400, exc.field or "")
+    return redirect("/plan/recurring", "Salary added. Add your bills when you are ready.")
+
+
 def _setup_steps(c, accounts) -> list[dict] | None:
     """Get set up: the five things that make the Overview useful, in the order a new user meets them.
     Shown until every step is done or the user dismisses it; completed steps tick themselves."""
@@ -292,7 +322,8 @@ def _setup_steps(c, accounts) -> list[dict] | None:
          "done": bool(accounts), "href": "/accounts/new", "action": "Add an account"},
         history,
         {"label": "Add your salary and bills", "detail": "So Cash planning knows what comes in and what is due",
-         "done": bool(c.planning.items((PlanKind.INCOME, PlanKind.BILL))), "href": "/plan/recurring",
+         "done": bool(c.planning.items((PlanKind.INCOME,))),
+         "href": "/plan/recurring" if c.planning.items((PlanKind.INCOME,)) else "/setup/salary",
          "action": "Add salary and bills"},
         {"label": "Set an emergency fund", "detail": "Cash set aside for the unexpected",
          "done": any(r.get("kind") == "EMERGENCY" and (r.get("allocated") or ZERO) > ZERO for r in c.reserves.list_active()),

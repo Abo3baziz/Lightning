@@ -8,9 +8,23 @@ from io import StringIO
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
-from ..web import container
+from ..web import container, render
 
 router = APIRouter(prefix="/exports")
+
+
+@router.get("/all")
+async def all_data(request: Request):
+    from lightning.workflows.data_export import export_all
+    chosen = request.query_params.get("format")
+    if not chosen:
+        return render(request, "exports/all.html", chosen="xlsx")
+    try:
+        data, filename, media = export_all(container(request), chosen)
+    except ValueError as exc:
+        return render(request, "exports/all.html", chosen=chosen, error=str(exc), status_code=400)
+    return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{filename}"',
+                                                  "Cache-Control": "no-store"})
 
 
 def _selected(form, field: str) -> set[int]:

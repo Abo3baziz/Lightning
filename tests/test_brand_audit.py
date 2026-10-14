@@ -17,7 +17,7 @@ CHROMIUM = Path("/opt/pw-browsers/chromium")
 if not CHROMIUM.exists():
     CHROMIUM = Path(shutil.which("chromium") or str(CHROMIUM))
 
-PAGES = ("/", "/transactions", "/accounts", "/accounts/1", "/accounts/currencies", "/settings", "/investments",
+PAGES = ("/plan/purchases/new", "/exports/all", "/setup/salary", "/", "/transactions", "/accounts", "/accounts/1", "/accounts/currencies", "/settings", "/investments",
          "/investments/prices", "/budget", "/plan", "/birdview/expenses", "/financial-health", "/categories",
          "/profiles")
 # A03: Ink, Ink 2, Muted, Meadow text, Azure, Strong rose, Nile, and white on Nile or on the vivid gradient.

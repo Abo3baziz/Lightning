@@ -87,7 +87,7 @@ def _separate_amount(inflow: str, outflow: str) -> str:
 
 def decode_csv(data: bytes) -> tuple[list[str], list[dict[str, str]]]:
     if len(data) > MAX_BYTES:
-        raise ValidationError("CSV files must be 5 MiB or smaller.", "file")
+        raise ValidationError("CSV files must be 5 MB or smaller.", "file")
     try:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -171,7 +171,20 @@ class BankImportService:
         saved = self.db.one("SELECT mapping_json,invert_amount FROM bank_import_column_maps WHERE account_id=? AND header_signature=?",
                             (account_id, signature))
         if not saved:
-            return None
+            institution = (self.accounts.get(account_id).institution or "").strip().casefold()
+            if not institution:
+                return None
+            # Reuse actual confirmed bank columns, never a guessed bank-specific format. Conflicting
+            # interpretations of the same headers must return to the mapping step.
+            candidates = [row for row in self.db.all(
+                "SELECT m.mapping_json,m.invert_amount,a.institution FROM bank_import_column_maps m "
+                "JOIN accounts a ON a.id=m.account_id WHERE m.header_signature=?", (signature,))
+                if (row["institution"] or "").strip().casefold() == institution]
+            distinct = {(row["mapping_json"], row["invert_amount"]) for row in candidates}
+            if len(distinct) != 1:
+                return None
+            mapping_json, invert_amount = next(iter(distinct))
+            return json.loads(mapping_json) | {"amount_sign": "invert" if invert_amount else "normal"}
         return json.loads(saved["mapping_json"]) | {"amount_sign": "invert" if saved["invert_amount"] else "normal"}
 
     def stage(self, account_id: int, filename: str, data: bytes, mapping: dict[str, str] | None = None, invert_amount: bool = False):

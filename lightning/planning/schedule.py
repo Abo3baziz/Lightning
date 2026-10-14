@@ -48,6 +48,8 @@ def scheduled_dates(item: PlannedItem, until: str | date) -> list[tuple[int, str
             day = start + timedelta(weeks=item.interval_count * number)
         else:
             day = _add_months(start, _MONTH_STEP[item.frequency] * item.interval_count * number)
+            if item.month_day:
+                day = day.replace(day=min(item.month_day, calendar.monthrange(day.year, day.month)[1]))
         if day is None or (last and day > last) or (limit is not None and number >= limit):
             return out
         due = on_working_day(day, item.weekend_move)
@@ -81,7 +83,7 @@ def describe(item: PlannedItem) -> str:
     elif item.frequency == Frequency.WEEKLY:
         text = ("Weekly" if every == 1 else f"Every {every} weeks") + f" from {item.start_date}"
     elif item.frequency == Frequency.MONTHLY:
-        text = ("Monthly" if every == 1 else f"Every {every} months") + f" on day {start.day}"
+        text = ("Monthly" if every == 1 else f"Every {every} months") + f" on day {item.month_day or start.day}"
     elif item.frequency == Frequency.QUARTERLY:
         text = ("Every 3 months" if every == 1 else f"Every {3 * every} months") + f" on day {start.day}"
     else:

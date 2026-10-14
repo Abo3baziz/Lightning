@@ -66,6 +66,7 @@ class PlannedItem:
     active: bool
     notes: str
     weekend_move: WeekendMove = WeekendMove.NONE
+    month_day: int | None = None
 
     @property
     def is_income(self) -> bool:
@@ -92,23 +93,26 @@ class Payment:
     status: PaymentStatus
     transaction_id: int | None = None
     paid_amount: Decimal | None = None  # what was actually paid, when it was recorded or linked
+    amount_override: Decimal | None = None
 
     @property
     def amount(self) -> Decimal:
-        return self.item.amount
+        return self.item.amount if self.amount_override is None else self.amount_override
 
     @property
     def outstanding(self) -> bool:
-        return self.status in (PaymentStatus.DUE, PaymentStatus.UPCOMING)
+        return self.status in (PaymentStatus.DUE, PaymentStatus.UPCOMING) or (
+            self.item.kind == PlanKind.LOAN and self.status == PaymentStatus.PAID
+            and self.paid_amount is not None and self.paid_amount < self.amount)
 
     @property
     def still_owed(self) -> Decimal:
         """What is left of this payment: all of it while outstanding, and the shortfall of a payment
         recorded for less than its amount (a partial loan instalment is not a full one)."""
+        if self.item.kind == PlanKind.LOAN and self.status == PaymentStatus.PAID and self.paid_amount is not None:
+            return max(self.amount - self.paid_amount, Decimal(0))
         if self.outstanding:
             return self.amount
-        if self.status == PaymentStatus.PAID and self.paid_amount is not None:
-            return max(self.amount - self.paid_amount, Decimal(0))
         return Decimal(0)
 
 
@@ -126,7 +130,7 @@ class WhatYouOwe:
     @property
     def other_bills_due(self) -> Decimal:
         """Bills due that are not loan payments (those are already in loans still to pay)."""
-        return self.bills_due - sum((p.amount for p in self.bills_due_items if p.item.kind == PlanKind.LOAN), ZERO)
+        return self.bills_due - sum((p.still_owed for p in self.bills_due_items if p.item.kind == PlanKind.LOAN), ZERO)
 
     @property
     def total(self) -> Decimal:

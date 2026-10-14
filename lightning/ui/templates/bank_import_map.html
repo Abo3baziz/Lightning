@@ -4,6 +4,7 @@
 {% block content %}
 <section class="card form-card">
   <p>{{ 'We matched the columns we could. Check the suggestions and adjust them before reviewing transactions. The same mapping will apply to all selected files with these columns. For statements with two amount columns, choose which means money in and which means money out; we’ll combine them into one signed Amount. Your original files are unchanged.'|tr(locale) }}</p>
+  <p class="muted small">{{ "Confirmed columns are remembered for accounts at the same bank with exactly the same headers."|tr(locale) }}</p>
   {% if error %}<p class="flash error">{{ error|tr(locale) }}</p>{% endif %}
   <form method="post" enctype="multipart/form-data" action="/accounts/{{ account.id }}/import/map">
     <input type="hidden" name="payload" value="{{ payload }}"><input type="hidden" name="filename" value="{{ filename }}">{% if bundle %}<input type="hidden" name="bundle" value='{{ bundle|tojson }}'>{% endif %}

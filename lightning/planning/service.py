@@ -56,9 +56,17 @@ class PlanningService:
         with self.db.transaction():
             return self.repo.insert(clean)
 
+    def is_installment_purchase(self, item_id: int) -> bool:
+        return item_id in self.repo.installment_terms()
+
     def update(self, item_id: int, **values) -> None:
-        self.get(item_id)
+        old = self.get(item_id)
         clean = self._validate(values)
+        if item_id in self.repo.installment_terms() and any(
+                clean[key] != getattr(old, key) for key in ("amount", "payment_count", "frequency", "interval_count")):
+            raise ValidationError("This purchase's payment amount and count come from its price and fee.")
+        if clean["start_date"] == old.start_date and clean["frequency"] == Frequency.MONTHLY and "month_day" not in values:
+            clean["month_day"] = old.month_day
         with self.db.transaction():
             self.repo.update(item_id, clean)
 
@@ -122,17 +130,27 @@ class PlanningService:
             if skipped:
                 count = item.payment_count or len(payment_dates(item, "2999-12-31"))
                 item = replace(item, payment_count=count + skipped, end_date=None)
+        terms = self.repo.installment_terms().get(item.id) if item.kind == PlanKind.LOAN else None
+        extras = [row for row in self.repo.extra_payments(fmt_date(day)) if row["planned_item_id"] == item.id] if item.kind == PlanKind.LOAN else []
         out = []
-        for number, calendar_day, due in scheduled_dates(item, until):
+        for number, calendar_day, due in scheduled_dates(item, "2999-12-31" if terms or extras else until):
             # A payment settled before its weekend move changed stays settled under its old date.
             row = settled.get((item.id, due)) or settled.get((item.id, calendar_day))
+            # A cash receipt dated later cannot clear debt in an earlier historical balance.
+            if (item.kind == PlanKind.LOAN and row and row["status"] == PaymentStatus.PAID.value
+                    and row["transaction_date"] > fmt_date(day)):
+                row = None
             if row:
                 status = PaymentStatus(row["status"])
             else:
                 status = PaymentStatus.DUE if due <= fmt_date(day) else PaymentStatus.UPCOMING
             paid = from_e6(row["amount_e6"]) if row and status == PaymentStatus.PAID and row["amount_e6"] else None
             out.append(Payment(original, due, number, status, row["transaction_id"] if row else None, paid))
-        return out
+        if terms or extras:
+            from .loan_actions import adjusted_payments
+            out = adjusted_payments(out, terms, extras)
+        end = until if isinstance(until, str) else fmt_date(until)
+        return [p for p in out if p.due_date <= end]
 
     def all_payments(self, until: str | date, as_of: date | None = None,
                      kinds: tuple[PlanKind, ...] | None = None) -> list[Payment]:
@@ -164,6 +182,7 @@ class PlanningService:
     def candidates(self, payment: Payment, as_of: date | None = None, loose: bool = False) -> list[dict]:
         """Transactions that could settle ``payment``; ``loose`` widens the search for manual linking."""
         item, day = payment.item, as_of or today()
+        expected = payment.still_owed if payment.outstanding else payment.amount
         due = date.fromisoformat(payment.due_date)
         window = 31 if loose else MATCH_WINDOW_DAYS
         rows = self.repo.candidates(item.is_income, item.account_id,
@@ -174,15 +193,16 @@ class PlanningService:
         if loose:
             # Wider window for manual linking, but only plausible rows: the same counterparty
             # or category, or an amount within 10%. A 2,000 gift is not a 2,500 loan payment.
-            return [r for r in rows if abs(r["amount"] - item.amount) <= item.amount * DEFAULT_TOLERANCE
+            return [r for r in rows if abs(r["amount"] - expected) <= expected * DEFAULT_TOLERANCE
                     or (item.counterparty_id and r["counterparty_id"] == item.counterparty_id)
                     or (item.category_id and item.category_id in r["category_ids"])]
         tolerance = MATCH_TOLERANCE.get(item.kind, DEFAULT_TOLERANCE)
-        return [r for r in rows if abs(r["amount"] - item.amount) <= item.amount * tolerance]
+        return [r for r in rows if abs(r["amount"] - expected) <= expected * tolerance]
 
     def plausible_candidates(self, payment: Payment, as_of: date | None = None) -> list[dict]:
         """Read-only wider suggestions; a user must explicitly choose one to link it."""
         item, day = payment.item, as_of or today()
+        expected = payment.still_owed if payment.outstanding else payment.amount
         if not (item.counterparty_id or item.category_id):
             return []
         due = date.fromisoformat(payment.due_date)
@@ -192,7 +212,7 @@ class PlanningService:
             fmt_date(min(due + timedelta(days=SUGGESTION_WINDOW_DAYS), day)))
         strict = {row["id"] for row in self.candidates(payment, day)}
         return [row for row in rows if row["id"] not in strict
-                and abs(row["amount"] - item.amount) <= item.amount * SUGGESTION_TOLERANCE]
+                and abs(row["amount"] - expected) <= expected * SUGGESTION_TOLERANCE]
 
     def linked_transaction_ids(self) -> set[int]:
         return self.repo.linked_transaction_ids()
@@ -203,7 +223,8 @@ class PlanningService:
             due = date.fromisoformat(due_date)
         except (TypeError, ValueError):
             raise ValidationError("Choose a scheduled payment date.") from None
-        if not any(payment.due_date == due_date for payment in self.payments(item, due)):
+        scheduled = next((payment for payment in self.payments(item, due) if payment.due_date == due_date), None)
+        if not scheduled:
             raise ValidationError("That date is not on this payment schedule.")
         if transaction_id in self.repo.linked_transaction_ids():
             raise ValidationError("That transaction already settles another payment.")
@@ -213,30 +234,50 @@ class PlanningService:
             raise ValidationError("Choose a posted, owned transaction for this account and payment.")
         if abs((date.fromisoformat(txn["date"]) - due).days) > SUGGESTION_WINDOW_DAYS:
             raise ValidationError("That transaction is too far from the scheduled payment date.")
-        if abs(txn["amount"] - item.amount) > item.amount * SUGGESTION_TOLERANCE:
+        expected = scheduled.still_owed if scheduled.outstanding else scheduled.amount
+        if abs(txn["amount"] - expected) > expected * SUGGESTION_TOLERANCE:
             raise ValidationError("That transaction amount is too far from the planned payment.")
         with self.db.transaction():
-            self.repo.settle(item.id, due_date, "PAID", transaction_id, txn["amount"])
+            if item.kind == PlanKind.LOAN and scheduled.status == PaymentStatus.PAID and scheduled.outstanding:
+                if txn["amount"] > scheduled.still_owed:
+                    raise ValidationError("Pay no more than this instalment's remaining amount.")
+                self.repo.add_extra_payment(item.id, transaction_id, txn["amount"], ZERO, due_date)
+            else:
+                self.repo.settle(item.id, due_date, "PAID", transaction_id, txn["amount"])
 
     def record_payment(self, item_id: int, due_date: str, date_paid: str, amount, account_id: int | None) -> int:
         """Post the payment as a normal transaction and link it."""
         item = self.get(item_id)
+        if item.kind == PlanKind.LOAN:
+            payment = next((p for p in self.payments(item, "2999-12-31") if p.due_date == due_date), None)
+            if payment and payment.status == PaymentStatus.PAID and payment.outstanding:
+                from .loan_actions import record_early_payment
+                value = to_decimal(amount, "amount")
+                if value > payment.still_owed:
+                    raise ValidationError("Pay no more than this instalment's remaining amount.", "amount")
+                remaining = self.loan_progress(item)["still_to_pay"]
+                return record_early_payment(self, item.id, value, "0", date_paid, account_id,
+                                            remaining, due_date=due_date)
         account = account_id or item.account_id
         if not account:
             raise ValidationError("Choose the account the money moved through.", "account_id")
+        if item.kind == PlanKind.LOAN and self.accounts.get(int(account)).currency != self.transactions.base_currency:
+            raise ValidationError("Choose a cash account in your profile currency.", "account_id")
         if not item.category_id:
             raise ValidationError(f"Give {item.name} a category first, so its payments land in the right place.",
                                   "category_id")
         value = to_decimal(amount, "amount")
         if value <= ZERO:
             raise ValidationError("Enter the amount paid.", "amount")
-        party = self.counterparties.get(item.counterparty_id)["name"] if item.counterparty_id else item.name
+        implicit_plan = self.is_installment_purchase(item.id) or item.month_day is not None
+        party = self.counterparties.get(item.counterparty_id)["name"] if item.counterparty_id else ("" if implicit_plan else item.name)
         with self.db.transaction():
             if self.repo.is_settled(item.id, due_date):  # a second press or tab must not pay it twice
                 raise ValidationError(f"{item.name} · {due_date} is already settled. Open it again first to change it.")
             record = self.transactions.record_inflow if item.is_income else self.transactions.record_outflow
             txn = record(fmt_date(parse_date(date_paid)), int(account), value, item.category_id,
-                         counterparty=party, notes=f"{item.kind_label} · {item.name}")
+                         counterparty=party, description=item.name if implicit_plan else "",
+                         notes=f"{item.kind_label} · {item.name}")
             self.repo.settle(item.id, due_date, "PAID", txn.id, value)
         return txn.id
 
@@ -310,12 +351,12 @@ class PlanningService:
         """Certain obligations only: unpaid payments already due, and loans still to pay."""
         day = as_of or today()
         outgoing = tuple(k for k in PlanKind if k != PlanKind.INCOME)
-        due = [p for p in self.all_payments(day, day, outgoing) if p.status == PaymentStatus.DUE]
+        due = [p for p in self.all_payments(day, day, outgoing) if p.outstanding]
         loans_left = ZERO
         for item in self.items((PlanKind.LOAN,)):
             # The schedule bounds itself (count or last date, extended by skips).
             loans_left += sum((p.still_owed for p in self.payments(item, "2999-12-31", day)), ZERO)
-        return WhatYouOwe(bills_due=sum((p.amount for p in due), ZERO), loans_still_to_pay=loans_left,
+        return WhatYouOwe(bills_due=sum((p.still_owed for p in due), ZERO), loans_still_to_pay=loans_left,
                           bills_due_items=due)
 
     @request_cached  # read by every budget line since bills plan their category too (2026-10-05)
@@ -334,6 +375,11 @@ class PlanningService:
             for p in self.payments(item, last):
                 if p.due_date >= fmt_date(first) and p.status != PaymentStatus.SKIPPED:
                     out[item.category_id] = out.get(item.category_id, ZERO) + p.amount
+        loans = {item.id: item for item in self.items((PlanKind.LOAN,))}
+        for row in self.repo.extra_payments(fmt_date(today())):
+            item = loans.get(row["planned_item_id"])
+            if item and item.category_id and not row["due_date"] and row["date"].startswith(month):
+                out[item.category_id] = out.get(item.category_id, ZERO) + from_e6(row["principal_e6"] + row["fee_e6"])
         return out
 
     @request_cached(deep=True)  # rows hold lists of item names
@@ -361,13 +407,18 @@ class PlanningService:
         paid = [p for p in payments if p.status == PaymentStatus.PAID]
         left = [p for p in payments if p.outstanding]
         skipped = [p for p in payments if p.status == PaymentStatus.SKIPPED]
+        extras = [row for row in self.repo.extra_payments(fmt_date(as_of or today()))
+                  if row["planned_item_id"] == item.id and not row["due_date"]]
+        extras = [{**row, "principal": from_e6(row["principal_e6"]), "fee": from_e6(row["fee_e6"])} for row in extras]
+        extra_paid = sum((row["principal"] for row in extras), ZERO)
         return {"total": len(payments) - len(skipped), "paid": len(paid), "left": len(left), "skipped": skipped,
                 "still_to_pay": sum((p.still_owed for p in payments), ZERO),
                 # What was actually paid: a partial instalment counts at its paid amount.
-                "paid_amount": sum((p.amount - p.still_owed for p in paid), ZERO),
-                "total_amount": sum((p.amount for p in paid + left), ZERO),  # paid + still to pay
+                "paid_amount": sum((p.amount - p.still_owed for p in paid), ZERO) + extra_paid,
+                "total_amount": sum((p.amount for p in payments if p.status != PaymentStatus.SKIPPED), ZERO) + extra_paid,
+                "extra_paid": extra_paid, "extra_payments": extras,
                 "next": next((p for p in payments if p.outstanding), None),
-                "due": [p for p in payments if p.status == PaymentStatus.DUE],
+                "due": [p for p in payments if p.outstanding and p.due_date <= fmt_date(as_of or today())],
                 "last_date": payments[-1].due_date if payments else None}
 
     # --------------------------------------------------------------- validation
@@ -427,7 +478,19 @@ class PlanningService:
                 "interval_count": interval, "start_date": start, "end_date": end, "payment_count": count,
                 "account_id": account_id, "category_id": category_id, "counterparty_id": counterparty_id,
                 "principal": principal, "notes": str(values.get("notes") or "").strip(),
-                "weekend_move": weekend_move.value}
+                "weekend_move": weekend_move.value, "month_day": self._month_day(values.get("month_day"), frequency)}
+
+    @staticmethod
+    def _month_day(raw, frequency):
+        if raw in (None, ""):
+            return None
+        try:
+            day = int(str(raw))
+        except ValueError:
+            raise ValidationError("Choose a payday from 1 to 31.", "month_day") from None
+        if not 1 <= day <= 31 or frequency != Frequency.MONTHLY:
+            raise ValidationError("Choose a payday from 1 to 31 for monthly income.", "month_day")
+        return day
 
     @staticmethod
     def _id(value) -> int | None:

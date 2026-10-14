@@ -1116,7 +1116,7 @@ ARABIC_UI = {
     'Download CSV template': 'نزّل قالب CSV',
     'Download matching reference': 'نزّل مرجع المطابقة',
     'CSV files': 'ملفات CSV',
-    'CSV files up to 5 MiB are supported.': 'تقدر ترفع ملفات CSV لحد ٥ ميجابايت.',
+    'CSV files up to 5 MB are supported.': 'تقدر ترفع ملفات CSV لحد ٥ ميجابايت.',
     'Review statement': 'راجع الكشف',
     'Continue the review': 'كمّل المراجعة',
     'Discard it': 'تجاهل الاستيراد',

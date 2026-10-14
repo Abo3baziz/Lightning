@@ -146,10 +146,10 @@ class CashForecaster:
         deposit_events = [e for e in all_events if getattr(e, "source", "CD") != "GAMEYA"]
         circle_events = [e for e in all_events if getattr(e, "source", "CD") == "GAMEYA"]
         upcoming = [p for p in self.planning.all_payments(horizon_end, day)
-                    if p.status == PaymentStatus.UPCOMING]
+                    if p.outstanding and p.due_date > fmt_date(day)]
         # Payments already due: bills are in free cash already (Bills due); income not yet received
         # is still expected this month.
-        due = [p for p in self.planning.all_payments(day, day) if p.status == PaymentStatus.DUE]
+        due = [p for p in self.planning.all_payments(day, day) if p.outstanding and p.due_date <= fmt_date(day)]
         has_scheduled_income = any(i.kind == PlanKind.INCOME for i in self.planning.items((PlanKind.INCOME,)))
 
         rows, opening = [], free
@@ -164,7 +164,7 @@ class CashForecaster:
             due_now = due if current else []
             # Only this month's unreceived income is still expected now. Older paydays that were never
             # marked received are not added on top (audit 2026-10-05 #3: five months of salary at once).
-            income = sum((p.amount for p in in_month + [p for p in due_now if p.due_date[:7] == key]
+            income = sum((p.still_owed for p in in_month + [p for p in due_now if p.due_date[:7] == key]
                           if p.item.is_income), ZERO)
             estimated = False
             if not has_scheduled_income and average:
@@ -172,11 +172,11 @@ class CashForecaster:
                 income, estimated = max(average - received, ZERO), True
             outgoing = [p for p in in_month if not p.item.is_income]
             budget_room, covered = self._budget(key, current)
-            covered_bills = sum((p.amount for p in outgoing if p.item.category_id in covered), ZERO)
-            other_bills = sum((p.amount for p in outgoing if p.item.category_id not in covered), ZERO)
+            covered_bills = sum((p.still_owed for p in outgoing if p.item.category_id in covered), ZERO)
+            other_bills = sum((p.still_owed for p in outgoing if p.item.category_id not in covered), ZERO)
             # A bill in a budgeted category is part of that budget, not on top of it. That holds for
             # bills already due too: they come off free cash, so they come off the budget room here.
-            due_covered = sum((p.amount for p in due_now if not p.item.is_income
+            due_covered = sum((p.still_owed for p in due_now if not p.item.is_income
                                and p.item.category_id in covered), ZERO)
             budget_spending = max(budget_room - covered_bills - due_covered, ZERO)
             commitments = covered_bills + other_bills
@@ -215,7 +215,7 @@ class CashForecaster:
         Budget, goal and savings needs count for every month until the next income, not just this one: between
         jobs, next month's spending still comes out of today's cash. The month the income lands in
         counts for the days before it."""
-        bills = sum((p.amount for p in before), ZERO)
+        bills = sum((p.still_owed for p in before), ZERO)
         spending = goals = emergency = rest = ZERO
         for index, row in enumerate(rows):
             share = Decimal(1)

@@ -1676,7 +1676,7 @@ document.querySelectorAll("[data-currency-search]").forEach((search) => {
   });
   content.addEventListener("submit", async (event) => {
     const form = event.target;
-    if (!(form instanceof HTMLFormElement) || form.target === "_blank") return;
+    if (!(form instanceof HTMLFormElement) || form.target === "_blank" || form.method.toLowerCase() === "get") return;
     event.preventDefault();
     const submit = form.querySelector("button[type=submit]:not([form]),button:not([type])") || form.querySelector("button[type=submit]");
     const status = content.querySelector("[data-popup-status]");

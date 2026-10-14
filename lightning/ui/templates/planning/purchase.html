@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Bought in instalments'|tr(locale) }}{% endblock %}
+{% block heading %}<h1>{{ 'Bought in instalments'|tr(locale) }}</h1>{% endblock %}
+{% block content %}<form method="post" action="/plan/purchases/new" class="card stack" data-popup-return="{{ 'response' if quote else 'popup' }}">
+<input type="hidden" name="intent" value="{{ 'save' if quote else 'preview' }}">
+{% if quote %}
+  <div class="compact-list"><div class="compact-row"><span>{{ 'Each instalment'|tr(locale) }}</span><b>{{ quote.monthly|money(False,2) }}</b></div>
+  {% if quote.final != quote.monthly %}<div class="compact-row"><span>{{ 'Final instalment'|tr(locale) }}</span><b>{{ quote.final|money(False,2) }}</b></div>{% endif %}
+  <div class="compact-row"><span>{{ 'Total to pay'|tr(locale) }}</span><b>{{ quote.total|money(False,0) }} {{ base }}</b></div>
+  <div class="compact-row"><span>{{ 'Last payment'|tr(locale) }}</span><b>{{ quote.last_date }}</b></div></div>
+  {% for key,value in values.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+{% else %}
+  <label>{{ 'Name'|tr(locale) }}<input name="name" {{ 'aria-invalid=true' if error_field == 'name' }} value="{{ values.name }}" required class="{{ 'bad' if error_field == 'name' }}"></label>
+  <label>{{ 'Price still to pay'|tr(locale) }} ({{ base }})<input name="price" {{ 'aria-invalid=true' if error_field == 'price' }} value="{{ values.price }}" inputmode="decimal" class="money-input {{ 'bad' if error_field == 'price' }}" required></label>
+  <label>{{ 'Number of instalments'|tr(locale) }}<input name="months" {{ 'aria-invalid=true' if error_field == 'months' }} type="number" min="1" max="600" value="{{ values.months }}" inputmode="numeric" required class="{{ 'bad' if error_field == 'months' }}"></label>
+  <label>{{ 'First instalment'|tr(locale) }}<input name="first_date" {{ 'aria-invalid=true' if error_field == 'first_date' }} type="date" value="{{ values.first_date }}" required class="{{ 'bad' if error_field == 'first_date' }}"></label>
+  <label>{{ 'Pay from'|tr(locale) }}<select name="account_id" {{ 'aria-invalid=true' if error_field == 'account_id' }} data-own-picker><option value="">{{ 'Choose later'|tr(locale) }}</option>{% for a in accounts %}<option value="{{ a.id }}" {{ 'selected' if values.account_id == a.id|string }}>{{ a.name }}</option>{% endfor %}</select></label>
+  <details {{ 'open' if error_field == 'fee' }}><summary>{{ 'Fee included in instalments'|tr(locale) }}</summary><label>{{ 'Fee'|tr(locale) }} ({{ base }})<input name="fee" {{ 'aria-invalid=true' if error_field == 'fee' }} value="{{ values.fee }}" inputmode="decimal" class="money-input {{ 'bad' if error_field == 'fee' }}" placeholder="0"></label></details>
+{% endif %}
+  <p class="muted small">{{ 'This adds a loan plan. It does not record a cash payment today.'|tr(locale) }}</p>
+  <div class="actions"><button class="btn primary">{{ ('Add instalment plan' if quote else 'Preview')|tr(locale) }}</button><a class="btn" href="{{ edit_url if quote else '/plan/loans' }}" {{ 'data-popup-open' if quote else 'data-popup-close' }}>{{ ('Edit' if quote else 'Cancel')|tr(locale) }}</a></div>
+  <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+</form>{% endblock %}
