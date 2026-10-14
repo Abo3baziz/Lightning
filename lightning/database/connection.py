@@ -123,6 +123,7 @@ class Database:
             else:
                 conn.execute(f"ROLLBACK TO {savepoint}")
                 conn.execute(f"RELEASE {savepoint}")
+
             raise
         else:
             self._local.depth = depth
@@ -136,6 +137,19 @@ class Database:
                         conn.execute(f"ROLLBACK TO {savepoint}")
                         conn.execute(f"RELEASE {savepoint}")
                 raise
+
+    @contextmanager
+    def read_snapshot(self) -> Iterator[sqlite3.Connection]:
+        """A consistent read transaction, also available on read-only profile copies."""
+        conn = self.conn
+        if conn.in_transaction:
+            yield conn
+            return
+        conn.execute("BEGIN")
+        try:
+            yield conn
+        finally:
+            conn.execute("ROLLBACK")
 
     # -- helpers -----------------------------------------------------------
     def execute(self, sql: str, params: tuple | dict = ()) -> sqlite3.Cursor:

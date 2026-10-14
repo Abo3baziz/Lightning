@@ -436,6 +436,8 @@ Each is short; the item id leads to the detail.
 
 ## 13. New features an Egyptian salaried user will ask for
 
+**Milestone 1 built 2026-10-14:** FR-2 salary/payday; LO-2 early payoff (existing loan-category outflow, preserving the ledger contract); LO-3 instalment purchases; SE-2 full Excel/CSV export; IM-1 saved bank CSV presets and 5 MB wording. Existing screens only; PDF/Excel statement parsing remains unbuilt. Owner also approved dated historical loan repayments; cash records stay unchanged.
+
 Beyond the open gaps already listed in the Project Overview, ranked by how often a real user would use them.
 
 | Feature | Why | Size | Ids |

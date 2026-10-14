@@ -36,6 +36,10 @@ Built v1 lending; planned replacement: [edit journal](proposals/edit_journal.md)
 
 ## The basic model
 
+**Instalment purchase (taqseet):** a loan plan for an outstanding purchase price plus any financed fee, with an exact final instalment. Creating it records no cash.
+
+**Early loan payment:** actual extra cash paid to reduce an existing loan, clearing overdue amounts first and then shortening its end. A settlement fee is spending and does not reduce principal.
+
 Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Report** (reads both).
 
 | Term | Layer | Meaning |

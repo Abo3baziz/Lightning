@@ -3,12 +3,13 @@ from __future__ import annotations
 
 from datetime import timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Request
 
 from lightning.categories.domain import Direction, Movement
 from lightning.core.dates import fmt_date, parse_date, today
-from lightning.core.errors import LightningError
+from lightning.core.errors import LightningError, ValidationError
 from lightning.core.figures import label
 from lightning.core.money import ZERO, fmt, to_decimal
 from lightning.planning.domain import (FREQUENCY_LABELS, KIND_LABELS, RECURRING_KINDS, WEEKEND_MOVE_LABELS, Frequency,
@@ -214,6 +215,73 @@ async def reserves_page(request: Request):
 
 
 # ------------------------------------------------------------------ items
+def _purchase_form(request, values=None, quote=None, error="", status_code=200, error_field=""):
+    c = container(request)
+    return render(request, "planning/purchase.html", values=values or {"name": "", "price": "", "fee": "",
+                  "months": "", "first_date": fmt_date(today()), "account_id": ""}, quote=quote,
+                  accounts=[a for a in _paying_accounts(c) if a.currency == c.base_currency],
+                  error=error, status_code=status_code, error_field=error_field, edit_url="/plan/purchases/new?" + urlencode(values or {}))
+
+
+@router.get("/purchases/new")
+async def purchase_form(request: Request):
+    q = request.query_params
+    values = {key: str(q.get(key, "")) for key in ("name", "price", "fee", "months", "first_date", "account_id")} if any(key in q for key in ("name", "price", "months")) else None
+    return _purchase_form(request, values)
+
+
+@router.post("/purchases/new")
+async def add_purchase(request: Request):
+    from lightning.planning.loan_actions import create_purchase, purchase_quote
+    form = await request.form()
+    values = {key: str(form.get(key, "")) for key in ("name", "price", "fee", "months", "first_date", "account_id")}
+    try:
+        if not values["name"].strip():
+            raise ValidationError("Name the purchase.", "name")
+        quote = purchase_quote(values["price"], values["fee"], values["months"], values["first_date"])
+        if form.get("intent") == "save":
+            create_purchase(container(request).planning, **values)
+            return redirect("/plan/loans", "Instalment plan added. Record each payment when it leaves your account.")
+        return _purchase_form(request, values, quote)
+    except (LightningError, ValueError) as exc:
+        return _purchase_form(request, values, error=exc.message if isinstance(exc, LightningError) else "Check the amounts and dates.", status_code=400, error_field=exc.field if isinstance(exc, LightningError) else "")
+
+
+def _early_form(request, item_id, values=None, preview=None, error="", status_code=200, error_field=""):
+    c = container(request)
+    item = c.planning.get(item_id)
+    progress = c.planning.loan_progress(item)
+    values = values or {"principal": str(progress["still_to_pay"]), "fee": "", "date_paid": fmt_date(today()),
+                        "account_id": str(item.account_id or "")}
+    return render(request, "planning/early_payment.html", item=item, progress=progress, values=values, preview=preview,
+                  accounts=[a for a in _paying_accounts(c) if a.currency == c.base_currency],
+                  error=error, status_code=status_code, error_field=error_field,
+                  edit_url=f"/plan/items/{item_id}/early-payment?" + urlencode(values))
+
+
+@router.get("/items/{item_id:int}/early-payment")
+async def early_payment_form(request: Request, item_id: int):
+    q = request.query_params
+    values = {key: str(q.get(key, "")) for key in ("principal", "fee", "date_paid", "account_id")} if "principal" in q else None
+    return _early_form(request, item_id, values)
+
+
+@router.post("/items/{item_id:int}/early-payment")
+async def early_payment(request: Request, item_id: int):
+    from lightning.planning.loan_actions import preview_early_payment, record_early_payment
+    c = container(request)
+    form = await request.form()
+    values = {key: str(form.get(key, "")) for key in ("principal", "fee", "date_paid", "account_id")}
+    try:
+        preview = preview_early_payment(c.planning, item_id, values["principal"], values["fee"], values["date_paid"])
+        if form.get("intent") == "record":
+            record_early_payment(c.planning, item_id, **values, expected_remaining=form.get("expected_remaining", ""))
+            return redirect("/plan/loans", "Loan payment recorded. The remaining schedule is updated.")
+        return _early_form(request, item_id, values, preview)
+    except (LightningError, ValueError) as exc:
+        return _early_form(request, item_id, values, error=exc.message if isinstance(exc, LightningError) else "Choose a paying account.", status_code=400, error_field=exc.field if isinstance(exc, LightningError) else "")
+
+
 def _item_form(request: Request, c, values: dict, item=None, error: str = "", error_field: str = "",
                status_code: int = 200, back: str = "/plan/recurring"):
     kind = values.get("kind") or PlanKind.BILL.value
@@ -222,6 +290,7 @@ def _item_form(request: Request, c, values: dict, item=None, error: str = "", er
         (k.value, KIND_LABELS[k]) for k in RECURRING_KINDS]
     return render(request, "planning/item_form.html", status_code=status_code, values=values, item=item,
                   has_history=bool(item) and c.planning.has_history(item.id),
+                  installment=bool(item) and c.planning.is_installment_purchase(item.id),
                   kinds=kinds, is_loan=kind == PlanKind.LOAN.value,
                   frequencies=[(f.value, FREQUENCY_LABELS[f]) for f in Frequency],
                   weekend_moves=[(m.value, WEEKEND_MOVE_LABELS[m]) for m in WeekendMove],

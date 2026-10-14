@@ -94,7 +94,7 @@ def test_guard_enforces_route_specific_body_limit_and_preserves_default():
         assert (await send_body("/accounts/17/import", MAX_IMPORT_UPLOAD_BODY))[0] == 204
         upload_error = await send_body("/accounts/17/import", MAX_IMPORT_UPLOAD_BODY + 1)
         assert upload_error[0] == 413
-        assert "CSV files must be 5 MiB or smaller" in upload_error[1]
+        assert "CSV files must be 5 MB or smaller" in upload_error[1]
         assert (await send_body("/accounts/17/import/map", MAX_IMPORT_MAP_BODY))[0] == 204
         assert (await send_body("/accounts/17/import/map", MAX_IMPORT_MAP_BODY + 1))[0] == 413
         assert (await send_body("/profiles/new", MAX_BODY))[0] == 204
@@ -165,14 +165,14 @@ def test_upload_picker_and_help_text_state_csv_limit_without_other_formats():
 
     template = (Path(__file__).parents[1] / "lightning/ui/templates/bank_import_upload.html").read_text()
     assert 'accept=".csv,text/csv"' in template
-    assert "CSV files up to 5 MiB are supported." in template
+    assert "CSV files up to 5 MB are supported." in template
 
 
 def test_oversized_csv_decoder_returns_readable_mib_limit():
     try:
         decode_csv(b"x" * (MAX_IMPORT_FILE_BYTES + 1))
     except ValidationError as exc:
-        assert exc.message == "CSV files must be 5 MiB or smaller."
+        assert exc.message == "CSV files must be 5 MB or smaller."
     else:
         raise AssertionError("an oversized CSV was accepted")
 
@@ -222,7 +222,7 @@ def test_the_confirm_route_takes_a_large_review_and_other_forms_stay_at_2000_fie
 
 
 def test_bounded_confirmation_limits_cover_about_fifty_thousand_rows():
-    # The review template submits at most twelve controls per row. A 5 MiB
+    # The review template submits at most twelve controls per row. A 5 MB
     # statement averaging about 105 bytes/row can therefore fit this budget.
     maximum_rows = (MAX_IMPORT_CONFIRM_FIELDS - 100) // 12
     assert _review_form_max_fields(maximum_rows) <= MAX_IMPORT_CONFIRM_FIELDS

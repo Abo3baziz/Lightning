@@ -11,9 +11,11 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-14 · Codex: Section 13 milestone 1: optional salary/payday setup, bank CSV presets, full financial Excel/CSV exports, instalment purchase plans and previewed early loan payments in existing screens.
+  Migration `0055_loan_actions.sql` preserves short-month paydays, exact instalment totals and linked extra payments/fees; voids restore schedules. Dummy round-trip fixture rebuilt; owner-approved historical loan balances now follow cash receipt dates.
+  Validation: financial regression, browser preview/edit/download flows, English/Arabic screens, Mohab, PC brand and phone checks; full suite 1,548 passed, 10 skipped after incorporating latest main.
 - 2026-10-14 · Claude: a gold price reference (18K/21K/24K) can no longer be bought or added as a holding; it only supplies a price: `InvestmentService._validate_asset_account`; test in `tests/test_physical_items.py`.
 - 2026-10-14 · Claude: a bill or income due date already paid or skipped cannot be recorded again (a second press made a second real payment): `PlanningService.record_payment`, `PlanningRepository.is_settled`; test in `tests/test_planning.py`.
-
 - 2026-10-14 · Codex: tab-by-tab trust batch: plain returns before 365 days, annual XIRR afterward; separate locked-certificate values/dates and matching Sale factors; emergency coverage defaults to spending (income optional).
   Phone Needs you before Latest (C11.1 in both guideline copies); sidebar page-jump; Safe to spend says “on top of your plan”; recurring rows by due date; holding tones by sign; settings spacing and search category labels. English/Arabic checks and regression coverage updated.
   Validation: full suite passed; PC brand audit at 1366 × 768 and phone overflow check at 360/320 passed.

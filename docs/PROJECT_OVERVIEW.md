@@ -71,6 +71,8 @@ Dates are when the owner decided. Undated rows are founding rules.
 
 **Multiple devices (phone as home), planned and partly built.** One codebase on PC and Android; the phone holds the accepted encrypted ledger and one paired PC borrows it. Build status is in the Roadmap. Design, lend safety, hand-back, bank SMS: [multiple_devices.md](proposals/multiple_devices.md). **Edit anywhere, one home confirms** (owner-requested revision 2026-10-07, supersedes automatic lending only after cutover, unscheduled): [edit_journal.md](proposals/edit_journal.md). A server or cloud copy is outside version 1.
 
+Section 13 milestone 1 (owner approved 2026-10-14) stays inside existing workflows: optional salary/payday setup, learned bank CSV presets, Export all data under Your data, and instalment purchases/early payoff under Loans. No new default tabs or dashboard cards. The owner also approved recognising historical loan repayments from their cash dates; Mohab’s annual growth becomes 383,284 EGP (42,000 more), with cash unchanged. Later milestones cover optional reminders/confirmations, then deeper analytics.
+
 <a id="what-you-can-do-today"></a>
 ## 3. What you can do today
 
@@ -188,7 +190,7 @@ Early pay, raise and rent changes need explicit confirmation by design: Lightnin
 
 The dollar steps are not yet inside the year (NOW.md, Next 3). User feedback batch 001 is checked by nine named screen assertions; loading speed, scroll position, compact review rows, chart colours and register balance are judged on a real PC.
 
-**Not scripted:** the NBE certificate maturing (forecast only; he enters redemption and interest by hand); paying the car loan off early; payslip deductions (record net pay).
+**Not scripted:** the NBE certificate maturing (forecast only; he enters redemption and interest by hand); paying the car loan off early (covered separately by milestone regression/browser tests); payslip deductions (record net pay).
 
 <a id="compared-with-the-best-budgeting-apps"></a>
 ## 7. Compared with the best budgeting apps

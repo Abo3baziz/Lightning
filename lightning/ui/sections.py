@@ -75,8 +75,8 @@ SECTIONS: tuple[Section, ...] = (
     )),
     Section("plan", "Cash planning", "cash", (
         Tab("plan", "Plan", "/plan", _I["plan"], ("=/plan", "/plan/items")),
-        Tab("recurring", "Recurring", "/plan/recurring", _I["recurring"], ("/plan/recurring",)),
-        Tab("loans", "Loans", "/plan/loans", _I["loans"], ("/plan/loans",)),
+        Tab("recurring", "Recurring", "/plan/recurring", _I["recurring"], ("/plan/recurring", "/setup/salary")),
+        Tab("loans", "Loans", "/plan/loans", _I["loans"], ("/plan/loans", "/plan/purchases")),
         Tab("reserves", "Reserves", "/plan/reserves", _I["reserves"], ("/plan/reserves", "/reserves")),
     )),
     Section("investments", "Investments", "investments", (
@@ -96,7 +96,7 @@ SECTIONS: tuple[Section, ...] = (
             gear="/settings?section=zakat", gear_label="Zakat settings"),
     )),
     Section("settings", "Settings", "settings", (
-        Tab("data", "Your data", "/settings", _I["data"], ("/settings", "/profiles"), settings=("general",)),
+        Tab("data", "Your data", "/settings", _I["data"], ("/settings", "/profiles", "/exports/all"), settings=("general",)),
         Tab("categories", "Categories", "/categories", _I["categories"], ("/categories",)),
         Tab("counterparties", "Counterparties", "/counterparties", _I["counterparties"], ("/counterparties",)),
         Tab("rules", "Rules", "/rules", _I["rules"], ("/rules",)),
@@ -131,7 +131,10 @@ def locate(path: str, settings_section: str = "") -> tuple[Section | None, Tab |
 def for_request(request) -> dict:
     """What base.html needs: every section, the current one and its tab (the bar shows only with two tabs
     or more, or with a gear)."""
-    section, tab = locate(request.url.path, str(request.query_params.get("section", "") or ""))
+    path = request.url.path
+    if path.startswith('/plan/items/') and path.endswith('/early-payment'):
+        path = '/plan/loans'
+    section, tab = locate(path, str(request.query_params.get("section", "") or ""))
     hidden = hidden_tabs(request)
     if not hidden:
         return {"sections": SECTIONS, "section": section, "tab": tab}

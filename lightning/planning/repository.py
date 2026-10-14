@@ -9,7 +9,7 @@ from lightning.database.connection import Database
 from .domain import Frequency, PlanKind, PlannedItem, WeekendMove
 
 _COLUMNS = ("kind", "name", "amount_e6", "frequency", "interval_count", "start_date", "end_date",
-            "payment_count", "account_id", "category_id", "counterparty_id", "principal_e6", "notes", "weekend_move")
+            "payment_count", "account_id", "category_id", "counterparty_id", "principal_e6", "notes", "weekend_move", "month_day")
 
 
 def _item(row) -> PlannedItem:
@@ -20,7 +20,7 @@ def _item(row) -> PlannedItem:
         account_id=row["account_id"], category_id=row["category_id"], counterparty_id=row["counterparty_id"],
         principal=from_e6(row["principal_e6"]) if row["principal_e6"] is not None else None,
         active=bool(row["active"]), notes=row["notes"],
-        weekend_move=WeekendMove(row["weekend_move"]))
+        weekend_move=WeekendMove(row["weekend_move"]), month_day=row["month_day"])
 
 
 class PlanningRepository:
@@ -67,7 +67,9 @@ class PlanningRepository:
         self.db.execute("DELETE FROM planned_items WHERE id=?", (item_id,))
 
     def has_payments(self, item_id: int) -> bool:
-        return bool(self.db.scalar("SELECT 1 FROM planned_payments WHERE planned_item_id=? LIMIT 1", (item_id,)))
+        return bool(self.db.scalar("SELECT 1 FROM planned_payments WHERE planned_item_id=? "
+                                   "UNION ALL SELECT 1 FROM loan_extra_payments WHERE planned_item_id=? LIMIT 1",
+                                   (item_id, item_id)))
 
     @request_cached
     def settled(self) -> dict[tuple[int, str], dict]:
@@ -75,7 +77,7 @@ class PlanningRepository:
 
         Read once per request: the Overview's twelve month-end positions each ask for every item's payments."""
         rows = self.db.all(
-            "SELECT p.planned_item_id,p.due_date,p.status,p.transaction_id,p.amount_e6 FROM planned_payments p "
+            "SELECT p.planned_item_id,p.due_date,p.status,p.transaction_id,p.amount_e6,t.date AS transaction_date FROM planned_payments p "
             "LEFT JOIN transactions t ON t.id=p.transaction_id "
             "WHERE p.status='SKIPPED' OR t.status='POSTED'")
         return {(row["planned_item_id"], row["due_date"]): dict(row) for row in rows}
@@ -98,7 +100,25 @@ class PlanningRepository:
 
     def linked_transaction_ids(self) -> set[int]:
         return {int(r["transaction_id"]) for r in self.db.all(
-            "SELECT transaction_id FROM planned_payments WHERE transaction_id IS NOT NULL")}
+            "SELECT transaction_id FROM planned_payments WHERE transaction_id IS NOT NULL "
+            "UNION SELECT transaction_id FROM loan_extra_payments")}
+
+    @request_cached
+    def installment_terms(self) -> dict[int, dict]:
+        return {row["planned_item_id"]: dict(row) for row in self.db.all("SELECT * FROM installment_purchases")}
+
+    @request_cached
+    def extra_payments(self, on: str) -> list[dict]:
+        return [dict(row) for row in self.db.all(
+            "SELECT p.*,t.date FROM loan_extra_payments p JOIN transactions t ON t.id=p.transaction_id "
+            "WHERE t.status='POSTED' AND t.date<=? ORDER BY t.date,p.id", (on,))]
+
+    def add_extra_payment(self, item_id, transaction_id, principal, fee, due_date=None):
+        self.db.execute("INSERT INTO loan_extra_payments(planned_item_id,transaction_id,principal_e6,fee_e6,due_date,created_at) "
+                        "VALUES (?,?,?,?,?,?)", (item_id, transaction_id, to_e6(principal), to_e6(fee), due_date, now_iso()))
+
+    def add_installment_terms(self, item_id, price, fee, count):
+        self.db.execute("INSERT INTO installment_purchases VALUES (?,?,?,?)", (item_id, to_e6(price), to_e6(fee), count))
 
     def candidates(self, incoming: bool, account_id: int | None, category_id: int | None,
                    counterparty_id: int | None, date_from: str, date_to: str) -> list[dict]:
@@ -173,4 +193,4 @@ class PlanningRepository:
                 values["interval_count"], values["start_date"], values.get("end_date"), values.get("payment_count"),
                 values.get("account_id"), values.get("category_id"), values.get("counterparty_id"),
                 to_e6(values["principal"]) if values.get("principal") is not None else None,
-                values.get("notes", ""), values.get("weekend_move", "none"))
+                values.get("notes", ""), values.get("weekend_move", "none"), values.get("month_day"))

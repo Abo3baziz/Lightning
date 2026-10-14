@@ -23,6 +23,8 @@
 
 ## Next
 
+- **Section 13 milestone 1 built:** salary/payday setup, bank CSV presets, full exports, instalment purchases and early payoff use existing screens. Next: optional reminders/grouped confirmations, then analytics. Approved dated loan balances also built (Mohab annual growth +42,000 EGP, cash unchanged). **Read:** `docs/proposals/tab_by_tab_review.md` §13; Architecture › Cash planning, › CSV import and export.
+
 - **Tab-by-tab fixes, step 1 (trust), remaining:** SP-1/X-4 comparisons, IN-2 income in holdings returns, AC-2/X-2 register signs/number roles, GA-1 late-circle dues, OV-2 layout and PC OV-1 preview. X-3, IN-3, CP-1/8, X-1, HL-1, SE-1, SR-1 and phone PH-1 are built; spending default approved/built, RS-1 liquid-holdings context remains. **Read:** `docs/proposals/tab_by_tab_review.md` §1, §14 and unchecked items; `OWNER.md` › Tab-by-tab review has the remaining choices.
 - **Gam'eya and zakat follow-ups:** demo/sample profiles have no circle; the phone Overview's What you owe has no gam'eya breakdown; Investments shows an early-turn circle below zero while Position moves it to What you owe. **Read:** Architecture › Gam'eya, › Zakat.
 

@@ -14,7 +14,7 @@ from lightning.samples import load_mohab_2026
 from lightning.ui.i18n import localize_html, translate
 from lightning.ui.web import create_app
 
-PC_PAGES = ("/", "/budget", "/plan", "/plan/recurring", "/plan/loans", "/plan/reserves", "/investments",
+PC_PAGES = ("/exports/all", "/plan/purchases/new", "/", "/budget", "/plan", "/plan/recurring", "/plan/loans", "/plan/reserves", "/investments",
             "/investments/prices", "/accounts", "/settings", "/search", "/rules", "/categories", "/counterparties",
             "/checks", "/financial-health", "/birdview/expenses", "/transactions", "/money-from-others", "/zakat")
 PERIODS = ("period=ytd", "period=all", "period=month&month=2026-09", "period=custom&date_from=2026-03&date_to=2026-08")
@@ -30,7 +30,7 @@ EXTRA_PAGES = ("/accounts/1", "/accounts/2", "/accounts/3", "/accounts/6", "/acc
                "/reserves", "/add-transaction", "/investments/targets", "/search?q=a")
 PHONE_EXTRA = ("/accounts/1", "/accounts/6", "/plan/loans", "/plan/recurring", "/plan/reserves", "/investments/holding/11",
                "/transactions/315", "/accounts/1/transaction/new", "/budget/raise?month=2026-10", "/search?q=a")
-PHONE_PAGES = ("/", "/budget", "/plan", "/investments", "/accounts", "/transactions", "/birdview/expenses",
+PHONE_PAGES = ("/exports/all", "/plan/purchases/new", "/", "/budget", "/plan", "/investments", "/accounts", "/transactions", "/birdview/expenses",
                "/financial-health", "/settings", "/categories", "/zakat")
 
 # Brand, keyboard keys, data sources and the one prompt meant to be pasted into an AI tool.

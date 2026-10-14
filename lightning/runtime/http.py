@@ -53,7 +53,7 @@ def request_body_limit(path: str, method: str = "POST") -> int:
 
 def request_too_large_message(path: str) -> str:
     if re.fullmatch(r"/accounts/\d+/import(?:/map)?", path):
-        return "CSV files must be 5 MiB or smaller. Choose a smaller CSV and try again."
+        return "CSV files must be 5 MB or smaller. Choose a smaller CSV and try again."
     if re.fullmatch(r"/accounts/\d+/import/\d+/confirm", path):
         return "This import review is too large to submit at once. Split the CSV into smaller files."
     return "This request is too large."
@@ -62,7 +62,7 @@ def request_too_large_message(path: str) -> str:
 def configure_memory_only_import_uploads() -> None:
     """Keep Starlette's spooled upload below disk-rollover size for guarded CSVs.
 
-    The profile Guard bounds the statement upload route to 5 MiB plus a small
+    The profile Guard bounds the statement upload route to 5 MB plus a small
     multipart envelope, and rejects files on all other routes but the market
     price file's. Raising this threshold above the statement route's complete
     body size keeps statement bytes in memory instead of allowing
