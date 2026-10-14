@@ -68,6 +68,7 @@
           {{ donut(wealth_donut, fig.what_you_own.label, base) }}</section>
         <section aria-labelledby="sold-heading"><div class="overview-block-head"><div><h3 id="sold-heading">{{ fig.if_you_sold_today.label }}</h3><p>{{ "After selling your investments"|tr(locale) }}</p></div><a class="quiet-link" href="/settings?section=assets-valuations">{{ 'Sale factors'|tr(locale) }}</a></div>
           <div class="overview-headline">{% if pos.if_you_sold_today is not none %}{{ pos.if_you_sold_today|money }} <small>{{ base }}</small>{% else %}Unavailable{% endif %}</div>
+          {% for item in pos.locked_holdings %}<div class="overview-static-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }}<small>{{ "locked until {date}"|tr(locale, date=item.locked_until) }}</small></span><b>{{ item.value|money }}</b></div>{% endfor %}
           <div class="overview-inline-list">
             <div class="overview-static-row"><span>{{ fig.free_cash.label }}</span><b>{{ pos.free_cash|money if pos.free_cash is not none else 'Unavailable' }}</b></div>
             <details class="overview-disclosure"><summary><span>{{ fig.holdings_after_sale.label }}</span><b>{{ pos.holdings_after_sale|money }}</b></summary><div class="overview-disclosure-body">

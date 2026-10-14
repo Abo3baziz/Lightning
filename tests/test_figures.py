@@ -62,6 +62,7 @@ def test_every_tab_shows_the_same_free_cash_and_holdings_after_sale(c, setup):
 
 
 def test_one_average_monthly_income_for_budget_reserves_and_forecast(c, setup):
+    c.budgets.set_emergency_basis("income")
     client = _household(c, setup)
     income = c.budgets.income_average("2026-12")
     assert income.amount == Decimal("30000.00") and income.months_counted == 2

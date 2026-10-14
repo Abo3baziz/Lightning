@@ -778,6 +778,9 @@ def mohab(tmp_path_factory):
         # Records are stamped with the day Mohab made them, not the day the test runs.
         patch.setattr(dates, "_local_now", lambda: datetime.combine(dates.today(), time(12), timezone.utc))
         c = build(tmp_path_factory.mktemp("mohab") / "mohab.db")
+        # This reference profile retains its explicit salary-based cushion. New profiles default to
+        # spending, covered in test_emergency_basis; every action in the year still uses the screens.
+        c.budgets.set_emergency_basis("income")
         try:
             person = Mohab(c)
             _live_the_year(person)
@@ -854,6 +857,7 @@ def test_safe_to_spend_until_payday(mohab):
     # 20,000 of a 270,000 emergency target: the top-up the budget asks for (250,000 over 24 months,
     # 10,417) is kept back too, as Saving for goals is (owner request 2026-10-05: one plan).
     assert answer.figure("Safe to spend until 2026-10-01") == D("40937")
+    assert answer.shows("On top of your plan until 2026-10-01")
     assert answer.shows("Budget left to spend −1,309 Emergency fund top-up −10,417 Safe to spend 40,937")
 
 

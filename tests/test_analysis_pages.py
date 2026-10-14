@@ -55,3 +55,22 @@ def test_close_plan_payments_use_separate_timeline_label_rows(c, monkeypatch):
     assert [mark["row"] for mark in marks[:3]] == [0, 1, 2]
     same_row = [mark["x"] for mark in marks if mark["row"] == 0]
     assert all(right - left >= 22 for left, right in zip(same_row, same_row[1:]))
+
+
+def test_budget_settings_inline_links_keep_readable_spaces(c):
+    from html.parser import HTMLParser
+
+    class Text(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parts = []
+
+        def handle_data(self, data):
+            self.parts.append(data)
+
+    parser = Text()
+    parser.feed(TestClient(create_app(c)).get("/settings?section=budget").text)
+    text = "".join(parser.parts)
+    assert "the same as Recurring on Categories" in text
+    assert "the same as One-off on Categories" in text
+    assert "income in Recurring instead of the average" in text

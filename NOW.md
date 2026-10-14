@@ -22,7 +22,7 @@
 
 ## Next
 
-- **Tab-by-tab fixes, step 1 (trust):** the P1 items in section 14; X-3, RS-1 and IN-3 wait for OWNER 19. **Read:** `docs/proposals/tab_by_tab_review.md` §1 and §14, then the item's section.
+- **Tab-by-tab fixes, step 1 (trust), remaining:** SP-1/X-4 comparisons, IN-2 income in holdings returns, AC-2/X-2 register signs/number roles, GA-1 late-circle dues, OV-2 layout and PC OV-1 preview. X-3, IN-3, CP-1/8, X-1, HL-1, SE-1, SR-1 and phone PH-1 are built; spending default approved/built, RS-1 liquid-holdings context remains. **Read:** `docs/proposals/tab_by_tab_review.md` §1, §14 and unchecked items; `OWNER.md` 19 has the remaining choices.
 - **Gam'eya and zakat follow-ups:** demo/sample profiles have no circle; the phone Overview's What you owe has no gam'eya breakdown; Investments shows an early-turn circle below zero while Position moves it to What you owe. **Read:** Architecture › Gam'eya, › Zakat.
 
 

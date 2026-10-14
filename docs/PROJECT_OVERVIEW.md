@@ -49,7 +49,7 @@ Dates are when the owner decided. Undated rows are founding rules.
 | **One ledger** | Registers, budget actuals, investments, Overview and reports are views of one transaction ledger. |
 | **Other people's money** | *Held for others* stays in the account balance, is left out of *What you own*, and is not income, spending or money owed to you. |
 | **Obligations count, forecasts never do** | Bills due and loans still to pay make *What you owe*: bills due come off Free cash, What you owe off Net worth. Loans are schedules, not debt accounts; a payment is spending when paid. Credit cards, loan-interest accounting and money owed to you are out of scope; CD interest is an estimate. |
-| **Reserves are not budgets** | A reserve sets aside cash you own and lowers Free cash; a budget limit changes only the plan; never added together. Emergency fund is shown in months of *Average monthly income* (2026-10-05), or of spending if Settings › Budget says so. |
+| **Reserves are not budgets** | A reserve sets aside cash you own and lowers Free cash; a budget limit changes only the plan; never added together. Emergency fund defaults to months of spending (owner, 2026-10-14); income remains an explicit Settings › Budget choice. Saved choices are preserved. |
 | **Categories describe the activity** | L1 Personal / Work / Investment / System Categories, L2 broad, optional L3. Each is + income, − expense or ±; income is recurring or irregular; an expense can be one-off. A used category is archived, never deleted. |
 | **Names are canonical** | Similar spellings are suggestions the user picks. Never silently merge or create a counterparty. |
 | **Physical gold** | Per piece: net weight, karat, cost. Valued per gram of the same karat; purity never applied twice. |
@@ -63,6 +63,7 @@ Dates are when the owner decided. Undated rows are founding rules.
 | **Prices published only where allowed, always cited** (2026-10-05; FX source 2026-10-07) | FX pack: Banque Misr's dated transfer midpoint, labelled a bank rate, not CBE (CBE rejects the collector). Stock and fund prices from TradingView, Yahoo or Mubasher are for source checks only, never published or shipped, until a licence or permission covers them. |
 | **Local only** (2026-10-05) | Data stays on the user's computer, never in Git. Encrypted profiles under Documents/Lightning, password of any length; a 12-digit recovery key plus a security question reset it. One thing opens a profile; two change its password, question or key. Architecture › Encryption. |
 | **Two levels, few settings** (2026-10-06) | Six sections, at most five tabs each, no third level; settings behind a tab's gear; a default before a setting; icons for row actions; one choice, one field. Architecture › UI contract. |
+| **Locked certificates** (2026-10-14) | Show the owned value and unlock date separately beside If you sold today; do not count it as saleable cash. |
 | **Phone has its own design** (2026-10-06, 2026-10-07) | Part C of the guideline; never the PC layout squeezed. Every icon has its word (alone only if universal); four tabs as two rows of two; add button on every section's first page; the Overview is one screen (Get set up, Needs you, four tiles, Your position). |
 | **Fewer steps to set up** (2026-10-06) | Recovery key shown once and confirmed with a press. One password on every device. |
 | **Fingerprint, gam'eya and zakat** (2026-10-14) | Android offers fingerprint unlock as an option; the password and recovery key always still work. Gam'eya is built on the CD backbone with the interest rate optional (none by default). Zakat is an estimate by the common rule, off until turned on in Settings. |
@@ -102,7 +103,7 @@ The period picker (All time · YTD · Monthly · Custom) drives most visuals. A 
 |---|---|
 | Overview: stat cards, Cash flow, Investments section | Overview: Net worth over time (12 month ends); position cards (today) |
 | Budget: waffle, plan bar, Spent of plan | Budget: plans are monthly; longer periods add months |
-| Investments: waffle, Net gain or loss, allocation and biggest holdings (as of period end), money and value by class | Portfolio value sparkline (last 6 months); Dividends (year to date); XIRR (annualized since first investment, including periods shorter than a year); horizon bar (today) |
+| Investments: waffle, Net gain or loss, allocation and biggest holdings (as of period end), money and value by class | Portfolio value sparkline (last 6 months); Dividends (year to date); Return since first investment (plain before 365 days, annualized XIRR afterward, with days held); horizon bar (today) |
 | Expense analysis: KPI cards, treemap, now against usual, daily calendar or monthly summaries | "Usual" is the 6 whole months before the period; usual range, small multiples, heatmap use the 12 before it |
 | — | Holding page: whole history up to 24 month ends; sparklines last 6 |
 

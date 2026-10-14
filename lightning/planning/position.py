@@ -48,6 +48,10 @@ class OwnedHolding:
     value: Decimal | None
     unit: str
 
+    @property
+    def locked_until(self) -> str | None:
+        return getattr(self, "_locked_until", None)
+
     def __getitem__(self, key):  # templates and older callers read rows as mappings
         return getattr(self, key)
 
@@ -157,6 +161,11 @@ class Position:
     @property
     def holdings_after_sale(self) -> Decimal:
         return sum((c.after_sale for c in self.classes), ZERO)
+
+    @property
+    def locked_holdings(self) -> tuple[OwnedHolding, ...]:
+        """Owned certificate values excluded from cash available by selling today."""
+        return tuple(item for cls in self.classes for item in cls.items if item.locked_until)
 
     @property
     def deposits_after_sale(self) -> Decimal:

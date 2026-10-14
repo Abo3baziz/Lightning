@@ -1,4 +1,4 @@
-"""The emergency fund in months of income (the default) or months of spending (Settings › Budget)."""
+"""The emergency fund in months of spending (the default) or months of spending (Settings › Budget)."""
 
 from decimal import Decimal as D
 
@@ -27,8 +27,10 @@ def household(c, setup):
     return c
 
 
-def test_months_of_income_unless_settings_say_spending(household):
+def test_spending_is_default_and_income_remains_an_explicit_choice(household):
     c = household
+    assert c.budgets.emergency_basis() == "spending"
+    c.budgets.set_emergency_basis("income")
     fund = c.budgets.emergency_fund("2026-12", D("45000"))
     assert (fund.basis, fund.monthly, fund.months, fund.target) == ("income", D("30000"), D("1.5"), D("180000"))
 
@@ -49,7 +51,21 @@ def test_no_fund_or_no_history_is_not_measured(c, household):
     assert c.budgets.emergency_fund("2026-09", D("45000")).months is None  # nothing recorded before September
 
 
+def test_default_spending_basis_reaches_the_screens_and_forecast(household):
+    from datetime import date
+
+    c = household
+    client = TestClient(create_app(c))
+    page = client.get("/plan/reserves").text
+    assert "Emergency fund covers 3.0 months" in page and "Of average monthly spending." in page
+    assert 'name="emergency_basis" value="spending" checked' in client.get("/settings?section=budget").text
+    # Six months at 15,000 less the 45,000 set aside, rebuilt over 24 months.
+    assert c.forecaster.forecast(date(2026, 12, 31)).months[0].emergency_saving == D("1875")
+
+
 def test_the_setting_is_chosen_in_settings_and_read_on_reserves(household):
+    # Existing explicit income settings remain intact after the default changes.
+    household.budgets.set_emergency_basis("income")
     client = TestClient(create_app(household))
     page = client.get("/plan/reserves").text
     assert "Emergency fund covers 1.5 months" in page and "Of average monthly income." in page

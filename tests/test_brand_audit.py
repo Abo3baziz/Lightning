@@ -1,5 +1,5 @@
 """Brand audit in a real browser (guideline A03, A05, A10.3, A16): on the main PC pages, with the Mohab sample at
-1440 px, nothing is upper-case, text is only in A03 colours, plain links are Ink and underlined, H1 to H3 are Ink,
+1366 × 768 px, nothing is upper-case, text is only in A03 colours, plain links are Ink and underlined, H1 to H3 are Ink,
 no field is white or boxed, spending in the register is Ink, and the register fits its card.
 Skipped when Playwright or Chromium is missing."""
 from __future__ import annotations
@@ -27,7 +27,7 @@ COLLECT = """() => {
   const TEXT = %TEXT%;
   const hex = c => { const m = c.match(/[\\d.]+/g); if (!m) return null; if (m.length > 3 && +m[3] === 0) return null;
     return '#' + m.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('').toUpperCase(); };
-  const out = {upper: [], colors: [], links: [], heads: [], fields: [], rose: [], overflow: []};
+  const out = {upper: [], colors: [], links: [], heads: [], fields: [], rose: [], overflow: [], jump: []};
   const name = el => el.tagName + '.' + String(el.className && el.className.baseVal === undefined ? el.className : '').trim().split(/\\s+/).slice(0, 2).join('.');
   for (const el of document.querySelectorAll('body *')) {
     const s = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -54,6 +54,16 @@ COLLECT = """() => {
   for (const c of document.querySelectorAll('.main .card')) {
     if (c.scrollWidth > c.clientWidth + 1 || [...c.querySelectorAll('*')].some(w => w.clientWidth && w.scrollWidth > w.clientWidth + 1 && ['auto', 'scroll'].includes(getComputedStyle(w).overflowX))) out.overflow.push(name(c));
   }
+  const jump = document.querySelector('#page-jump');
+  if (jump && innerWidth > 760) {
+    jump.hidden = false;
+    const button = jump.getBoundingClientRect(), main = document.querySelector('.main');
+    if (main) {
+      const r = main.getBoundingClientRect(), s = getComputedStyle(main);
+      const content = {left: r.left + parseFloat(s.paddingLeft), right: r.right - parseFloat(s.paddingRight)};
+      if (!(button.right + 12 <= content.left || button.left - 12 >= content.right)) out.jump.push('Page control overlaps the content column');
+    }
+  }
   return out; }""".replace("%TEXT%", json.dumps(TEXT))
 
 
@@ -72,7 +82,7 @@ def audit():
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(executable_path=str(CHROMIUM))
-                page = browser.new_page(viewport={"width": 1440, "height": 900})
+                page = browser.new_page(viewport={"width": 1366, "height": 768})
                 page.goto(host.launch_url)
                 page.goto(host.origin + "/profiles/new")
                 result = {"/profiles/new": page.evaluate(COLLECT)}
@@ -134,3 +144,7 @@ def test_register_amounts_are_not_strong_rose(audit):
 
 def test_pages_fit_their_cards(audit):
     assert not _fails(audit, "overflow")
+
+
+def test_page_jump_stays_outside_the_figures(audit):
+    assert not _fails(audit, "jump")

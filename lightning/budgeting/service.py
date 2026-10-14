@@ -317,9 +317,9 @@ class BudgetService:
         return SpendingAverage(amount, len(observed), lookback, month_of(end + timedelta(days=1)), last_month)
 
     def emergency_basis(self) -> str:
-        """What the emergency fund is counted in: "income" (the default) or "spending"."""
+        """What the emergency fund is counted in: "spending" (the default) or "income"."""
         value = self.db.scalar("SELECT value FROM settings WHERE key='emergency_fund_basis'")
-        return value if value in EMERGENCY_BASES else "income"
+        return value if value in EMERGENCY_BASES else "spending"
 
     def set_emergency_basis(self, basis: str) -> None:
         if basis not in EMERGENCY_BASES:

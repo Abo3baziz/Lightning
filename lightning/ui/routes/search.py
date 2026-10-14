@@ -121,10 +121,12 @@ def matches(c, query: str, privacy: bool = False, per_group: int = 6) -> list[di
     for party in c.counterparties.list_active():
         add(_score(needle, party["name"], fuzzy), party["name"], "/transactions?" + urlencode({"q": party["name"]}), "Counterparty",
             "Its transactions")
-    for category in c.categories.tree():
+    categories = c.categories.tree()
+    category_names = {category.id: category.name for category in categories}
+    for category in categories:
         if not category.is_root:
             add(_score(needle, category.name, fuzzy), category.name, f"/transactions?category_id={category.id}",
-                "Category", c.categories.display_name(category.id))
+                "Category", category_names.get(category.parent_id, ""))
     for asset in c.assets.list_assets():
         if not asset.is_cash:
             add(max(_score(needle, asset.name, fuzzy), _score(needle, asset.code or "", False)), asset.name,

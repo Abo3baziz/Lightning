@@ -16,6 +16,7 @@ MONTH = "2026-12"  # conftest pins today to 2026-12-31
 
 def _plan(c, spend: str, fund: str = "60000"):
     """Income 10,000 a month; the emergency fund full (six months) unless the test says otherwise."""
+    c.budgets.set_emergency_basis("income")  # this scenario explicitly uses six months of salary
     c.settings.set("budget_manual_monthly_income", "10000")
     if fund:
         c.reserves.set_emergency_fund(fund)
@@ -163,6 +164,7 @@ def test_safe_to_spend_and_the_forecast_keep_the_emergency_top_up(c):
 
 def test_recurring_income_stands_in_until_a_month_has_income(c):
     # A new profile with its salary set up in Recurring gets a checked plan from the first day.
+    c.budgets.set_emergency_basis("income")  # the optional salary-based cushion works before spending history
     assert c.budgets.income_average(MONTH).amount is None
     c.planning.create(kind="INCOME", name="Salary", amount="12000", frequency="MONTHLY", start_date="2027-01-01")
     average = c.budgets.income_average(MONTH)

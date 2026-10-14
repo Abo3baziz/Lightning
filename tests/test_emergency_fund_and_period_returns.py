@@ -12,6 +12,7 @@ def _client(c):
 
 
 def test_emergency_fund_uses_average_monthly_income_over_months_with_income(c, setup, monkeypatch):
+    c.budgets.set_emergency_basis("income")
     monkeypatch.setenv("LIGHTNING_TODAY", "2026-12-15")
     accounts, cats = setup
     client = _client(c)

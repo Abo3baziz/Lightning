@@ -267,6 +267,21 @@ GENERAL = {
 }
 
 SENTENCES = {
+    "Rest of savings target {a}": "باقي هدف الادخار {a}",
+    "Counted in months of spending ·": "بيتحسب بشهور المصروف ·",
+    "Rest of savings target": "باقي هدف الادخار",
+    "{n} months with spending": "{n} شهور فيها مصروف",
+    "Counted in months of spending": "بيتحسب بشهور المصروف",
+    "It saves {a}% of income; your target is {b}%. Plan {c} {cur} less.": "بتدّخر {a}% من الدخل؛ وهدفك {b}%. خطّط لـ {c} {cur} أقل.",
+    "Of average monthly spending. The aim is six.": "من متوسط المصروف الشهري. الهدف ستة.",
+    "Towards six months of spending": "ناحية 6 شهور من المصروف",
+    "As of {date} · months of average monthly spending": "كما في {date} · شهور من متوسط المصروف الشهري",
+    "Locked certificate": "شهادة مقفولة",
+    "Held {n} days": "محتفظ بيه من {n} يوم",
+    "Since purchase": "من وقت الشراء",
+    "Plain return under one year; annualized after 365 days": "العائد الفعلي قبل سنة؛ عائد سنوي بعد 365 يوم",
+    "On top of your plan until {d}": "زيادة عن خطتك لحد {d}",
+    "On top of your plan for the next 3 months": "زيادة عن خطتك للتلات شهور الجاية",
     "افتح as a full page": "افتح كصفحة كاملة",
     "Filter": "فلتر",
     "Now {value}": "دلوقتي {value}",

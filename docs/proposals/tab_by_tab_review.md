@@ -1,6 +1,6 @@
 # Tab-by-tab review: what a real user needs next
 
-**Status:** proposal, 2026-10-14 · Claude, nothing built. A full walk through every section and tab as a demanding salaried user, on PC (1366 × 768) and phone (360 wide). When an item is built, move what holds into [Architecture](../ARCHITECTURE.md) or the [Project Overview](../PROJECT_OVERVIEW.md), tick it here, and delete this file once it is empty.
+**Status:** implementation started, 2026-10-14 · Codex; remaining work is below. A full walk through every section and tab as a demanding salaried user, on PC (1366 × 768) and phone (360 wide). When an item is built, move what holds into [Architecture](../ARCHITECTURE.md) or the [Project Overview](../PROJECT_OVERVIEW.md), tick it here, and delete this file once it is empty.
 
 **How it was done.** A fresh encrypted profile (`profile_app`, the same pages as the Windows app) with the sample household (`POST /demo`, Mohab, 2026-08 to 2026-10-14), zakat turned on and a 10-member gam'eya joined late, exactly as `tools/phone_check.py` sets it up. Every page in `lightning/ui/sections.py`, plus holding, certificate, gam'eya, register, transaction, import, reconcile and settings pages, was captured full-page on PC and phone and read figure by figure. Every number quoted below is from that run, so anyone can reproduce it.
 
@@ -56,11 +56,11 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ## 2. Across every tab
 
-**X-1 · Visual · P1 — The page-jump button covers figures.** `#page-jump` (`app.js` line 254) floats at the right edge, exactly where right-aligned amounts end. Seen on Zakat, Recurring, Loans, Spending, Budget, Prices, Health, Categories. Give the main column a right padding equal to the button, or dock the button in the sidebar under the account list. On the phone it is fine; the issue is PC.
+**[x] X-1 · Visual · P1 — The page-jump button covers figures.** `#page-jump` (`app.js` line 254) floats at the right edge, exactly where right-aligned amounts end. Seen on Zakat, Recurring, Loans, Spending, Budget, Prices, Health, Categories. Give the main column a right padding equal to the button, or dock the button in the sidebar under the account list. On the phone it is fine; the issue is PC.
 
 **X-2 · Visual · P1 — The same amount is written three ways.** Sidebar and Accounts table keep cents (263,462.36), headers round (71,625), the PC register rounds rows (−469) while A06.1 says rows keep two decimals and the phone register does (−468.50). Make one helper decide by role (total, row, field) and use it on PC and phone; add a test that the same transaction renders the same text in both.
 
-**X-3 · Logic · P1 (owner) — Annualized returns on short histories.** `XIRR` is shown from day one (Overview of Investments, holdings table, holding page, certificate row). A ring bought this month or a share held five weeks produces three-digit "a year" figures that no user can act on, and feedback row 61 shows users already doubt it. Proposal: under 365 days show *Return* (simple, not annualized) with "held 5 weeks"; from 365 days show XIRR. Keep the calculation; change what is shown.
+**[x] X-3 · Logic · P1 (owner) — Annualized returns on short histories.** `XIRR` is shown from day one (Overview of Investments, holdings table, holding page, certificate row). A ring bought this month or a share held five weeks produces three-digit "a year" figures that no user can act on, and feedback row 61 shows users already doubt it. Proposal: under 365 days show *Return* (simple, not annualized) with "held 5 weeks"; from 365 days show XIRR. Keep the calculation; change what is shown.
 
 **X-4 · Logic · P1 — Part of a period against a whole one.** Wherever a running period is compared (Spending's "Against 2026-09", "Against your usual month", "Now against your usual month" bars, Overview's Change in net worth early in the month), compare like with like: days 1–14 against days 1–14 of the earlier month(s), or extrapolate and say "on pace for". Mark a running period "so far" and do not colour its chip green or rose until it is complete, because a half month always looks thrifty.
 
@@ -102,7 +102,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Summary
 
-**OV-1 · Flow · P1 — Phone order.** See section 1. On PC Needs you is first and folded to one line; the user cannot tell the count's urgency without opening it. Show the top item's words, its date and amount, and "+2 more".
+**OV-1 · Flow · P1 — Phone order.** Phone order built (2026-10-14, owner approved C11.1 update). Remaining on PC: Needs you is first and folded to one line; the user cannot tell the count's urgency without opening it. Show the top item's words, its date and amount, and "+2 more".
 
 **OV-2 · Visual · P1 — Investments row is broken on PC.** "Portfolio value" floats to the far right as a title while the figure "177,903 · 6 holdings" is tiny on the left with a lone chevron. Lay it out as one KPI row: Portfolio value · Net gain or loss · Income collected · link.
 
@@ -180,7 +180,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Plan
 
-**CP-1 · Logic · P1 — Two daily figures.** Safe to spend 39,103 "about 2,172 a day for 18 days" already subtracts Budget left to spend (4,910) and the emergency top-up, so it is money *beyond* the plan. Saying "a day" invites the user to spend 2,172 a day on top of a plan that allows 336. Change the line to "on top of your plan until 2026-11-01" and keep the per-day figure only on Budget.
+**[x] CP-1 · Logic · P1 — Two daily figures.** Safe to spend 39,103 "about 2,172 a day for 18 days" already subtracts Budget left to spend (4,910) and the emergency top-up, so it is money *beyond* the plan. Saying "a day" invites the user to spend 2,172 a day on top of a plan that allows 336. Change the line to "on top of your plan until 2026-11-01" and keep the per-day figure only on Budget.
 
 **CP-2 · Logic · P2 — Safe to spend spends past savings.** Free cash includes everything kept in earlier months (75,560 cash), so Safe to spend grows every month a user saves and invites spending it. Offer the choice "Count only this month's money" (from income since the last payday) as a Budget setting, default unchanged **(owner)**.
 
@@ -196,7 +196,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Recurring
 
-**CP-8 · Visual · P1 — Sort by next date** (CP-4 in section 1 as #15).
+**[x] CP-8 · Visual · P1 — Sort by next date** (CP-4 in section 1 as #15).
 
 **CP-9 · Visual · P2 — The same four bills listed twice.** "Bills and subscriptions" bars and "Recurring items" list repeat each other. Keep one list with a small bar per row, sorted by next date, income at the top.
 
@@ -216,7 +216,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Reserves
 
-**RS-1 · Logic · P1 (owner) — The emergency target is unreachable by design.** Six months of income = 270,000 for a user who spends about 20,000 a month; 10,417 a month to reach it in two years. The usual rule is months of essential spending. The owner chose income on 2026-10-05; this review asks to reconsider: default to spending (fixed bills + usual flexible spending), or show both "4.6 months of spending · 0.4 of income". Also count what can be reached within a week (free cash, money market fund), separately from what is set aside.
+**RS-1 · Logic · P1 — Emergency coverage.** Spending default and optional income basis built (owner, 2026-10-14). Remaining: liquid-holdings context. Original evidence: Six months of income = 270,000 for a user who spends about 20,000 a month; 10,417 a month to reach it in two years. The usual rule is months of essential spending. The owner chose income on 2026-10-05; this review asks to reconsider: default to spending (fixed bills + usual flexible spending), or show both "4.6 months of spending · 0.4 of income". Also count what can be reached within a week (free cash, money market fund), separately from what is set aside.
 
 **RS-2 · Feature · P2 — Refill reminder.** Open gap (Mohab 14). After a payment from the emergency fund, Needs you says "Emergency fund used 6,500 on 2026-10-18 · Refill over 3 months?".
 
@@ -228,11 +228,11 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Holdings
 
-**IN-1 · Logic · P1 — XIRR on short holdings.** See X-3.
+**[x] IN-1 · Logic · P1 — XIRR on short holdings.** See X-3.
 
 **IN-2 · Logic · P1 — Income outside return.** See section 1 #4. The certificate earns 18% but its Gain, Return and Net gain or loss are 0. Net gain or loss for the portfolio (+5,673) excludes 3,667 of interest received in the same months. Use total return everywhere: price change + gain from sales + income.
 
-**IN-3 · Logic · P1 — Sale factors and Holdings after sale disagree.** Settings › Sale factors lists CDs / Time Deposits 100,000 → 95,000 after sale; the figure counts the locked certificate at 0 (`planning/position.py` line 245). Show the lock in Settings, and **(owner)** decide whether a locked certificate counts at 0, at face less a break fee, or as "can borrow against it" (Egyptian banks lend against certificates).
+**[x] IN-3 · Logic · P1 — Sale factors and Holdings after sale disagree.** Settings › Sale factors lists CDs / Time Deposits 100,000 → 95,000 after sale; the figure counts the locked certificate at 0 (`planning/position.py` line 245). Show the lock in Settings, and **(owner)** decide whether a locked certificate counts at 0, at face less a break fee, or as "can borrow against it" (Egyptian banks lend against certificates).
 
 **IN-4 · Logic · P2 — "Money and value by class" does not add up for a user.** October: Money in +18,450; Gold +23,595, Money market fund +3,033, Stocks +495. The fund was bought from brokerage cash, so it appears as growth while costing nothing new; the ring's purchase is inside Gold's +23,595. Split each class into "bought or sold" and "value moved" so Money in + value moved = change.
 
@@ -248,7 +248,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### A holding
 
-**HL-1 · Visual · P1 — Worst month in rose while positive.** A16 "KPI by position". Tone follows sign.
+**[x] HL-1 · Visual · P1 — Worst month in rose while positive.** A16 "KPI by position". Tone follows sign.
 
 **HL-2 · Logic · P2 — "Exposure Equity · Gain from sales in the period 0 · Dividends and interest in the period 0".** A raw line under Planning. Remove it or turn it into labelled rows.
 
@@ -348,7 +348,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Your data
 
-**SE-1 · Visual · P1 — Missing spaces around inline links.** Budget settings (see section 1 #13); check every `the same as <a>` pattern.
+**[x] SE-1 · Visual · P1 — Missing spaces around inline links.** Budget settings (see section 1 #13); check every `the same as <a>` pattern.
 
 **SE-2 · Feature · P2 — Export everything.** "Export for AI" is the only export on the page. Add "Export all data (Excel and CSV)" first; it is the strongest answer to "data lost after a phone change" (Competition, users hate).
 
@@ -384,13 +384,13 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Search (Ctrl-K)
 
-**SR-1 · Visual · P1 — "Personal › Housing & Rent".** A16: "L1 › L2". Show "Housing & Rent" with "Personal" as a small label.
+**[x] SR-1 · Visual · P1 — "Personal › Housing & Rent".** A16: "L1 › L2". Show "Housing & Rent" with "Personal" as a small label.
 
 **SR-2 · Logic · P2 — "rent" finds the category but no transaction.** Rent is paid to "Landlord". Search should match category names in transactions too ("12,000 · Landlord · Housing & Rent · 2026-10-03"). See [search_matching.md](search_matching.md).
 
 ## 10. Phone only
 
-**PH-1 · Flow · P1 — Needs you below the latest list** (OV-1).
+**[x] PH-1 · Flow · P1 — Needs you below the latest list** (OV-1).
 
 **PH-2 · Visual · P2 — Chevrons drop under labels.** "Cash you own" then "›" on the next line; same for Over time, Free cash, What it is made of, Net flow. Feedback row 74 asked for arrows on the right, away from numbers.
 
@@ -424,9 +424,9 @@ Ranked by harm to trust, then by how often a user meets it.
 
 Each is short; the item id leads to the detail.
 
-1. **XIRR under a year** (X-3): show plain return under 365 days, XIRR after? Recommended yes.
-2. **Emergency fund basis** (RS-1): your 2026-10-05 choice was income. Switch the default to spending, or show both? Recommended: spending by default, income as the setting.
-3. **Locked certificate in "If you sold today"** (IN-3): 0 (today), face value less a break fee, or a separate "locked" line? Recommended: separate line, never 0 silently.
+1. **[x] XIRR under a year** (X-3): approved and built; plain return before 365 days, XIRR afterward.
+2. **[x] Emergency fund basis** (RS-1): approved and built; spending by default, income optional. The liquid-holdings context in RS-1/HE-4 remains.
+3. **[x] Locked certificate in "If you sold today"** (IN-3): approved and built; separate locked value and unlock date, excluded from saleable cash.
 4. **Samples in their own profile** (FR-1): recommended yes.
 5. **Pay-cycle months** (X-10): worth the size of the change?
 6. **Safe to spend from this month's money only** (CP-2): offer the setting?

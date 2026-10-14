@@ -339,7 +339,7 @@ class TestInvestmentPages:
         rows = re.findall(r"<tr\b[^>]*>.*?</tr>", table, re.S)
 
         assert [re.sub(r"<[^>]+>", "", h) for h in re.findall(r"<th\b[^>]*>(.*?)</th>", table.split("</thead>", 1)[0])] == [
-            "Investment", "Units", "Average cost", "Price", "Cost", "Value", "Share", "Gain", "Return", "XIRR", "Horizon"]
+            "Investment", "Units", "Average cost", "Price", "Cost", "Value", "Share", "Gain", "Return", "Since purchase", "Horizon"]
         assert len(headers) == 11 and rows
         assert all(len(re.findall(r"<(?:th|td)\b", row)) == 11 for row in rows)
         assert "Holding details" not in table and 'class="small muted"' not in table
@@ -550,7 +550,7 @@ def test_investment_page_renders_without_investment_accounts(c):
     assert "Add a brokerage account" in response.text
 
 
-def test_short_period_xirr_is_visible_in_portfolio_and_holding_screens(inv, monkeypatch):
+def test_short_period_return_is_plain_in_portfolio_and_holding_screens(inv, monkeypatch):
     c, accounts, _, comi, _ = inv
     monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-25")
     account = accounts["thndr"].id
@@ -561,7 +561,9 @@ def test_short_period_xirr_is_visible_in_portfolio_and_holding_screens(inv, monk
     holding = client.get(f"/investments/holding/{comi.id}?account={account}&date=2026-09-25")
     assert portfolio.status_code == holding.status_code == 200
     assert "after a year" not in portfolio.text and "After a full year" not in holding.text
-    assert "% a year" in holding.text
+    assert "% a year" not in holding.text
+    assert "Held 15 days" in holding.text and "Held 15 days" in portfolio.text
+    assert "+10.0" in holding.text
     assert "Not enough dated cash flows" not in holding.text
 
 
@@ -607,3 +609,25 @@ def test_planner_without_any_targets_explains_the_missing_allocation(c):
     assert response.status_code == 200
     assert "Set target allocation first" in response.text
     assert 'href="/settings?section=targets"' in response.text
+
+
+def test_short_holding_shows_plain_return_and_positive_worst_month_is_not_rose(inv, monkeypatch):
+    from lightning.ui import visuals
+    c, accounts, _, asset, _ = inv
+    c.investments.buy_total("2026-09-03", accounts["thndr"].id, asset.id, "10", "1000")
+    c.assets.set_price(asset.id, "2026-09-30", "110")
+    original = visuals.holding_journey
+
+    def journey(*args, **kwargs):
+        result = original(*args, **kwargs)
+        result.update(best=("2026-09", D("10")), worst=("2026-08", D("5")))
+        return result
+
+    monkeypatch.setattr(visuals, "holding_journey", journey)
+    page = TestClient(create_app(c)).get(f"/investments/holding/{asset.id}?date=2026-09-30").text
+    assert "Held 27 days" in page and "% a year" not in page
+    assert 'Worst month</span><b class="pos">+5.0%' in page
+    # A single observed month is shown once, rather than as both best and worst.
+    monkeypatch.setattr(visuals, "holding_journey", original)
+    page = TestClient(create_app(c)).get(f"/investments/holding/{asset.id}?date=2026-09-30").text
+    assert "Best month" not in page and "Worst month" not in page
