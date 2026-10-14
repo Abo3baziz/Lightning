@@ -1449,6 +1449,7 @@ ARABIC_UI = {
     'On plan': 'ضمن الخطة',
     'Nothing moved in this period.': 'مفيش حركة فلوس في الفترة دي.',
     'No money in this period': 'مفيش فلوس داخلة في الفترة دي',
+    'Nothing kept this period': 'مفيش حاجة اتبقت في الفترة دي',
     'Record an investment transaction': 'سجّل معاملة استثمار',
     'Investment transaction': 'معاملة استثمار',
     'Choose Buy, Sell, or Dividend. Units are always entered as a positive quantity.': 'اختار شراء أو بيع أو توزيع. اكتب عدد الوحدات دايمًا كرقم موجب.',

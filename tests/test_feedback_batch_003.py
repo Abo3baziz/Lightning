@@ -1,4 +1,5 @@
 """Feedback batch 003 (user feedback/user-feedback-batch-003.md): the screen fixes, one test per ticket."""
+from decimal import Decimal
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -69,3 +70,25 @@ def test_plan_to_invest_shows_only_for_todays_position(c, setup):
     client = TestClient(create_app(c))
     assert "Plan to invest" in client.get("/").text
     assert "Plan to invest" not in client.get("/?period=month&month=2026-09").text
+
+
+def test_the_system_group_says_what_it_holds(c, setup, monkeypatch):
+    """Ticket 93: "System Categories" no longer reads "Personal" under its name; it names its active categories."""
+    import re
+    accounts, _ = setup
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-10-10")
+    loans = c.categories.get_by_code("EXP.SYSTEM.LOANS")
+    c.transactions.record_outflow("2026-10-05", accounts["cib"].id, "2500", loans.id, allow_system_category=True)
+    page = TestClient(create_app(c)).get("/budget?period=month&month=2026-10").text
+    summary = re.search(r"<b>System Categories</b>(<small>[^<]*</small>)?", page)
+    assert summary and summary.group(1) == "<small>Loan payments</small>"
+
+
+def test_the_investing_rate_is_the_share_of_what_you_kept(c, setup):
+    """Ticket 89: Money added ÷ Net flow, at most 100%; nothing kept means no rate."""
+    from lightning.investments.report import investing_rate
+    assert investing_rate(Decimal("2500"), Decimal("10000")) == Decimal("25")
+    assert investing_rate(Decimal("15000"), Decimal("10000")) == Decimal("100")
+    assert investing_rate(Decimal("2500"), Decimal("0")) is None
+    page = TestClient(create_app(c)).get("/investments").text
+    assert "part of it" not in page  # Saved and invested shows the savings rate only

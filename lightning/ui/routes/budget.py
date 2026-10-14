@@ -294,6 +294,15 @@ def _page(request: Request, month: str, values: dict | None = None, error: str =
                        f"This plan saves less than your {period_check.target_percent.normalize():f}% savings target: "
                        f"plan {keynotes.fmt(period_check.over_by)} less" if period_check.over_by else "")
     period_left = period_budgeted-period_actual
+    # Feedback ticket 93: the System group counts as Personal spending, so its section read "Personal" under
+    # "System Categories". Say what is in it instead.
+    lines = {line.category_id: line for _, view in month_views for section in view.sections
+             for line in [*section.groups, *section.lines]}
+    system_id = next((cid for cid, line in lines.items() if line.code == "EXP.SYSTEM"), None)
+    if system_id in group_totals:
+        names = [lines[cid].name for cid in by_group.get(system_id, []) if cid in lines
+                 and (period_spending.get(cid) or category_periods.get(cid, {}).get("budgeted"))]
+        group_totals[system_id]["note"] = ", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")
     group_rows = sorted(group_totals.items(),
                         key=lambda item: (item[1]["left"] >= ZERO, -item[1]["spent"], item[1]["name"].casefold()))
     unplanned_spending = period_actual - sum((row["spent"] for row in group_totals.values()), ZERO)

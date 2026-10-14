@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: batch 003 finished (18 of 18): Investing rate = Money added ÷ Net flow (Saved and invested shows the savings rate only); Financial health leads with Over time, each limit one line that opens; the System group names its categories; the website's feedback form sends in the background.
 - 2026-10-14 · Claude: feedback batch 003 built (15 of 18): Your position follows the period end; Free cash beside what it is made of, If you sold today beside Net flow; Sankey splits Invested from Kept and pairs a month with its six; Needs you grouped by kind; month calendar for net cash flow, daily expenses on Spending only.
 - 2026-10-14 · Claude: batch 003 fixes: Plan to invest placement, lone key note on one line, styled file field, one row hover, Budget sub-lists (one chevron, Select all in the header), a one-row 30-day timeline, What you owe rows open. Outcome table in the batch file; open questions in `OWNER.md` › 19.
 - 2026-10-14 · Claude: user feedback batch 003 (rows 79–96, 18 tickets) compiled for AI investigation in `user feedback/`; its 8 screenshots are copied to `user feedback/screenshots/batch-003/` and linked per ticket.

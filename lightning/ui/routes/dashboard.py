@@ -341,11 +341,11 @@ def _period_stats(c, period, first, as_of, position, cash_flow, change, change_r
         "spark": visuals.savings_rate_spark(c, as_of), "spark_tone": "in",
         "href": f"/transactions?date_from={fmt_date(first)}&date_to={fmt_date(as_of)}",
     })
-    invest = investing_rate(money_added, cash_flow.inflows, cash_flow.net)
+    invest = investing_rate(money_added, cash_flow.net)
     stats.append({
         "key": "investing", "surface": "in", "label": label("investing_rate"), "value": invest, "kind": "rate",
         "badge": {"tone": sign(money_added), "text": period_name},
-        "figure": money_added, "sub": label("new_money_in").lower() if invest is not None else "No money in this period",
+        "figure": money_added, "sub": label("new_money_in").lower() if invest is not None else "Nothing kept this period",
         "meter": {"width": float(max(min(invest, 100), 0)) if invest is not None else 0.0, "tone": "hold"},
         "href": f"/investments?{period_query}",
     })

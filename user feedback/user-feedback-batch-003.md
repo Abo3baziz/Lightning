@@ -114,7 +114,7 @@ Per ticket: look at the screenshot, find the screen's template and the service t
 | 94 | 95 | Cash planning | Improvement | Visual | 5 | [94_1](screenshots/batch-003/94_1.png) | Medium |
 | 95 | 96 | Cash planning | Bug | Visual | 5 | [95_1](screenshots/batch-003/95_1.png) | High (clear defect) |
 
-## Questions for the owner (answered in Outcome; open ones are in OWNER.md › To decide 19)
+## Questions for the owner (all answered in Outcome)
 
 1. **Net cash flow:** move it from Spending to Overview (tickets 79, 85, 86)? Batch 002 kept it on Spending as a secondary view.
 2. **Period:** should every Overview card follow the selected period (ticket 80), or keep "today" cards and label them?
@@ -136,13 +136,13 @@ Built and tested. Desktop screens were checked in Chromium on the demo profile; 
 | 84 | **Built.** Needs you shows one row per kind (bills and payments, activity to sort out, budget and saving, cash and goals, prices); a kind with several opens `/needs-you/{kind}`, a kind with one shows that decision as before. |
 | 85 | **Built.** Spending no longer shows net cash flow, by day or in its month table. |
 | 86 | **Built.** The daily expenses calendar left the Overview; it lives on Spending. |
-| 87 | **Open.** No screenshot; which parts of Financial health are hard to read is an owner question (`OWNER.md` › 19b). |
-| 88 | **Open, website repo.** Repeat of batch 002 row 76 (`OWNER.md` › 19d). |
-| 89 | **Owner decision.** Today Investing rate = Money added ÷ Money in. "% of free cash in the period" divides a flow by a balance; suggested Money added ÷ Net flow (`OWNER.md` › 19a). Nothing changed. |
+| 87 | **Built.** The four cards repeated the rows below and every row carried its own *Show the numbers*: Over time (the savings-rate chart) now comes first, and each limit is one line that opens its numbers and a *See details* link. |
+| 88 | **Built in the website** (UX-2026.10.14.04). The deployed receiver is not the one in git and the form posts `no-cors`, so early Drive staging was not safe to build; instead the form is given back at once while the request runs in the background, and a failed send returns the tickets and images. Receiver column mismatch: `OWNER.md` › 19. |
+| 89 | **Built.** Investing rate = Money added ÷ Net flow: the share of what you kept that you invested, at most 100% (free cash is a balance, so this is the period's version of it). Saved and invested shows the savings rate only; its blue squares still show what was invested. Glossary updated. |
 | 90 | **Fixed.** A lone key note is one line across the page (label, figure, text, action), and a tab bar holding only the gear sits at the end of that line instead of on an empty row. |
 | 91 | **Fixed.** File fields are soft wells with a secondary pill as the chooser; the CSV field has its label above it. |
 | 92 | **Fixed.** Register and list rows used grey paper on hover; every row now uses the one green-tinted hover. |
-| 93 | **In part.** Sub-lists had two chevrons each, an empty "Consider tracking" heading showed with nothing under it, and Select all sat on its own row (also batch 002 row 56): fixed. The "System Categories · Personal" group name is an owner question (`OWNER.md` › 19c). |
+| 93 | **Built.** Sub-lists had two chevrons each, an empty "Consider tracking" heading showed with nothing under it, and Select all sat on its own row (also batch 002 row 56): fixed. "System Categories" showed "Personal" under its name; it now names the categories in it that have a plan or spending (Loan payments). |
 | 94 | **Fixed.** The next-30-days timeline has one label row per side; payments that would collide join one mark ("Landlord +2", their total, every payment in its tooltip), so overdue bills no longer stack at Today. |
 | 95 | **Fixed.** What you owe's Bills due and Loans still to pay open to their items like Free cash's rows; the loan note is a line inside instead of a smaller font beside the name. |
 
