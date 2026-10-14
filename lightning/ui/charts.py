@@ -185,14 +185,16 @@ def column_waterfall(start: tuple[str, Decimal], steps: list[tuple[str, Decimal]
     return {"columns": columns, "zero": at(ZERO)}
 
 
-def sankey(sources: list[dict], targets: list[dict], hub_label: str, min_gap: float = 11.0) -> dict:
+def sankey(sources: list[dict], targets: list[dict], hub_label: str, min_gap: float = 11.0,
+           xs: tuple[float, float, float] = (22.0, 49.0, 76.0)) -> dict:
     """Where money in went, in three columns: each source flows into one hub (money in), and the hub
     flows out to each target. Nothing is attributed from a source to a target, because the ledger
     does not say which income paid which bill.
 
     sources / targets: [{"label", "value", "tone", "href"?}], positive values, both summing to the
     same total. Positions are percentages of the plot box (y top→bottom). Label positions are
-    pushed apart by at least ``min_gap`` so small nodes stay readable."""
+    pushed apart by at least ``min_gap`` so small nodes stay readable. ``xs`` places the source, hub and
+    target columns; a half-width chart moves the targets left so their names have room."""
     sources = [s for s in sources if s["value"] > 0]
     targets = [t for t in targets if t["value"] > 0]
     total = sum((s["value"] for s in sources), ZERO)
@@ -223,9 +225,9 @@ def sankey(sources: list[dict], targets: list[dict], hub_label: str, min_gap: fl
         for n, m in zip(nodes, mids):
             n["label_y"] = max(m, min_gap / 2)
 
-    left, right = column(sources, 22.0), column(targets, 76.0)
+    left, right = column(sources, xs[0]), column(targets, xs[2])
     hub_h = float(total) * scale
-    hub = {"label": hub_label, "value": total, "tone": "in", "x": 49.0, "y": (100 - hub_h) / 2, "h": hub_h}
+    hub = {"label": hub_label, "value": total, "tone": "in", "x": xs[1], "y": (100 - hub_h) / 2, "h": hub_h}
     spread(left)
     spread(right)
     width, links = 2.0, []

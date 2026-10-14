@@ -217,11 +217,13 @@
   </figure>{% endfor %}</div>
 {% endmacro %}
 
-{# Calendar heatmap by month: a row per year, twelve months across. #}
+{# Calendar heatmap by month, drawn like the day calendar (feedback ticket 79): a block per year, six months
+   to a row, each cell named top left with its amount bottom right. #}
 {% macro month_calendar(cal, kind) %}
-<div class="table-wrap mcal-wrap"><table class="mcal" dir="ltr" aria-label="{{ 'Money out' if kind == 'spend' else 'Net cash flow' }} by month"><thead><tr><th></th>{% for m in cal.months %}<th><span class="m-long">{{ m }}</span><span class="m-short">{{ loop.index if ui_locale() == 'ar' else m[0] }}</span></th>{% endfor %}</tr></thead><tbody>
-{% for r in cal.years %}<tr><th>{{ r.year }}</th>{% for x in r.cells %}{% if not x.known %}<td class="is-out"></td>{% else %}{% set v = x.spend if kind == 'spend' else x.net %}<td class="{{ ('heat-' ~ x.spend_step) if kind == 'spend' else ('flow-' ~ x.net_tone ~ '-' ~ x.net_step) }}" title="{{ x.key }} · {{ v|money(kind == 'net') }}"><a href="/birdview/expenses?period=month&month={{ x.key }}">{{ ((v|compact) if kind == 'spend' else (('+' if v > 0 else ('−' if v < 0 else '')) ~ (v|abs|compact))) if v else '·' }}</a></td>{% endif %}{% endfor %}</tr>{% endfor %}
-</tbody></table></div>
+<div class="cal-months mcal-months" dir="ltr" role="group" aria-label="{{ 'Money out' if kind == 'spend' else 'Net cash flow' }} by month">{% for r in cal.years %}
+  <figure class="cal-month" aria-label="{{ r.year }}"><figcaption>{{ r.year }}</figcaption>
+    <div class="cal-grid mcal-grid">{% for x in r.cells %}{% if not x.known %}<span class="cal-day is-out"><i>{{ x.month }}</i></span>{% else %}{% set v = x.spend if kind == 'spend' else x.net %}<a class="cal-day {{ ('heat-' ~ x.spend_step) if kind == 'spend' else ('flow-' ~ x.net_tone ~ '-' ~ x.net_step) }}" href="/birdview/expenses?period=month&month={{ x.key }}" title="{{ x.key }} · {{ v|money(kind == 'net') }}"><i>{{ x.month }}</i><b>{{ ((v|compact) if kind == 'spend' else (('+' if v > 0 else ('−' if v < 0 else '')) ~ (v|abs|compact))) if v else '·' }}</b></a>{% endif %}{% endfor %}</div>
+  </figure>{% endfor %}</div>
 {% endmacro %}
 
 {# Saved and invested: money in as 100 squares (invested, kept, spent) with the two rates. w = saved_and_invested(). #}
@@ -230,7 +232,7 @@
 <span class="inv-saved-body">
   <span class="waffle inv-waffle" role="img" aria-label="Of {{ w.money_in|money }} money in: {{ bar.invested_amount|money }} invested, {{ (bar.kept - bar.invested_amount)|money }} kept, {{ bar.spent_amount|money }} spent; each square is 1%">{% for cell in bar.cells %}<i class="{{ cell }}"></i>{% endfor %}</span>
   <span class="inv-saved-side">
-    <span class="inv-saved-figures"><span><b>{% if w.saved < -100 %}—{% else %}{{ rate(w.saved) }}<small>%</small>{% endif %}</b><em>{{ fig.savings_rate.label }}</em></span><span class="is-invest"><b>{{ rate(w.invested or 0) }}<small>%</small></b><em>{{ fig.investing_rate.label }} · part of it</em></span></span>
+    <span class="inv-saved-figures"><span><b>{% if w.saved < -100 %}—{% else %}{{ rate(w.saved) }}<small>%</small>{% endif %}</b><em>{{ fig.savings_rate.label }}</em></span></span>{# feedback ticket 89: the savings rate only; the blue squares still show what was invested #}
     <span class="saved-key"><span><i class="k invested"></i>Invested {{ bar.invested_amount|money }}</span><span><i class="k kept"></i>Kept {{ (bar.kept - bar.invested_amount)|money }}</span><span><i class="k spent"></i>Spent {{ bar.spent_amount|money }}</span></span>
   </span>
 </span>

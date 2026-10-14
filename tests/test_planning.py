@@ -199,9 +199,12 @@ def test_overview_lists_due_bills_under_needs_you(c, setup, monkeypatch):
     start = page.index('<details class="card needs-you"')
     attention = page[start:page.index("</details>", start)]  # a closed list at the very top
     assert page.index("needs-you") < page.index('class="stat-tiles"')
-    assert "Bill due: Electricity" in attention and "Due 2026-09-25 · 480" in attention
-    assert "Loan payment due: Car loan" in attention and "Mark paid" in attention
     assert "and 1 more" in attention  # the closed summary names the first item and counts the rest
+    # Feedback ticket 84: both are payments, so they are one row that opens their own page.
+    assert "Bills and payments · 2" in attention and "Loan payment due: Car loan, Bill due: Electricity" in attention
+    group = TestClient(create_app(c), base_url="http://127.0.0.1").get("/needs-you/payments").text
+    assert "Bill due: Electricity" in group and "Due 2026-09-25 · 480" in group
+    assert "Loan payment due: Car loan" in group and "Mark paid" in group
 
 
 def test_a_due_bill_inside_a_budget_is_not_counted_twice(c, setup, monkeypatch):

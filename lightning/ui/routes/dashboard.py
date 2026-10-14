@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Request
 
 from lightning.accounts.domain import AccountType
-from lightning.core.dates import fmt_date, month_of, parse_date, parse_month, today
+from lightning.core.dates import fmt_date, month_of, months_back, parse_date, parse_month, today
 from lightning.core.errors import LightningError, ValidationError
 from lightning.core.figures import FIGURES, label
 from lightning.core.money import ZERO, fmt as _fmt, to_decimal
@@ -18,7 +18,7 @@ def fmt(value, places: int = 0, signed: bool = False) -> str:
     """Reporting text rounds to the nearest unit (stored values keep their decimals)."""
     return _fmt(value, places, signed)
 from lightning.investments.report import investing_rate, investment_period
-from lightning.workflows.review import ReviewInbox
+from lightning.workflows.review import GROUP_LABELS, ReviewInbox, group_of, grouped
 
 from ..web import container, render
 from ..web import redirect
@@ -27,6 +27,7 @@ from .. import keynotes, visuals
 from .sms import read_phone_sms
 
 router = APIRouter()
+PAIR_XS = (24.0, 45.0, 64.0)  # two Sankeys side by side: target names get a third of each (style.css .is-pair)
 
 _ACCOUNT_TYPE_LABELS = {
     AccountType.CASH: "Cash",
@@ -108,21 +109,25 @@ async def dashboard(request: Request):
                       sample_stories=sample_stories())
     # Every position figure comes from one calculation; see lightning/planning/position.py.
     period_position = c.position.at(as_of)
-    position = c.position.at(today())
+    # Your position follows the period too, as of its end (never past today): the cards then agree with the
+    # Net worth chart beside them, which ends there (feedback ticket 80, 2026-10-14).
+    position_day = min(as_of, today())
+    position = period_position if position_day == as_of else c.position.at(position_day)
     net_worth = c.reporting.net_worth(as_of)
-    account_contributions = _owned_account_type_rows(c, accounts, today())
+    account_contributions = _owned_account_type_rows(c, accounts, position_day)
     cash_accounts = [
         {"id": account.id, "label": account.label,
-         "value": c.reporting.owned_account_value(account.id, today()),
+         "value": c.reporting.owned_account_value(account.id, position_day),
          "type": _ACCOUNT_TYPE_LABELS[account.account_type]}
         for account in accounts if account.account_type in {AccountType.CASH, AccountType.BANK}
     ]
     cash_accounts.extend({**row, "type": "Brokerage cash"}
-                         for row in c.reporting.owned_brokerage_cash_by_account(today()))
+                         for row in c.reporting.owned_brokerage_cash_by_account(position_day))
     owe = position.owe
     read_phone_sms(request, c)  # new bank messages join the review before Needs you is counted
     # One review inbox: every decision waiting on the user (lightning/workflows/review.py).
     attention = ReviewInbox(c).items(today())
+    attention_groups = grouped(attention)
     setup = _setup_steps(c, accounts)
     change, change_reason = c.position.change_in_what_you_own(first, as_of, since_first_record=period.key == "all")
     change_label = (f"{label('change_in_what_you_own')} since your first record" if period.key == "all"
@@ -199,6 +204,16 @@ async def dashboard(request: Request):
                         if cash_flow.inflows > ZERO else None)
     savings_rate = cash_flow.savings_rate
     networth_trend = visuals.net_worth_trend(c, as_of)
+    # Feedback ticket 78: a month's Where money in went sits beside the last six months' (ending with it).
+    money_sankey_six, six_from = None, None
+    if period.key == "month":
+        six_keys = months_back(as_of, 6, first_activity)
+        if len(six_keys) > 1:
+            six_from = parse_month(six_keys[0])[0]
+            six_added = investment_period(c.db, c.accounts, c.assets, c.reporting, fmt_date(six_from),
+                                          fmt_date(as_of))["net_money"]
+            money_sankey_six = visuals.money_sankey(c, six_from, as_of, c.reporting.cash_flow(six_from, as_of),
+                                                    money_added=six_added, xs=PAIR_XS)
     stats = _period_stats(c, period, first, as_of, period_position, cash_flow, change, change_reason,
                           closing_report["net_money"], networth_trend, urlencode(request.query_params))
     recent_rows = c.reporting.register_page(None, "1900-01-01", "9999-12-31", 1, 10)[0]  # the phone leads with these (C11.1)
@@ -209,18 +224,19 @@ async def dashboard(request: Request):
         flow_columns=visuals.cash_flow_columns(c, first, as_of, cash_flow),
         money_in_rows=visuals.money_in_groups(c, first, as_of),
         money_out_rows=visuals.money_out_groups(c, first, as_of),
-        money_sankey=visuals.money_sankey(c, first, as_of, cash_flow),
+        money_sankey=visuals.money_sankey(c, first, as_of, cash_flow, money_added=closing_report["net_money"],
+                                          xs=PAIR_XS if money_sankey_six else (22.0, 49.0, 76.0)),
+        money_sankey_six=money_sankey_six, six_from=month_of(six_from) if six_from else "",
         wealth_donut=visuals.holdings_donut(position, include_cash=True),
         networth_trend=networth_trend, free_cash_steps=visuals.free_cash_steps(position),
         month_calendar=visuals.month_calendar(c, today()),
-        expense_calendar=visuals.day_calendars(c, first, as_of),
         month=month, this_month=month_of(today()), period=period, period_error=period_error,
-        date_from=fmt_date(first), date_to=fmt_date(as_of), as_of=fmt_date(as_of), position_as_of=fmt_date(today()),
-        range_label=(f"No recorded activity · Position as of {fmt_date(today())}"
-                     if period.key == "all" and not first_activity else f"{fmt_date(first)} to {fmt_date(as_of)} · Position as of {fmt_date(today())}"),
+        date_from=fmt_date(first), date_to=fmt_date(as_of), as_of=fmt_date(as_of), position_as_of=fmt_date(position_day), position_is_today=position_day == today(),
+        range_label=(f"No recorded activity · Position as of {fmt_date(position_day)}"
+                     if period.key == "all" and not first_activity else f"{fmt_date(first)} to {fmt_date(as_of)} · Position as of {fmt_date(position_day)}"),
         pos=position, cash_accounts=cash_accounts, owe=owe,
         change=change, change_reason=change_reason, change_label=change_label,
-        attention=attention, setup=setup,
+        attention=attention, attention_groups=attention_groups, setup=setup,
         net_worth=net_worth,
         account_contributions=account_contributions, expense_groups=expense_groups,
         categorized_spending=categorized_spending,
@@ -325,11 +341,11 @@ def _period_stats(c, period, first, as_of, position, cash_flow, change, change_r
         "spark": visuals.savings_rate_spark(c, as_of), "spark_tone": "in",
         "href": f"/transactions?date_from={fmt_date(first)}&date_to={fmt_date(as_of)}",
     })
-    invest = investing_rate(money_added, cash_flow.inflows, cash_flow.net)
+    invest = investing_rate(money_added, cash_flow.net)
     stats.append({
         "key": "investing", "surface": "in", "label": label("investing_rate"), "value": invest, "kind": "rate",
         "badge": {"tone": sign(money_added), "text": period_name},
-        "figure": money_added, "sub": label("new_money_in").lower() if invest is not None else "No money in this period",
+        "figure": money_added, "sub": label("new_money_in").lower() if invest is not None else "Nothing kept this period",
         "meter": {"width": float(max(min(invest, 100), 0)) if invest is not None else 0.0, "tone": "hold"},
         "href": f"/investments?{period_query}",
     })
@@ -464,6 +480,14 @@ async def explain_overview_figure(request: Request, kind: str):
         return render(request, "not_found.html", status_code=404, message="Explanation not found.")
     return render(request, "dashboard/explanation.html", title=title, explanation=explanation, figure=figure,
                   rows=rows, total=total, foot=foot, recent=[], action=action)
+
+
+@router.get("/needs-you/{key}")
+async def needs_you_group(request: Request, key: str):
+    """One group of Needs you (feedback ticket 84): its decisions, each with the action that settles it."""
+    c = container(request)
+    items = [item for item in ReviewInbox(c).items(today()) if group_of(item) == key]
+    return render(request, "needs_you.html", label=GROUP_LABELS.get(key, "Other"), items=items)
 
 
 @router.get("/money-from-others")

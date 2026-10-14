@@ -91,6 +91,15 @@ class Mohab:
         self.answers[key] = Answer(question, list(self.b.trail), screen)
         return screen
 
+    def ask_needs(self, key: str, question: str, group: str) -> Screen:
+        """Needs you groups its decisions (feedback ticket 84): a kind with several opens its own page; a kind
+        with one shows that decision on the Overview itself."""
+        screen = self.b.open("/")
+        if any(link.text.startswith(group + " · ") for link in screen.links):
+            screen = self.b.click(group + " · ")
+        self.answers[key] = Answer(question, list(self.b.trail), screen)
+        return screen
+
     # -------------------------------------------------------------- things he does
     def account(self, name: str, kind: str, balance: str, when: str = "1/7", bank: str = "") -> Screen:
         self.b.go("+ Add account")
@@ -497,7 +506,7 @@ def _live_the_year(o: Mohab) -> None:
     o.enter("THNDR", "2027-04-21", "CIB Payroll", "", "-7,100")
     o.ask("sale", "What did I make on the COMI I sold?", "Investments", "Commercial International Bank")
     # The phone installments started this month, on top of the car: the plan still says 2,500 for loans.
-    o.ask("loans_planned", "Does my plan cover both loans?")
+    o.ask_needs("loans_planned", "Does my plan cover both loans?", "Budget and saving")
     b.click("Change the plan")
     o.notes["loans_replanned"] = o.plan_category("Loan payments", "4,500")
     o.ask("loans_planned_after", "And now?")
@@ -521,7 +530,7 @@ def _live_the_year(o: Mohab) -> None:
     if b.page.shows("Use 13,200.00 from now on"):
         b.submit({}, button="Use 13,200.00 from now on")
     o.ask("rent_after", "And now?", "Cash planning", "Recurring")
-    o.ask("rent_planned", "Does my budget know the rent went up?")
+    o.ask_needs("rent_planned", "Does my budget know the rent went up?", "Budget and saving")
     b.click("Change the plan")
     o.notes["rent_replanned"] = o.plan_category("Housing & Rent", "13,200")
     o.ask("rent_planned_after", "And now?")
@@ -707,7 +716,7 @@ def _the_feedback_round(o: Mohab) -> None:
     o.notes["bulk_done"] = b.submit({"txn_ids": talabat, "category_id": Choose("Food & Groceries"),
                                      "back": found.path}, action="/transactions/bulk-category")
     # Talabat is food now, so Food runs over its plan every month; Needs you offers room from Shopping.
-    o.ask("food_over", "Food is over its plan every month now. What can I do?")
+    o.ask_needs("food_over", "Food is over its plan every month now. What can I do?", "Budget and saving")
     o.notes["move_popup"] = b.click("Move it")
     o.notes["moved"] = b.submit({}, button="Move it")
     o.ask("food_over_after", "And now?")
@@ -1259,8 +1268,9 @@ def test_the_overview_says_which_parts_follow_the_period(mohab):
                         "Month by month 2026-07 to today")
 
 
-def test_your_position_stays_today_whatever_the_period(mohab):
-    assert mohab.answers["past_month"].shows("Your position As of 2027-09-30")
+def test_your_position_follows_the_period_end(mohab):
+    # Feedback ticket 80 (2026-10-14): a card that ignores the period beside a chart that follows it confused.
+    assert mohab.answers["past_month"].shows("Your position As of 2026-10-31")
 
 
 def test_where_money_went_folds_small_categories_into_other(mohab):
@@ -1443,18 +1453,16 @@ def test_a_figure_reads_the_same_on_every_tab(mohab, period):
     gain = {"Overview": _figure(overview, r"<span>Net gain or loss</span><b[^>]*>([^<]+)</b>"),
             "Investments": _figure(investments, r'inv-result-tile.*?stat-tile-value[^>]*>([^<]+)<')}
     assert len({v.strip() for v in gain.values() if v}) == 1, gain
-    # Overview lists each brokerage's cash as of today; Investments totals it at the selected period end.
-    # Sum all account rows instead of comparing the first brokerage with the entire portfolio.
-    cash_rows = re.findall(r'<small>Brokerage cash</small></span><b>([^<]+)</b>', overview)
-    current_cash = sum((money(v) for v in cash_rows), D(0))
-    assert current_cash == mohab.c.reporting.owned_brokerage_cash("2027-09-30")
+    # Overview lists each brokerage's cash and Investments totals it, both at the selected period end
+    # (Your position follows the period since feedback ticket 80). Sum all of the Overview's account rows.
     cash_day = ("2026-12-31" if "month=2026-12" in period else
                 "2027-03-31" if "2027-03-31" in period else "2027-09-30")
+    cash_rows = re.findall(r'<small>Brokerage cash</small></span><b>([^<]+)</b>', overview)
+    period_cash = sum((money(v) for v in cash_rows), D(0))
+    assert period_cash == mohab.c.reporting.owned_brokerage_cash(cash_day)
     investment_cash = _figure(flat(investments), r"Brokerage cash ([\d,]+)")
     assert investment_cash is not None
-    assert money(investment_cash) == mohab.c.reporting.owned_brokerage_cash(cash_day)
-    if cash_day == "2027-09-30":
-        assert money(investment_cash) == current_cash
+    assert money(investment_cash) == period_cash
     if "2027-03-31" not in period and "2026-12" not in period:   # the Investments tile is as of today
         # Deposits are their own figure: the CD used to count in Portfolio value on Investments only.
         portfolio = {"Overview": _figure(flat(overview), r"Portfolio value ([\d,]+)"),

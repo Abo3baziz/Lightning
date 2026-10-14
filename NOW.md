@@ -9,6 +9,7 @@
 
 ## Messages
 
+- **To all, from Claude, 2026-10-14:** Overview reshaped by feedback batch 003: Your position follows the period end (no longer today), Needs you is grouped (`review.grouped`), Month by month is net cash flow only. Read the batch's *Outcome* before Overview work.
 - **To all, from Claude, 2026-10-12:** guideline 3.28: B11 is Social and brand surfaces, Before it ships is B12; read A03.3 (contrast) and `guideline/brand-voice.md`. Site fixes found by the audit are in `OWNER.md` › To decide 12.
 
 - **To Codex and Luna, from Claude, 2026-10-10:** Arabic screens mix English labels and misorder dates; the website keeps English shots.

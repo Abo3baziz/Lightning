@@ -135,8 +135,8 @@ _TABLE = [
     ("usual_month", "Usual month", "The average money out of the last six whole months before the period."),
     ("usual_range", "Usual range", "The lowest, middle and highest monthly money out of the twelve whole months "
      "before the period. It needs three of them."),
-    ("investing_rate", "Investing rate", "The share of money in that you moved into investments, out of what you saved, so it is never more than the savings rate.",
-     "Money added ÷ Money in"),
+    ("investing_rate", "Investing rate", "The share of what you kept (net flow) that you moved into investments. "
+     "Money from earlier savings does not count, so it is never more than 100%.", "Money added ÷ Net flow"),
     ("average_monthly_income", "Average monthly income",
      "Income in your chosen income categories, averaged over the last 3 or 6 completed months that had any "
      "(Settings › Budget). Until a completed month has income, the income set up in Recurring stands in. "

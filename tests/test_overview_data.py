@@ -72,3 +72,25 @@ def test_reserve_historical_breakdown_matches_total_and_rejects_unknown_past(c, 
     rows = c.reserves.breakdown_at("2026-12-31")
     assert rows == [{"id": reserve["id"], "name": "Travel", "kind": "PROJECT", "effective_allocated": Decimal("500")}]
     assert c.reserves.allocation_at("2026-12-31") == sum((row["effective_allocated"] for row in rows), Decimal(0))
+
+
+def test_where_money_in_went_splits_kept_into_invested_and_the_rest(c, setup, monkeypatch):
+    """Feedback ticket 82: Kept shows the part moved into investments in blue, as Saved and invested does."""
+    from lightning.ui.routes import dashboard as dashboard_module
+
+    accounts, cats = setup
+    c.transactions.record_inflow("2026-12-01", accounts["cib"].id, "10000", cats["EXP.WORK.SALARY"].id)
+    c.transactions.record_outflow("2026-12-10", accounts["cib"].id, "4000", cats["EXP.PERSONAL.FOOD"].id)
+    c.transactions.record_transfer("2026-12-15", accounts["cib"].id, accounts["thndr"].id, "2500")
+    captured = {}
+
+    def capture(_request, _template, **context):
+        captured.update(context)
+        return Response("ok")
+
+    monkeypatch.setattr(dashboard_module, "render", capture)
+    TestClient(create_app(c)).get("/?period=custom&date_from=2026-12-01&date_to=2026-12-31")
+    targets = {t["label"]: (t["value"], t["tone"]) for t in captured["money_sankey"]["targets"]}
+    assert targets["Invested"] == (Decimal("2500"), "hold")
+    assert targets["Kept"] == (Decimal("3500"), "in")
+    assert sum(v for v, _ in targets.values()) == Decimal("10000")

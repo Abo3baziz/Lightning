@@ -34,22 +34,19 @@ def period_growth(result: Decimal | None, opening_value: Decimal | None, money_a
     return result / base * 100 if base > ZERO else None
 
 
-def investing_rate(money_added: Decimal, money_in: Decimal, net_flow: Decimal | None = None) -> Decimal | None:
-    """Investing rate = Money added ÷ Money in, as a percentage; None without money in.
-
-    What you invest is part of what you saved (money in − money out − saved = 0), so with ``net_flow``
-    the amount counted is at most this period's net flow: money taken from earlier savings is not
-    this period's investing, and the investing rate never exceeds the savings rate."""
-    if money_in <= ZERO:
+def investing_rate(money_added: Decimal, net_flow: Decimal) -> Decimal | None:
+    """Investing rate = Money added ÷ Net flow, as a percentage: the share of what you kept that you invested
+    (owner, feedback ticket 89, 2026-10-14). None when nothing was kept. Money added beyond what was kept came
+    from earlier savings, so the rate stops at 100%."""
+    if net_flow <= ZERO:
         return None
-    invested = money_added if net_flow is None else min(money_added, max(net_flow, ZERO))
-    return max(invested, ZERO) / money_in * 100
+    return min(max(money_added, ZERO), net_flow) / net_flow * 100
 
 
 def saved_and_invested(flow, money_added: Decimal) -> dict:
     """Money in split three ways for one period: invested (inside saved), the rest of saved, spent.
 
-    Savings rate = Net flow ÷ Money in; Investing rate = Money added ÷ Money in, at most the saved part.
+    Savings rate = Net flow ÷ Money in; Investing rate = Money added ÷ Net flow, at most all of it.
     Returns the rates, the amounts, and 100 squares read row by row (invested, kept, spent)."""
     inflow = flow.inflows
     kept = max(flow.net, ZERO)
@@ -63,7 +60,7 @@ def saved_and_invested(flow, money_added: Decimal) -> dict:
     spent_cells = min(saved_cells + round(bar["spent"]), 100)
     bar["cells"] = (["invested"] * invest_cells + ["kept"] * (saved_cells - invest_cells)
                     + ["spent"] * (spent_cells - saved_cells) + [""] * (100 - spent_cells))
-    return {"saved": flow.savings_rate, "invested": investing_rate(money_added, inflow, flow.net),
+    return {"saved": flow.savings_rate, "invested": investing_rate(money_added, flow.net),
             "saved_cells": saved_cells, "invest_cells": invest_cells, "bar": bar,
             "money_in": inflow, "net": flow.net, "money_added": money_added}
 

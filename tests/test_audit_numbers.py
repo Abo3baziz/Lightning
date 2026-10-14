@@ -256,7 +256,7 @@ def test_12_the_money_flow_chart_balances_when_a_refund_outweighs_spending(c, se
     from lightning.ui import charts, visuals
     _refunded_october(c, setup)
     seen = {}
-    monkeypatch.setattr(charts, "sankey", lambda sources, targets, hub: seen.update(s=sources, t=targets) or {})
+    monkeypatch.setattr(charts, "sankey", lambda sources, targets, hub, **_: seen.update(s=sources, t=targets) or {})
     first, last = date(2026, 10, 1), date(2026, 10, 31)
     visuals.money_sankey(c, first, last, c.reporting.cash_flow(first, last))
     left = sum(s["value"] for s in seen["s"] if s["value"] > 0)

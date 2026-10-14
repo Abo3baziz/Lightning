@@ -119,6 +119,11 @@ class WhatYouOwe:
     bills_due_items: list[Payment] = field(default_factory=list)
 
     @property
+    def other_bills_due_items(self) -> list[Payment]:
+        """The bills due that are not loan payments, oldest first."""
+        return [p for p in self.bills_due_items if p.item.kind != PlanKind.LOAN]
+
+    @property
     def other_bills_due(self) -> Decimal:
         """Bills due that are not loan payments (those are already in loans still to pay)."""
         return self.bills_due - sum((p.amount for p in self.bills_due_items if p.item.kind == PlanKind.LOAN), ZERO)

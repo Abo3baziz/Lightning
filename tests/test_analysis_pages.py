@@ -42,7 +42,8 @@ def test_one_payment_does_not_repeat_its_amount_in_four_kpis(c, setup):
     assert page.text.count('class="stat-tile surface-') == 1
 
 
-def test_close_plan_payments_use_separate_timeline_label_rows(c, monkeypatch):
+def test_close_plan_payments_join_one_timeline_label(c, monkeypatch):
+    """Feedback ticket 94: one row of labels; payments that would touch the previous label join it."""
     from datetime import date
     from lightning.ui import visuals
 
@@ -52,6 +53,10 @@ def test_close_plan_payments_use_separate_timeline_label_rows(c, monkeypatch):
                       ("Gym", "2026-10-06"), ("Internet", "2026-10-12")):
         c.planning.create(kind="BILL", name=name, amount="100", frequency="ONCE", start_date=due)
     marks = visuals.cash_plan(c, c.forecaster.forecast(day), day)["marks"]
-    assert [mark["row"] for mark in marks[:3]] == [0, 1, 2]
-    same_row = [mark["x"] for mark in marks if mark["row"] == 0]
-    assert all(right - left >= 22 for left, right in zip(same_row, same_row[1:]))
+    assert {mark["row"] for mark in marks} == {0}
+    assert all(right["x"] - left["x"] >= 22 for left, right in zip(marks, marks[1:]))
+    rent = marks[0]
+    assert (rent["name"], rent["count"], rent["amount"]) == ("Rent", 3, 300)
+    assert "Gym" in rent["title"] and [m["name"] for m in marks[1:]] == ["Internet"]
+    page = TestClient(create_app(c)).get("/plan")
+    assert "Rent +2" in page.text
