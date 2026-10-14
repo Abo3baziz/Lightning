@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: website decision dashboard built (Lightning_website): verdict cards with confidence, key numbers against the previous period, path to a download per device, trends with release markers, channels, fix list, release effect; receiver script 2026-10-14.1 adds `From` and the per-day, per-page fields; Privacy Notice UX-2026.10.14.03. Owner: paste the receiver (OWNER.md).
 - 2026-10-14 · Claude: phone: Accounts shows the five latest transactions; tile chips sit above their label; zakat day field is a soft well; Arabic Part C updated (guideline 3.31). `tools/phone_check.py` also turns zakat on and adds a gam'eya.
 - 2026-10-14 · Claude: phone key notes (Budget's "Categories over plan", Health, Cash) are white rows with a tone dot, not tinted cards with a big numeral (C01.1).
 - 2026-10-14 · Claude: zakat is off by default; Settings › Your data › Zakat › *Show zakat* turns on its tab, page, search entry, Cash planning line and the worn box on gold pieces.
