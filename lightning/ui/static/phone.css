@@ -415,3 +415,9 @@ html.phone[dir="rtl"] .period-month-seg .period-step:not(#_):not(.x_) { flex: no
 .phone-delta.is-down { color: #097852; }
 .phone-delta.is-up { color: #C93D72; }
 .phone-stat-rows { margin-top: 8px; }
+
+/* Quiet chrome (C01.1): on a phone no tile has a coloured edge, an icon box or a gradient; the chip and the figure carry the meaning. */
+.phone .main .stat-tile::after { display: none; }
+.phone .main .stat-tile .stat-tile-icon { display: none; }
+.phone .main .stat-tile, .phone .main .stat-tile.surface-lead, .phone .main .stat-tile.surface-mint, .phone .main .stat-tile.surface-white { background: var(--c-surface); border-color: var(--c-line); }
+.phone .stat-tile-head { justify-content: space-between; }
