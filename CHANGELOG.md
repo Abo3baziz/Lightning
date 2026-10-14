@@ -50,6 +50,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-14 · Claude: proposal `docs/proposals/tab_by_tab_review.md`: every section and tab walked on PC and phone with the sample household; 15 ranked fixes, about 150 items by tab, nine owner choices (OWNER 19), suggested order and Mohab steps.
 - 2026-10-14 · Claude: optional fingerprint unlock on the phone (task 18d): an opt-in Keystore-bound key slot outside the profile (`keys.json` and the PC unchanged), unlocked through BiometricPrompt then the password's own open path; Settings › This phone and a Use fingerprint button on the unlock screen.
   Cancel counts nothing; changed fingerprints or a key that is not the profile's remove the slot and say to use the password. Java compiled against API 30 stubs only; on-device check in `OWNER.md`.
 - 2026-10-13 · Codex: v1.1.0-beta.1 published as a matched Windows ZIP and signed Android APK; public checksums match the tested pair.
