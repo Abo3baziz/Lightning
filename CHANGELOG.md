@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: owner chose fingerprint unlock (Android, optional), gam'eya (CD backbone, interest optional) and zakat; designs in `docs/proposals/gameya.md`, `zakat.md` and `multiple_devices.md` 18d.
 - 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.
 - 2026-10-14 · Claude: website analytics: every number is behind the dashboard key (website repo): GoatCounter totals go from the GitHub job to the private receiver, no analytics files are committed. Setup order in `OWNER.md`.
 - 2026-10-14 · Claude: website analytics hardening (website repo): linked visits are no longer published (dashboard loads them privately with a key); Apps Script abuse caps and small-group merging; notice says storage works like a cookie. Owner steps in `OWNER.md`.

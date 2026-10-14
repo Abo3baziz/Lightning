@@ -65,6 +65,7 @@ Dates are when the owner decided. Undated rows are founding rules.
 | **Two levels, few settings** (2026-10-06) | Six sections, at most five tabs each, no third level; settings behind a tab's gear; a default before a setting; icons for row actions; one choice, one field. Architecture › UI contract. |
 | **Phone has its own design** (2026-10-06, 2026-10-07) | Part C of the guideline; never the PC layout squeezed. Every icon has its word (alone only if universal); four tabs as two rows of two; add button on every section's first page; the Overview is one screen (Get set up, Needs you, four tiles, Your position). |
 | **Fewer steps to set up** (2026-10-06) | Recovery key shown once and confirmed with a press. One password on every device. |
+| **Fingerprint, gam'eya and zakat** (2026-10-14) | Android offers fingerprint unlock as an option; the password and recovery key always still work. Gam'eya is built on the CD backbone with the interest rate optional (none by default). Zakat is an estimate by the common rule. |
 | **Order to Google Play** (2026-10-06) | M1 phone and PC connected; M2 daily recording on the phone; M3 bank SMS into the ledger; then beta and Google Play. The owner reviews at each milestone. |
 
 **Multiple devices (phone as home), planned and partly built.** One codebase on PC and Android; the phone holds the accepted encrypted ledger and one paired PC borrows it. Build status is in the Roadmap. Design, lend safety, hand-back, bank SMS: [multiple_devices.md](proposals/multiple_devices.md). **Edit anywhere, one home confirms** (owner-requested revision 2026-10-07, supersedes automatic lending only after cutover, unscheduled): [edit_journal.md](proposals/edit_journal.md). A server or cloud copy is outside version 1.
@@ -240,7 +241,7 @@ Ideas added 2026-10-05 unless dated; each names its source app (evidence: [Compe
 | 11 | Move in from Wallet, Money Manager, Masareef exports | Say reviews | Not started |
 | 12 | Deeper investments (splits, lots, reinvested dividends, time-weighted return) | Quicken, GnuCash | Proposals: [investment_*](proposals/), [bonus_shares_and_splits](proposals/bonus_shares_and_splits.md) |
 | 13 | Silver, property, vehicles | Qershnat | Not started |
-| 14 | Gam'eya and zakat | Qershnat, Masroofy | Waits for the owner (OWNER.md) |
+| 14 | Gam'eya and zakat | Qershnat, Masroofy | Owner chose to build (2026-10-14): [gameya.md](proposals/gameya.md), [zakat.md](proposals/zakat.md) |
 
 For the code (Actual Budget): one change note per change, joined at release; visual snapshots of key screens; a warning on pushes that touch a migration.
 

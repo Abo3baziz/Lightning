@@ -31,7 +31,7 @@ What only the owner can do or decide. Any AI adds an item here, and removes it o
 
 ## To decide
 
-1. *Multiple devices — two choices:* offer optional fingerprint unlock on Android, or retain password-only? Keep two-PC lending as a test harness (recommended), or authorize a separately accepted PC-home interim product? Defaults remain password-only and phone-home. Windows in-app updates are already requested in the Overview; the first beta uses a manual-update path. Bank samples and platform evidence are engineering gates in the plan.
+1. *Multiple devices:* keep two-PC lending as a test harness (recommended), or authorize a separately accepted PC-home interim product? Default remains phone-home. (Fingerprint unlock: you chose to offer it, 2026-10-14.)
 2. *Review of Mohab's year:* which of these suggestions should be built? None has been started.
    1. Say *to* or *from* on transfer rows.
    2. Needs you lists expected income not yet received.
@@ -41,7 +41,6 @@ What only the owner can do or decide. Any AI adds an item here, and removes it o
    6. Check against bank offers "mark all checked up to this date" when the balances match.
    7. At phone width, the top menu and the accounts fit on screen.
    8. Loans still to pay and Check against bank show without opening a folded row.
-3. *Competition:* should Lightning get gam'eya (rotating savings) and zakat, as Qershnat has them? (Trial decided: 7 days free, never a lock; Project Overview › Product decisions.)
 4. *Routine audit (2026-10-05):* pain points to decide: Housing 22% vs 45%, "Kept 0", "Split · 0 categories", a certificate named twice, Reserves dropdowns (A16: type and pick).
 5. *Upcoming projects* (Project Overview): 17 ideas, each naming its source app. Financial health (#3) and the entry helpers (#9: sums, Ctrl-K, privacy mode, #tags) are built. New from you: multi-currency and FX revaluation (#15), US stocks (#16), reading PDF and Excel files (#17). Which enter *Next*, and where do US stock prices come from?
 6. *Restore, from Claude's review of 03a:* unlock re-verifies every retained copy (2.7 s for three 23.5 MB restores). Keep that, or drop it?

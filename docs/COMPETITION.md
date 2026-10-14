@@ -27,7 +27,7 @@ Last reviewed 2026-10-13. Who else helps people with their money, what their use
 4. **Never be the busy one.** YNAB's most common complaint is a busy interface; Actual's is setup. Mohab's test stands: fewest clicks, one name for one thing.
 5. **A wrong number is worse than a missing one.** Every bank-sync review complains of numbers that drift. Lightning shows what each figure includes (Architecture, financial rules).
 6. **Price stays obvious; a free trial never asks for a card.** Owner decision 2026-10-04: 7 days free, then a reminder, never a lock. Say's most repeated complaint is a paywall before trying. Users also leave over price rises (YNAB), per-person pricing (Copilot) and ads in paid versions (Money Manager).
-7. **Egyptian life is more than spending.** Qershnat adds gam'eya (rotating savings circle), zakat, family assets and reminders, and users ask for more. Wealth is the right ground; gam'eya and zakat wait for the owner (`NOW.md`).
+7. **Egyptian life is more than spending.** Qershnat adds gam'eya (rotating savings circle), zakat, family assets and reminders, and users ask for more. Wealth is the right ground; gam'eya and zakat are being built (owner, 2026-10-14).
 
 ## The field in one table
 
