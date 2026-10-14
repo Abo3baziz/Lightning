@@ -299,6 +299,7 @@ SENTENCES = {
     "Biggest · {name}": "الأكبر · {name}",
     "{name} · {date} · {x}× the average": "{name} · {date} · {x} ضعف المتوسط",
     "Next {date}": "التالي {date}",
+    "ends {date}": "بيخلص {date}",
     "Price {value} · {date}": "السعر {value} · {date}",
     "Price of {date}": "سعر {date}",
     "{label} · worst {x}": "{label} · الأسوأ {x}",

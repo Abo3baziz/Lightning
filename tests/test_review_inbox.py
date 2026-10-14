@@ -63,8 +63,30 @@ def test_the_overview_lists_the_whole_inbox_in_needs_you(c, setup):
     c.bank_imports.stage(accounts["cib"].id, "cib-oct.csv", b"Date,Counterparty,Amount\n2026-10-03,Shop,-5\n")
     page = client.get("/").text
     assert "Needs you" in page
-    assert "Imported activity needs a decision" in page and "cib-oct.csv · 1 row waits" in page
-    assert "1 payment has no category" in page and "Sort them out" in page
+    # Feedback ticket 84: one row per kind of decision; this kind has two, so it opens its own page.
+    assert "Activity to sort out · 2" in page and 'href="/needs-you/activity"' in page
+    assert "Imported activity needs a decision, 1 payment has no category" in page
+    group = client.get("/needs-you/activity").text
+    assert "Imported activity needs a decision" in group and "cib-oct.csv · 1 row waits" in group
+    assert "1 payment has no category" in group and "Sort them out" in group
+
+
+def test_a_kind_of_decision_with_one_item_leads_straight_to_it(c, setup):
+    accounts, _ = setup
+    c.bank_imports.stage(accounts["cib"].id, "cib-oct.csv", b"Date,Counterparty,Amount\n2026-10-03,Shop,-5\n")
+    page = TestClient(create_app(c)).get("/").text
+    assert "Imported activity needs a decision</b>" in page and "Finish the import" in page
+    assert "/needs-you/activity" not in page and "Activity to sort out" not in page
+
+
+def test_inbox_groups_follow_the_link_of_each_item():
+    from lightning.workflows.review import group_of
+    assert group_of({"href": "/plan/items/3/pay?due=2026-10-01"}) == "payments"
+    assert group_of({"href": "/gameya/2#record-instalment"}) == "payments"
+    assert group_of({"href": "/plan/reserves"}) == "cash"
+    assert group_of({"href": "/budget/move?month=2026-10"}) == "budget"
+    assert group_of({"href": "/settings?section=currencies&tab=rates"}) == "prices"
+    assert group_of({"href": "/sms"}) == "activity"
 
 
 def test_the_sort_them_out_link_says_the_register_is_filtered(c, setup):

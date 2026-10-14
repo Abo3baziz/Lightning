@@ -336,8 +336,9 @@ def test_expense_analysis_compares_big_categories_with_their_usual_month(c, setu
     assert len(a["heat"][0]["cells"]) == len(a["heat_keys"]) and a["heat"][0]["cells"][-1]["step"] == 3  # 1.3× its own average
     page = TestClient(create_app(c)).get("/birdview/expenses?period=month&month=2026-12").text
     assert [r["name"] for r in a["flow_heat"]] == ["Money in", "Money out", "Net flow"]
-    for question in ("Where did it go?", "Is this period unusual?", "How each one moved", "Net cash flow", "Day by day"):
+    for question in ("Where did it go?", "Is this period unusual?", "How each one moved", "Day by day"):
         assert question in page
+    assert "Net cash flow" not in page  # feedback ticket 85: by month on the Overview, not by day here
     assert page.count('class="stat-tile surface-') == 4
     # Every usual-range bar is the same size: the pill runs 8% to 92%, and above its range sits past it.
     assert (housing_row["range"]["low"], housing_row["range"]["high"]) == (8.0, 92.0) and housing_row["range"]["now"] > 92

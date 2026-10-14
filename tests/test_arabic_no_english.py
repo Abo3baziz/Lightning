@@ -187,9 +187,9 @@ def test_dates_are_iso_and_month_columns_keep_time_left_to_right(sample):
     assert "1 يناير" not in body and "1 January" not in body
     assert "-01-01" in body  # Dividends collected: from yyyy-01-01 to today
     overview = client.get("/").text
-    if 'class="mcal"' in overview:
-        assert '<table class="mcal" dir="ltr"' in overview
-        assert re.search(r'class="m-short">[JFMASOND]<', overview) is None
+    if "mcal-months" in overview:
+        assert 'class="cal-months mcal-months" dir="ltr"' in overview
+        assert re.search(r"<i>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)</i>", overview) is None
 
 
 @pytest.mark.parametrize("phone", [False, True], ids=["pc", "phone"])

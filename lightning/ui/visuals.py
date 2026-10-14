@@ -105,9 +105,12 @@ def money_in_groups(c, first: date, last: date) -> list[dict]:
     return rows
 
 
-def money_sankey(c, first: date, last: date, cash_flow, sources_shown: int = 3, targets_shown: int = 4) -> dict:
+def money_sankey(c, first: date, last: date, cash_flow, sources_shown: int = 3, targets_shown: int = 4,
+                 money_added: Decimal = ZERO, xs: tuple[float, float, float] = (22.0, 49.0, 76.0)) -> dict:
     """Where money in went: income by category into money in, and money in out to spending
-    categories and what you kept. When money out is larger, the gap comes from what you had."""
+    categories and what you kept. When money out is larger, the gap comes from what you had.
+    What you kept splits into the part you invested (blue, as in Saved and invested) and the rest
+    (feedback ticket 82); money added beyond what you kept came from earlier savings, so it is not shown."""
     incomes = money_in_groups(c, first, last)
     sources = [{**r, "tone": "in"} for r in incomes[:sources_shown]]
     rest_in = cash_flow.inflows - sum((r["value"] for r in sources), ZERO)
@@ -134,8 +137,12 @@ def money_sankey(c, first: date, last: date, cash_flow, sources_shown: int = 3, 
     if rest_out > 0:
         targets.append({"label": "Other", "value": rest_out, "tone": "spend"})
     if cash_flow.net > 0:
-        targets.append({"label": "Kept", "value": cash_flow.net, "tone": "in"})
-    return charts.sankey(sources, targets, "Money in")
+        invested = min(max(money_added, ZERO), cash_flow.net)
+        if invested > 0:
+            targets.append({"label": "Invested", "value": invested, "tone": "hold"})
+        if cash_flow.net - invested > 0:
+            targets.append({"label": "Kept", "value": cash_flow.net - invested, "tone": "in"})
+    return charts.sankey(sources, targets, "Money in", xs=xs)
 
 
 def savings_rate_spark(c, end: date, count: int = 6) -> dict:
@@ -462,19 +469,25 @@ def cash_plan(c, forecast, day: date) -> dict:
     # Next 30 days on one date axis from today: money in above the line, bills below.
     end = day + timedelta(days=30)
     upcoming = [p for p in c.planning.all_payments(end, day) if p.status.value in ("DUE", "UPCOMING")]
-    marks, last_x = [], {True: [-99.0] * 3, False: [-99.0] * 3}
+    # One row of labels on each side (feedback ticket 94: three stacked rows were hard to read). A payment that
+    # would touch the previous label on its side joins it: "Landlord +2" with their total, so payments already
+    # due pile into one mark at Today. Each label is 92px; 22% of the axis is about 115px at 1,366px.
+    marks, last = [], {True: None, False: None}
     for p in sorted(upcoming, key=lambda p: (p.due_date, -p.amount)):
         offset = max(0, (parse_date(p.due_date) - day).days)
         x = 3 + 94 * min(offset, 30) / 30
-        rows_used = last_x[p.item.is_income]
-        # Each label is 110px wide. The plan timeline uses half of the main card at 1,366px,
-        # so keep same-row marks at least 22% of the axis apart (about 115px there).
-        row = next((r for r in range(3) if x - rows_used[r] >= 22), None)  # labels never overlap
-        if row is None:
-            continue  # the list under the timeline still shows it
-        rows_used[row] = x
-        marks.append({"name": p.item.name, "amount": p.amount, "income": p.item.is_income, "due": p.due_date,
-                      "x": x, "row": row, "late": p.status.value == "DUE"})
+        late = p.status.value == "DUE"
+        mark = last[p.item.is_income]
+        if mark is not None and x - mark["x"] < 22:
+            mark["count"] += 1
+            mark["amount"] += p.amount
+            mark["late"] = mark["late"] or late
+            mark["title"] += f"\n{p.item.name} · {p.due_date} · {p.amount:,.0f}"
+            continue
+        mark = {"name": p.item.name, "amount": p.amount, "income": p.item.is_income, "due": p.due_date,
+                "x": x, "row": 0, "late": late, "count": 1, "title": f"{p.item.name} · {p.due_date} · {p.amount:,.0f}"}
+        last[p.item.is_income] = mark
+        marks.append(mark)
     before_income = f.payments_before_income   # the same payments Safe to spend takes off
     # Where cash is heading: free cash at the last five month ends, then the forecast's month ends.
     past_keys = months_back(day.replace(day=1) - timedelta(days=1), 5, c.reporting.first_activity_date())
@@ -515,5 +528,5 @@ def cash_plan(c, forecast, day: date) -> dict:
         loans = loans[:4] + [{"label": "Other", "value": sum((r["value"] for r in rest), ZERO), "note": f"{len(rest)} loans"}]
     return {"build": build, "marks": marks, "upcoming": upcoming, "before_income": before_income,
             "before_total": sum((p.amount for p in before_income), ZERO), "heading": heading, "flows": rows,
-            "loan_bars": charts.bars(loans, 6), "forecast_spark": charts.sparkline([m.closing for m in f.months]),
+            "loan_bars": charts.bars(loans, 6), "loan_rows": loans, "forecast_spark": charts.sparkline([m.closing for m in f.months]),
             "parts": parts}

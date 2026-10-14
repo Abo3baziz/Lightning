@@ -79,7 +79,7 @@ Specs live in [Architecture](ARCHITECTURE.md); terms in the [Glossary](GLOSSARY.
 - **CSV import:** one signed or separate in/out columns; one decision per new name; duplicates flagged; waiting reviews can be continued or discarded.
 - **Budget:** Planned, Spent, Left in plan; amount or %; carryover; All time, YTD, Monthly, Custom; savings target and goals protected; Fill this month; low-confidence estimates marked.
 - **Cash planning:** Safe to spend, What you owe, next 30 days, three-month forecast; Recurring bills, subscriptions and income (suggested, never created on their own); Loans with payoff date; Reserves with the emergency fund.
-- **Needs you (Overview):** the one review inbox: statements waiting, uncategorized transactions, bills due, missing prices, plan problems.
+- **Needs you (Overview):** the one review inbox: statements waiting, uncategorized transactions, bills due, missing prices, plan problems; grouped by kind, each kind with several opening its own page.
 - **Financial health:** named figures with profile-owned limits and six completed months of trend. No score.
 - **Gam'eya (savings circle):** one account per circle with its terms (members, instalment, your turn, payout, optional interest); record each instalment and your payout as transfers; the circle page says who owes whom; Gam'eya paid in counts in Holdings value, Gam'eya still to pay in What you owe; instalments and the payout join Cash planning and a missed instalment appears under Needs you.
 - **Investments:** buy, sell, dividends; prices fetched, typed or from shared files; Net gain or loss; Holdings after sale; target allocation; certificates and time deposits per certificate; US stocks priced in USD with price and FX parts of the gain (v1.1).
@@ -100,7 +100,7 @@ The period picker (All time · YTD · Monthly · Custom) drives most visuals. A 
 
 | Follows the period | Fixed horizon |
 |---|---|
-| Overview: stat cards, Cash flow, Investments section | Overview: Net worth over time (12 month ends); position cards (today) |
+| Overview: stat cards, position cards (as of the period end, never after today), Cash flow, Investments section | Overview: Net worth over time (12 month ends up to the period end); Where money in went's last six months; Month by month |
 | Budget: waffle, plan bar, Spent of plan | Budget: plans are monthly; longer periods add months |
 | Investments: waffle, Net gain or loss, allocation and biggest holdings (as of period end), money and value by class | Portfolio value sparkline (last 6 months); Dividends (year to date); XIRR (annualized since first investment, including periods shorter than a year); horizon bar (today) |
 | Expense analysis: KPI cards, treemap, now against usual, daily calendar or monthly summaries | "Usual" is the 6 whole months before the period; usual range, small multiples, heatmap use the 12 before it |

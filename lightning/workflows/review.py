@@ -29,6 +29,45 @@ def _plural(count: int, one: str, many: str) -> str:
     return f"{count} {one if count == 1 else many}"
 
 
+# Needs you groups its items by what they are about (feedback ticket 84): one row per group on the Overview,
+# and each group opens its own page. First match on the item's link wins; the order is the order shown.
+GROUPS = (("payments", "Bills and payments", ("/plan/items/", "/gameya/")),
+          ("activity", "Activity to sort out", ("/sms", "/accounts/", "/transactions")),
+          ("budget", "Budget and saving", ("/budget", "/financial-health")),
+          ("cash", "Cash and goals", ("/plan",)),
+          ("prices", "Prices and valuations", ("/investments/", "/settings")))
+GROUP_LABELS = {key: label for key, label, _ in GROUPS}
+
+
+def group_of(item: dict) -> str:
+    return next((key for key, _, prefixes in GROUPS if item["href"].startswith(prefixes)), "other")
+
+
+def grouped(items: list[dict]) -> list[dict]:
+    """The inbox as groups, most urgent first: key, label, its items, and where the row leads. A group of one
+    leads straight to its item, so a single decision is still one click away."""
+    groups: dict[str, dict] = {}
+    for item in items:
+        key = group_of(item)
+        group = groups.setdefault(key, {"key": key, "label": GROUP_LABELS.get(key, "Other"), "items": []})
+        group["items"].append(item)
+    out = []
+    for group in groups.values():
+        first = group["items"][0]
+        group["priority"] = min(item["priority"] for item in group["items"])
+        if len(group["items"]) == 1:  # shown as itself: its own words, detail and action
+            group.update(label=first["label"], detail=first["detail"], href=first["href"],
+                         popup=bool(first.get("popup")), action=first.get("action") or "Review", count=1)
+        else:
+            names = ", ".join(i["label"] for i in group["items"][:2])
+            more = f" and {len(group['items']) - 2} more" if len(group["items"]) > 2 else ""
+            group.update(detail=names + more, href=f"/needs-you/{group['key']}", popup=False, action="See them",
+                         count=len(group["items"]))
+        out.append(group)
+    order = [key for key, _, _ in GROUPS] + ["other"]
+    return sorted(out, key=lambda g: (g["priority"], order.index(g["key"])))
+
+
 class ReviewInbox:
     def __init__(self, container):
         self.c = container

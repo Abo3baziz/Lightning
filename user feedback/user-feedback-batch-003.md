@@ -6,6 +6,7 @@
 - **Build / release:** 1.1.0-beta.1-windows · landing release UX-2026.10.13.15 · desktop
 - **Coverage:** 18 submissions = worksheet rows **79–96** = Ticket # **78–95** (Ticket # is unique from here on). Rows 77–78 are empty; rows 71–76 were batch 002.
 - **Not yet in the sheet:** Batch #, Processed on and Processed by are blank for these rows. Mark them `003 · reviewed` once handled.
+- **Investigated and built:** 14 October 2026, Claude. Results are in *Outcome* at the end; do not reopen a Fixed ticket without reproducing it first.
 - **Privacy:** sender, session ID and page URL are omitted. Screenshots are copied into this repo (below); the Drive originals stay private.
 - **Sheet quirk:** for rows with a screenshot the Drive link landed in the **Batch #** column (L), not **Attachment URL** (Q). Read column L for rows 80–84, 91, 95, 96 when going back to the sheet. The website receiver is the likely cause.
 
@@ -113,9 +114,36 @@ Per ticket: look at the screenshot, find the screen's template and the service t
 | 94 | 95 | Cash planning | Improvement | Visual | 5 | [94_1](screenshots/batch-003/94_1.png) | Medium |
 | 95 | 96 | Cash planning | Bug | Visual | 5 | [95_1](screenshots/batch-003/95_1.png) | High (clear defect) |
 
-## Questions for the owner
+## Questions for the owner (answered in Outcome; open ones are in OWNER.md › To decide 19)
 
 1. **Net cash flow:** move it from Spending to Overview (tickets 79, 85, 86)? Batch 002 kept it on Spending as a secondary view.
 2. **Period:** should every Overview card follow the selected period (ticket 80), or keep "today" cards and label them?
 3. **Investing rate (89):** is "% of free cash in the period" the intended definition? Free cash is a balance, not a period flow.
 4. **Ticket 87 and 93:** which parts of Financial health and Spending by group are hard to read? A screenshot would settle it.
+
+## Outcome (2026-10-14, Claude)
+
+Built and tested. Desktop screens were checked in Chromium on the demo profile; the phone screens were not changed.
+
+| Ticket | Outcome |
+|---|---|
+| 78 | **Built.** In a month, Where money in went sits beside the six months ending with it (`visuals.money_sankey`, `dashboard.PAIR_XS`). Longer periods keep one chart. |
+| 79 | **Built.** Month by month is net cash flow by month drawn like the day calendar: a block per year, six months a row, name top left, amount bottom right (`charts.html` › `month_calendar`). |
+| 80 | **Built (reproduced).** With a past month chosen, the Net worth card stayed at today while its chart ended at the period end: 431,877 against 397,877. Your position now follows the period end, never after today; Plan to invest shows only for today. Mohab's step changed from "stays today" to "follows the period end". |
+| 81 | **Fixed.** Stacked CSS overrides made the figure full width and centred the button under it; the button now ends the figure's line. |
+| 82 | **Built.** Kept splits into Invested (blue, the same amount as Saved and invested) and the rest of Kept. |
+| 83 | **Built** (also batch 002 row 51). Free cash's right half is What it is made of (weights by kind) instead of the same three numbers as bars; If you sold today sits beside the period's Net flow. |
+| 84 | **Built.** Needs you shows one row per kind (bills and payments, activity to sort out, budget and saving, cash and goals, prices); a kind with several opens `/needs-you/{kind}`, a kind with one shows that decision as before. |
+| 85 | **Built.** Spending no longer shows net cash flow, by day or in its month table. |
+| 86 | **Built.** The daily expenses calendar left the Overview; it lives on Spending. |
+| 87 | **Open.** No screenshot; which parts of Financial health are hard to read is an owner question (`OWNER.md` › 19b). |
+| 88 | **Open, website repo.** Repeat of batch 002 row 76 (`OWNER.md` › 19d). |
+| 89 | **Owner decision.** Today Investing rate = Money added ÷ Money in. "% of free cash in the period" divides a flow by a balance; suggested Money added ÷ Net flow (`OWNER.md` › 19a). Nothing changed. |
+| 90 | **Fixed.** A lone key note is one line across the page (label, figure, text, action), and a tab bar holding only the gear sits at the end of that line instead of on an empty row. |
+| 91 | **Fixed.** File fields are soft wells with a secondary pill as the chooser; the CSV field has its label above it. |
+| 92 | **Fixed.** Register and list rows used grey paper on hover; every row now uses the one green-tinted hover. |
+| 93 | **In part.** Sub-lists had two chevrons each, an empty "Consider tracking" heading showed with nothing under it, and Select all sat on its own row (also batch 002 row 56): fixed. The "System Categories · Personal" group name is an owner question (`OWNER.md` › 19c). |
+| 94 | **Fixed.** The next-30-days timeline has one label row per side; payments that would collide join one mark ("Landlord +2", their total, every payment in its tooltip), so overdue bills no longer stack at Today. |
+| 95 | **Fixed.** What you owe's Bills due and Loans still to pay open to their items like Free cash's rows; the loan note is a line inside instead of a smaller font beside the name. |
+
+Tests: `tests/test_feedback_batch_003.py`, plus the updated review-inbox, analysis-page, overview-data, Arabic and Mohab tests.
