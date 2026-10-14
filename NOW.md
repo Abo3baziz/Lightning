@@ -24,6 +24,8 @@
 
 - **Gam'eya and zakat follow-ups:** demo/sample profiles have no circle; the phone Overview's What you owe has no gam'eya breakdown; Investments shows an early-turn circle below zero while Position moves it to What you owe. **Read:** Architecture › Gam'eya, › Zakat.
 
+- **Website decision dashboard (owner, 2026-10-14):** rebuild `analytics/dashboard.html` around verdicts, trends, confidence and the path to a download, in both repos on `claude/website-decision-dashboard`. **Read:** `docs/proposals/website_decision_dashboard.md`; website README › Analytics and consent.
+
 1. **Next release: European and all GCC stock lists.** US stocks/ETFs are in v1.1; add the remaining exchanges. Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
 2. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
 3. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.
