@@ -442,3 +442,14 @@ html.phone[dir="rtl"] .period-month-seg .period-step:not(#_):not(.x_) { flex: no
 /* A checkbox row and its Save keep a gap. */
 .phone .sc-check { min-height: 48px; display: flex; align-items: center; gap: 10px; }
 .phone .sc-check + .actions { margin-top: 12px; }
+
+/* A lone tile takes the full row; groups of single figures (Data checks, Currencies) are rows in one surface, never a box each (C01.1). */
+.phone .stat-tiles > .stat-tile:only-child { grid-column: 1 / -1; }
+.phone .metric-grid { display: flex; flex-direction: column; gap: 0; padding: 0 16px; border-radius: 20px; background: var(--c-surface); box-shadow: var(--shadow); }
+.phone .metric-grid .metric-card { flex-direction: row; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0;
+  background: none; border: 0; border-top: 1px solid var(--c-line); border-radius: 0; box-shadow: none; }
+.phone .main .metric-grid .metric-card { background: none !important; background-image: none !important; border-radius: 0 !important; box-shadow: none !important; border-width: 1px 0 0 0 !important; }
+.phone .main .metric-grid .metric-card:first-child { border-top-width: 0 !important; }
+.phone .metric-grid .metric-label { font-size: 15px; color: var(--c-ink); }
+.phone .metric-grid .metric-value { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.phone .main .metric-grid > .metric-card:not(.metric-card--focal):not(.metric-card-primary) { background: none !important; }
