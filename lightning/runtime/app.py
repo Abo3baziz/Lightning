@@ -99,6 +99,15 @@ class SessionGate:
             finally:
                 self.app.state.container = self.session.container
 
+    def fingerprint_row(self, path: str) -> str:
+        """For Settings › This phone: "" when fingerprint unlock is not offered here, else "on" or "off"."""
+        fingerprint = getattr(self, "fingerprint", None)
+        session = self.session
+        if (path != "/settings" or fingerprint is None or session.container is None or session.borrowed is not None
+                or session.paths is None or session.paths.profile is None or not fingerprint.available()):
+            return ""
+        return "on" if fingerprint.enabled(session.paths.profile.profile_id) else "off"
+
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
@@ -137,7 +146,8 @@ class SessionGate:
                 if not valid:
                     return await PlainTextResponse("This form expired. Reload the page and try again.", 403)(scope, receive, send)
             line, device_action = self.device_line()
-            scope.setdefault("state", {}).update(secure_profiles=True, csrf=self.session.csrf,
+            scope.setdefault("state", {}).update(fingerprint_row=self.fingerprint_row(request.url.path),
+                                                  secure_profiles=True, csrf=self.session.csrf,
                                                   phone=getattr(self, "phone", False),
                                                   session_token=self.session.token,
                                                   read_only=not self.session.role.writable,
@@ -149,9 +159,10 @@ class SessionGate:
 
 
 def profile_app(credentials: Credentials, root: Path | str | None = None, devices: Devices | None = None,
-                *, phone: bool = False, sms=None):
+                *, phone: bool = False, sms=None, biometric=None):
     """`phone`: the Android app, whose pages use the phone frame and screens (guideline Part C). `sms`: where
-    bank messages come from on that phone (`lightning.sms_imports.SmsSource`), or None."""
+    bank messages come from on that phone (`lightning.sms_imports.SmsSource`), or None. `biometric`: the phone's
+    optional fingerprint unlock (`lightning.security.biometric.FingerprintUnlock`), or None: never on a PC."""
     configure_memory_only_import_uploads()
     session = ProfileSession(root)
     session.borrowed_home = ""
@@ -162,6 +173,8 @@ def profile_app(credentials: Credentials, root: Path | str | None = None, device
     devices = devices if devices is not None else Devices()
     gate.devices = devices
     gate.phone = phone
+    fingerprint = biometric if phone else None
+    gate.fingerprint = fingerprint
 
     async def expire_sessions():
         while True:
@@ -257,6 +270,8 @@ def profile_app(credentials: Credentials, root: Path | str | None = None, device
             values["suggestion"] = suggest_password()
         if mode == "manage":
             values["question"] = session.current_question()
+        if mode == "unlock":
+            values["fingerprint"] = fingerprint_offered(str(context.get("selected", "")))
         values.update(context)
         response = templates.TemplateResponse(request, "profiles.html", values, status_code=status)
         if locale == "ar":
@@ -366,6 +381,81 @@ def profile_app(credentials: Credentials, root: Path | str | None = None, device
             session.unlock(selected, str(form.get("password", "")), role=role)
             devices.after_unlock(session.paths)
         return await action(request, "unlock", operation, selected=selected)
+
+    def fingerprint_offered(selected: str) -> bool:
+        """The unlock screen's "Use fingerprint": only on the phone, with a slot for this profile and a phone
+        that can ask for the fingerprint now."""
+        if fingerprint is None or not selected or session.container is not None:
+            return False
+        try:
+            profile_id, _ = session.fingerprint_target(selected)
+        except (ProfileError, OSError, ValueError):
+            return False
+        return bool(profile_id) and fingerprint.offered(profile_id)
+
+    @app.post("/profiles/unlock/fingerprint")
+    async def unlock_fingerprint(request: Request):
+        """The password screen's other way in. The prompt waits for the person on a worker thread; cancelling
+        leaves the password screen as it was, and no attempt is counted."""
+        from lightning.security.biometric import Outcome
+        form = await request.form()
+        selected = str(form.get("db", ""))
+        role = SessionRole.READER if devices.role_for(selected) == "reader" else SessionRole.HOME
+        try:
+            profile_id, ident = session.fingerprint_target(selected) if fingerprint is not None else ("", "")
+        except (ProfileError, OSError, ValueError) as exc:
+            return page(request, "unlock", error=str(exc), status=400, selected=selected)
+        if not profile_id:
+            return page(request, "unlock", selected=selected, status=400,
+                        error="Fingerprint unlock is not available now. Unlock with your password.")
+        result = await asyncio.to_thread(fingerprint.unlock, profile_id, ident)
+        if result.outcome is Outcome.OK:
+            def operation():
+                session.unlock_with_key(selected, result.key, role=role)
+                devices.after_unlock(session.paths)
+            return await action(request, "unlock", operation, selected=selected)
+        if result.outcome is Outcome.CANCELLED:
+            return page(request, "unlock", selected=selected)
+        if result.outcome in (Outcome.INVALIDATED, Outcome.MISMATCH):
+            return page(request, "unlock", selected=selected, notice=result.message)
+        return page(request, "unlock", selected=selected, status=400, error=result.message)
+
+    def fingerprint_page(request: Request, *, status=200, error="", notice=""):
+        from lightning.ui import web
+        profile_id = session.paths.profile.profile_id if session.paths is not None and session.paths.profile else ""
+        return web.render(request, "phone/fingerprint.html", status, csrf=session.csrf, error=error, notice=notice,
+                          fingerprint_on=bool(profile_id) and fingerprint.enabled(profile_id))
+
+    def fingerprint_possible() -> bool:
+        return (fingerprint is not None and session.container is not None and session.borrowed is None
+                and session.paths is not None and session.paths.profile is not None and fingerprint.available())
+
+    @app.get("/profiles/fingerprint")
+    async def fingerprint_get(request: Request):
+        if not fingerprint_possible():
+            return RedirectResponse("/settings" if session.container else "/profiles", 303)
+        return fingerprint_page(request)
+
+    @app.post("/profiles/fingerprint")
+    async def fingerprint_post(request: Request):
+        """Settings › This phone › Unlock with fingerprint. On needs the profile open and its password typed
+        again, then the fingerprint prompt; off deletes the slot and the Keystore key."""
+        from lightning.security.biometric import ENROL_MESSAGES, Outcome
+        if not fingerprint_possible():
+            return RedirectResponse("/settings" if session.container else "/profiles", 303)
+        form = await request.form()
+        profile_id = session.paths.profile.profile_id
+        if form.get("action") == "off":
+            await asyncio.to_thread(fingerprint.disable, profile_id)
+            return fingerprint_page(request, notice="Fingerprint unlock is off. Your password still unlocks this profile.")
+        try:
+            key = session.prove_password(str(form.get("password", "")))
+        except ProfileError as exc:
+            return fingerprint_page(request, status=400, error=str(exc))
+        outcome = await asyncio.to_thread(fingerprint.enrol, profile_id, key)
+        if outcome is Outcome.OK:
+            return fingerprint_page(request, notice="Fingerprint unlock is on. Your password still works.")
+        return fingerprint_page(request, status=400, error=ENROL_MESSAGES[outcome])
 
     def known_question(selected: str) -> str:
         try:

@@ -1,6 +1,7 @@
 """The phone app's Python side: the shared profile app on 127.0.0.1 for the WebView, and the PC listener.
 
-Profiles live in app-private storage (`files/Lightning`), sync records beside them (`files/appdata`); both are
+Profiles live in app-private storage (`files/Lightning`), sync records beside them (`files/appdata`, where the
+optional fingerprint slots also sit, in `biometric/`, outside every profile folder); all are
 excluded from Google backup and device transfer (res/xml/data_extraction_rules.xml). The server keeps running
 while the process lives, so reopening the app does not ask for a new launch link."""
 from pathlib import Path
@@ -18,10 +19,13 @@ def start(files_dir):
         from lightning.runtime.devices import Devices
         from lightning.runtime.http import Host
 
+        from lightning.security.biometric import FingerprintUnlock
+
         files = Path(files_dir)
         _devices = Devices(files / "appdata")
+        fingerprint = FingerprintUnlock(files / "appdata" / "biometric", AndroidBiometric.create())
         _host = Host(lambda credentials: profile_app(credentials, files / "Lightning", devices=_devices, phone=True,
-                                                     sms=AndroidSms.create())).start()
+                                                     sms=AndroidSms.create(), biometric=fingerprint)).start()
     if not _launched:
         _launched = True
         return _host.launch_url
@@ -57,6 +61,55 @@ class AndroidSms:
     def take_shared(self):
         import json
         return [str(text) for text in json.loads(str(self.bridge.takeShared()))]
+
+
+class AndroidBiometric:
+    """`lightning.security.biometric.BiometricBridge` over the Java `BiometricBridge`: strings in and out
+    (base64 and JSON), so nothing depends on how Chaquopy converts byte arrays."""
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    @classmethod
+    def create(cls):
+        """None off the phone, so a PC (and the probe's tests) never offer fingerprint unlock."""
+        try:
+            from java import jclass
+        except ImportError:
+            return None
+        return cls(jclass("org.lightning.app.BiometricBridge"))
+
+    def available(self):
+        return bool(self.bridge.available())
+
+    @staticmethod
+    def _result(reply):
+        import base64
+        import json
+        from lightning.security.biometric import BridgeResult, Outcome
+
+        document = json.loads(str(reply))
+        try:
+            outcome = Outcome(document.get("status"))
+        except ValueError:
+            outcome = Outcome.UNAVAILABLE
+        if outcome is not Outcome.OK:
+            return BridgeResult(outcome)
+        return BridgeResult(outcome, base64.b64decode(document.get("iv", "")), base64.b64decode(document.get("data", "")))
+
+    def encrypt(self, profile_id, plaintext, aad):
+        import base64
+        return self._result(self.bridge.encrypt(profile_id, base64.b64encode(plaintext).decode("ascii"),
+                                                base64.b64encode(aad).decode("ascii")))
+
+    def decrypt(self, profile_id, iv, ciphertext, aad):
+        import base64
+        return self._result(self.bridge.decrypt(profile_id, base64.b64encode(iv).decode("ascii"),
+                                                base64.b64encode(ciphertext).decode("ascii"),
+                                                base64.b64encode(aad).decode("ascii")))
+
+    def delete_key(self, profile_id):
+        self.bridge.deleteKey(profile_id)
 
 
 def background_note():
