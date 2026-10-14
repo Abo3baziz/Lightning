@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: website analytics receiver 2026-10-14.3 sets itself up on its first request (Cairo time, formats, key in a *Dashboard key* tab, remembered spreadsheet id) and answers failures in JSON; dashboard compares only with a fully covered earlier period, uses whole Cairo days, and drops guessed section order.
 - 2026-10-14 · Claude: phone Categories open as one row per group (12,000px to about one screen; searching opens all); an odd last tile spans the row; Cash planning leads with Safe to spend and drops the two tiles it repeats. Settings' five tabs are an `OWNER.md` question (18).
 - 2026-10-14 · Claude: website decision dashboard built (Lightning_website): verdict cards with confidence, key numbers against the previous period, path to a download per device, trends with release markers, channels, fix list, release effect; receiver script 2026-10-14.1 adds `From` and the per-day, per-page fields; Privacy Notice UX-2026.10.14.03. Owner: paste the receiver (OWNER.md).
 - 2026-10-14 · Claude: phone fields open empty when tapped (`phone-fields.js`): the old text returns if the field is left empty, a sheet that focuses itself clears nothing. A lone tile spans the row; Data checks and Currencies figures are rows in one surface.
