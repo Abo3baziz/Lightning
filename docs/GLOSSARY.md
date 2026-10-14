@@ -41,6 +41,7 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | Term | Layer | Meaning |
 |---|---|---|
 | **Account** | Ledger | Where value is held (CIB, Cash wallet, THNDR brokerage). |
+| **Gam'eya** | Ledger | A rotating savings circle: one account per circle; every instalment and your payout is an internal transfer, never income or spending; balance = paid in − received (positive: Gam'eya paid in; negative: Gam'eya still to pay). |
 | **Financial asset** | Ledger | What an account holds or counts (EGP cash, COMI share, fund unit, CD, gold gram). |
 | **Asset class** | Ledger | The kind of wealth an asset is; not where held or why paid. |
 | **Exposure** | Ledger | What an asset economically tracks, apart from its class (a gold fund is a Fund with Gold exposure). |
@@ -423,6 +424,8 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | Brokerage cash | نقدية الاستثمار |
 | Cash you own | النقدية اللي تملكها |
 | Deposits | الودائع والشهادات |
+| Gam'eya paid in | جمعية مدفوعة |
+| Gam'eya still to pay | جمعية لسه عليك |
 | Holdings value | قيمة الاستثمارات |
 | Other you own | أصول تانية تملكها |
 | Reserves | المبالغ المحجوزة |

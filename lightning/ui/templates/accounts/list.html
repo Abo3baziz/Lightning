@@ -12,7 +12,7 @@
     {% for acc, balance, owned, count in rows %}
       <tr class="{{ 'void' if not acc.active }}">
         <td><a href="/accounts/{{ acc.id }}">{{ acc.name }}</a>{% if not acc.active %} <span class="pill">{{ "inactive"|tr(locale) }}</span>{% endif %}</td>
-        <td class="small">{{ acc.type_label }}{% if acc.account_type.value == 'DEPOSIT' %}<br><a href="/deposits/{{ acc.id }}">{{ "View CDs"|tr(locale) }}</a>{% endif %}</td>
+        <td class="small">{{ acc.type_label }}{% if acc.account_type.value == 'DEPOSIT' %}<br><a href="/deposits/{{ acc.id }}">{{ "View CDs"|tr(locale) }}</a>{% elif acc.account_type.value == 'GAMEYA' %}<br><a href="/gameya/{{ acc.id }}">{{ "Open gam’eya"|tr(locale) }}</a>{% endif %}</td>
         <td class="num small">{{ count }}</td>
         <td class="num">{% if balance is none %}<span class="muted">{{ 'Unavailable'|tr(locale) }}</span>{% else %}{{ held(balance, base) }}{% endif %}</td>
         <td class="num">{% if owned is none %}<span class="muted">{{ 'Unavailable'|tr(locale) }}</span>{% else %}{{ held(owned, base) }}{% endif %}</td>

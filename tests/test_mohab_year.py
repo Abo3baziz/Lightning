@@ -574,6 +574,7 @@ def _live_the_year(o: Mohab) -> None:
     _exercise_cash_ownership(o)
     _a_rule_for_vodafone(o)
     _a_dollar_account_and_a_nasdaq_etf(o)
+    _a_gameya(o)
 
 
 def _a_rule_for_vodafone(o: Mohab) -> None:
@@ -587,6 +588,31 @@ def _a_rule_for_vodafone(o: Mohab) -> None:
     o.enter("CIB Payroll", "2027-09-30", "Vodafone", "", "-350")
     o.enter("CIB Payroll", "2027-09-30", "Vodafone", "", "-12,000", notes="new phone")
     o.ask("rule_filed", "Did the rule file the phone as Shopping and keep the bill?", "CIB Payroll")
+
+
+def _a_gameya(o: Mohab) -> None:
+    """Gam'eya (Upcoming projects #14): Mohab joins an office circle of 10 members, 2,000 EGP a month, and takes the
+    third pot. He joined after the first two months, so he records those two, then finds the third instalment
+    waiting under Needs you and takes his pot on the day his turn came. Net worth does not move: the pot is a loan
+    from the circle until the rest is paid in, so it shows as Gam'eya still to pay under What you owe."""
+    o.on("2027-09-30")
+    b = o.b
+    o.ask("gameya_before", "What am I worth before I join the gam'eya?")
+    b.go("+ Add account")
+    o.notes["gameya_account"] = b.submit({"name": "Office gam'eya", "account_type": Choose("Gam'eya"), "currency": "EGP"},
+                                         button="Add account")
+    o.notes["gameya_terms"] = b.submit(
+        {"organiser": "Um Ali", "members": "10", "installment": "2,000", "first_date": "2027-07-05", "my_turn": "3",
+         "funding_account_id": Choose("CIB Payroll"), "payout_account_id": Choose("CIB Payroll")}, button="Save terms")
+    o.notes["gameya_first"] = b.submit(button="Record instalment")       # prefilled: 2027-07-05, 2,000, CIB Payroll
+    o.notes["gameya_second"] = b.submit(button="Record instalment")      # 2027-08-05
+    o.ask("gameya_due", "Is a gam'eya instalment waiting for me?")
+    o.notes["gameya_page"] = b.click("Gam'eya instalment due")
+    o.notes["gameya_third"] = b.submit(button="Record instalment")       # 2027-09-05, his turn's month
+    o.notes["gameya_payout"] = b.submit(button="Record payout")          # 20,000 on 2027-09-05
+    o.ask("gameya_after", "What am I worth now, and what do I owe the circle?")
+    o.ask("gameya_circle", "Where do I stand in the gam'eya?", "Accounts", "Office gam'eya", "Open gam’eya")
+    o.ask("gameya_plan", "Do I see the instalments still to pay?", "Cash planning")
 
 
 def _a_dollar_account_and_a_nasdaq_etf(o: Mohab) -> None:
@@ -1471,3 +1497,36 @@ def test_dollars_he_bought_show_their_cost_value_and_spread(mohab):
     detail = mohab.b.click("Details")
     assert detail.shows("1 USD = 50.000000 EGP", "Spread paid", "750.00", "Fee", "50.00 EGP")
 
+
+# ------------------------------------------------------------------ gam'eya (savings circle)
+def test_a_gameya_third_instalment_waits_under_needs_you_once(mohab):
+    answer = mohab.answers["gameya_due"]
+    assert answer.shows("Gam'eya instalment due: Office gam'eya", "Instalment 3 of 10 was due 2027-09-05")
+    assert answer.screen.text.count("Gam'eya instalment due") == 1       # one row for the circle, not one per month
+    assert mohab.notes["gameya_terms"].shows("Gam'eya terms saved", "Nothing was posted")
+    assert mohab.notes["gameya_page"].shows("Instalment 3 of 10", "2 of 10")
+
+
+def test_taking_the_pot_early_changes_what_he_owes_but_not_his_net_worth(mohab):
+    before, after = mohab.answers["gameya_before"], mohab.answers["gameya_after"]
+    assert after.figure("Net worth") == before.figure("Net worth")
+    assert after.shows("Gam'eya still to pay", "14,000")
+    assert D("14000") == mohab.c.position.at("2027-09-30").gameya_still_to_pay
+    assert mohab.c.position.at("2027-09-30").gameya_paid_in == 0
+
+
+def test_the_circle_page_says_who_owes_whom_and_what_is_next(mohab):
+    assert route(mohab, "gameya_circle")[0] == "/"
+    answer = mohab.answers["gameya_circle"]
+    assert answer.shows("Office gam'eya", "run by Um Ali", "You owe the circle", "14,000", "3 of 10",
+                        "Next instalment", "2027-10-05", "Your turn", "2027-09-05", "received")
+    assert not answer.shows("Record payout")     # recorded: the form is gone
+
+
+def test_cash_planning_lists_the_instalments_still_to_pay(mohab):
+    answer = mohab.answers["gameya_plan"]
+    assert answer.shows("Gam'eya instalments", "2,000")
+    events = [e for e in mohab.c.deposits.future_events("2027-09-30", "2028-04-30") if e.source == "GAMEYA"]
+    assert [e.kind for e in events] == ["INSTALLMENT"] * 7 and events[0].date == "2027-10-05"
+    assert mohab.c.gameya.progress(next(a.id for a in mohab.c.accounts.list() if a.name == "Office gam'eya"),
+                                   "2027-09-30").paid == 3

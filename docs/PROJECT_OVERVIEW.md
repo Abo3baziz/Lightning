@@ -81,6 +81,7 @@ Specs live in [Architecture](ARCHITECTURE.md); terms in the [Glossary](GLOSSARY.
 - **Cash planning:** Safe to spend, What you owe, next 30 days, three-month forecast; Recurring bills, subscriptions and income (suggested, never created on their own); Loans with payoff date; Reserves with the emergency fund.
 - **Needs you (Overview):** the one review inbox: statements waiting, uncategorized transactions, bills due, missing prices, plan problems.
 - **Financial health:** named figures with profile-owned limits and six completed months of trend. No score.
+- **Gam'eya (savings circle):** one account per circle with its terms (members, instalment, your turn, payout, optional interest); record each instalment and your payout as transfers; the circle page says who owes whom; Gam'eya paid in counts in Holdings value, Gam'eya still to pay in What you owe; instalments and the payout join Cash planning and a missed instalment appears under Needs you.
 - **Investments:** buy, sell, dividends; prices fetched, typed or from shared files; Net gain or loss; Holdings after sale; target allocation; certificates and time deposits per certificate; US stocks priced in USD with price and FX parts of the gain (v1.1).
 - **Currencies:** foreign cash with dated rates, Convert, per-currency position with realized and unrealized FX gain (v1.1).
 - **Held for others** and **cash ownership:** reassign cash between you and a saved person, or record an expense paid for you.
@@ -152,11 +153,11 @@ Early pay, raise and rent changes need explicit confirmation by design: Lightnin
 
 **Mohab**, 31, salaried, Cairo: 45,000 EGP a month from ACME Egypt into CIB; a cash wallet and Vodafone Cash; an NBE 3-year certificate; a THNDR account with COMI, Fawry and a money market fund; an L'Azurde ring and a gold pound; 10,000 EGP of his mother's money in CIB; rent, internet, phone, electricity, and a 24-month car loan.
 
-`tests/test_mohab_year.py` (read its docstring) runs steps 1–31 through the screens, one test per step. It judges answers, route from the Overview, effort, speed, simplicity, clarity and UI. When a gap is fixed, change its assertion and the Today column together.
+`tests/test_mohab_year.py` (read its docstring) runs steps 1–32 through the screens, one test per step. It judges answers, route from the Overview, effort, speed, simplicity, clarity and UI. When a gap is fixed, change its assertion and the Today column together.
 
 **Steps 1–10, one ordinary month (July–September 2026):** open six accounts (dates as `1/7`); import 40 CIB rows (39 posted, 1 skipped, Mom's 10,000 is Held for others); move money to THNDR and buy COMI, Fawry and a fund; record the ring and the gold pound; cash and Vodafone Cash spending; month-end prices; a 20,000 emergency fund and the budget (Free cash = Cash you own − Reserves − Bills due); track recurring items and the car loan (What you owe 60,000); on 2026-10-06 mark salary, rent and a loan payment paid (Net worth moves only by +45,000; loans still to pay 57,500); read every tab, Checks pass.
 
-**Steps 11–31, October 2026 to September 2027:**
+**Steps 11–32, October 2026 to September 2027:**
 
 | # | When | Step | Today |
 |---|---|---|---|
@@ -181,10 +182,11 @@ Early pay, raise and rent changes need explicit confirmation by design: Lightnin
 | 29 | 30 Apr | Safe to spend after raising his target | Answered |
 | 30 | May–Jul | 60,000 laptop by 30 June | Answered |
 | 31 | 30 Sep | Moves Talabat to Food | Answered |
+| 32 | 30 Sep | Joins a 10-member, 2,000 EGP gam'eya and takes the third pot | Answered: the missed instalment shows once under Needs you; Net worth unchanged; 14,000 under What you owe |
 
 The dollar steps are not yet inside the year (NOW.md, Next 3). User feedback batch 001 is checked by nine named screen assertions; loading speed, scroll position, compact review rows, chart colours and register balance are judged on a real PC.
 
-**Not scripted:** gam'eya (no type; an inflow needs an income category); the NBE certificate maturing (forecast only; he enters redemption and interest by hand); paying the car loan off early; payslip deductions (record net pay).
+**Not scripted:** the NBE certificate maturing (forecast only; he enters redemption and interest by hand); paying the car loan off early; payslip deductions (record net pay).
 
 <a id="compared-with-the-best-budgeting-apps"></a>
 ## 7. Compared with the best budgeting apps
@@ -241,7 +243,7 @@ Ideas added 2026-10-05 unless dated; each names its source app (evidence: [Compe
 | 11 | Move in from Wallet, Money Manager, Masareef exports | Say reviews | Not started |
 | 12 | Deeper investments (splits, lots, reinvested dividends, time-weighted return) | Quicken, GnuCash | Proposals: [investment_*](proposals/), [bonus_shares_and_splits](proposals/bonus_shares_and_splits.md) |
 | 13 | Silver, property, vehicles | Qershnat | Not started |
-| 14 | Gam'eya and zakat | Qershnat, Masroofy | Owner chose to build (2026-10-14): [gameya.md](proposals/gameya.md), [zakat.md](proposals/zakat.md) |
+| 14 | Gam'eya and zakat | Qershnat, Masroofy | Gam'eya built on branch `claude/gameya` (2026-10-14), awaiting merge: [Architecture](ARCHITECTURE.md#certificates-and-time-deposits). Zakat: [zakat.md](proposals/zakat.md) |
 
 For the code (Actual Budget): one change note per change, joined at release; visual snapshots of key screens; a warning on pushes that touch a migration.
 

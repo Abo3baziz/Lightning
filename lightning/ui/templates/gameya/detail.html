@@ -1,0 +1,127 @@
+{# A gam'eya (savings circle) on a PC: where it stands, the two things to record, and its terms (guideline A05,
+   A07, A10, A16). The money rules are in lightning/deposits/gameya.py; nothing is calculated here. #}
+{% extends "base.html" %}
+{% from "partials/macros.html" import held with context %}
+{% block title %}{{ "Gam'eya"|tr(locale) }} · {{ account.name }}{% endblock %}
+{% block heading %}
+<h1>{{ account.name }}</h1>
+<div class="muted">{{ "Gam'eya"|tr(locale) }}{% if terms %} · {{ 'run by'|tr(locale) }} {{ terms.organiser }}{% endif %} · {{ account.currency }}</div>
+{% endblock %}
+{% block top_actions %}<a class="btn" href="/accounts/{{ account.id }}">{{ 'Account activity'|tr(locale) }}</a>
+<details class="action-menu"><summary>{{ 'More actions'|tr(locale) }}</summary><div><a data-popup-open href="/accounts/{{ account.id }}/edit">{{ 'Edit account'|tr(locale) }}</a></div></details>{% endblock %}
+{% block content %}
+{% macro account_options(chosen) %}<option value="">{{ 'Choose an account'|tr(locale) }}</option>{% for a in cash_accounts %}<option value="{{ a.id }}" {{ 'selected' if chosen == a.id|string }}>{{ a.name }}</option>{% endfor %}{% endmacro %}
+{% macro terms_form(button) %}
+  <form method="post" action="/gameya/{{ account.id }}/terms" class="stack" style="max-width:760px" data-gameya-terms>
+    <div class="row">
+      <label>{{ 'Who runs it'|tr(locale) }}<input name="organiser" value="{{ values.organiser }}" list="gameya-organisers" data-own-suggestions placeholder="{{ 'A person’s name'|tr(locale) }}" required autocomplete="off"></label>
+      <datalist id="gameya-organisers">{% for person in counterparties %}<option value="{{ person.name }}">{% endfor %}</datalist>
+      <label>{{ 'Members'|tr(locale) }}<input name="members" value="{{ values.members }}" inputmode="numeric" placeholder="10" required></label>
+    </div>
+    <div class="row">
+      <label>{{ 'Instalment'|tr(locale) }} ({{ account.currency }})<input name="installment" value="{{ values.installment }}" inputmode="decimal" placeholder="2000" required></label>
+      <label>{{ 'First instalment'|tr(locale) }}<input name="first_date" type="text" value="{{ values.first_date }}" placeholder="yyyy-mm-dd" data-smart-date required></label>
+    </div>
+    <div class="row">
+      <label>{{ 'Your turn'|tr(locale) }}<input name="my_turn" value="{{ values.my_turn }}" inputmode="numeric" placeholder="3" required><small class="muted">{{ 'Month number, 1 is the first pot.'|tr(locale) }}</small></label>
+      <label>{{ 'Your payout'|tr(locale) }} ({{ account.currency }})<input name="payout" value="{{ values.payout }}" inputmode="decimal" placeholder="{{ 'Members × instalment'|tr(locale) }}"><small class="muted">{{ 'Leave blank for members × instalment. Change it if the organiser keeps a cut.'|tr(locale) }}</small></label>
+    </div>
+    <div class="planner-mode" role="radiogroup" aria-label="{{ 'Interest'|tr(locale) }}"><span class="planner-mode-label">{{ 'Interest'|tr(locale) }}</span><span class="planner-mode-seg">
+      <label><input type="radio" name="interest" value="none" {{ 'checked' if values.interest != 'rate' }}><span>{{ 'No interest'|tr(locale) }}</span></label>
+      <label><input type="radio" name="interest" value="rate" {{ 'checked' if values.interest == 'rate' }}><span>{{ 'Estimated return'|tr(locale) }}</span></label></span></div>
+    <label data-gameya-rate {{ 'hidden' if values.interest != 'rate' }}>{{ 'Annual rate (%)'|tr(locale) }}<input name="annual_rate" value="{{ values.annual_rate }}" inputmode="decimal" placeholder="0"><small class="muted">{{ 'A planning estimate on what you have paid in, counted at your turn. Never posted: record what you actually get as money in.'|tr(locale) }}</small></label>
+    <div class="row">
+      <label>{{ 'Pay instalments from'|tr(locale) }}<select name="funding_account_id" data-own-picker required>{{ account_options(values.funding_account_id) }}</select></label>
+      <label>{{ 'Receive your payout in'|tr(locale) }}<select name="payout_account_id" data-own-picker required>{{ account_options(values.payout_account_id) }}</select></label>
+    </div>
+    {% if not cash_accounts %}<p class="error">{{ 'Add a bank or cash account in this currency first.'|tr(locale) }}</p>{% endif %}
+    <div class="actions"><button class="btn {{ 'primary' if not terms }}">{{ button|tr(locale) }}</button></div>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+{% endmacro %}
+
+{% if not terms %}
+<section class="card">
+  <h2>{{ 'Set up your circle'|tr(locale) }}</h2>
+  <p class="muted">{{ 'Everyone pays the same instalment each month and one member takes the pot. Saving the terms posts nothing.'|tr(locale) }}</p>
+  {% if error and error_form == 'terms' %}<p class="error" role="alert">{{ error|tr(locale) }}</p>{% endif %}
+  {{ terms_form('Save terms') }}
+</section>
+{% else %}
+{% set owes_you = progress.balance > 0 %}{% set you_owe = progress.balance < 0 %}
+<section class="card">
+  <div class="overview-block-head"><div><h2>{{ 'Where you stand'|tr(locale) }}</h2><p>{{ 'As of'|tr(locale) }} {{ today_iso }}</p></div></div>
+  {% if owes_you or you_owe %}
+  <div class="overview-headline">{{ held(progress.balance|abs, '', 0) }} <small>{{ account.currency }}</small></div>
+  <p class="muted">{{ 'The circle owes you'|tr(locale) if owes_you else 'You owe the circle'|tr(locale) }}</p>
+  {% else %}<p class="muted">{{ 'Nothing owed either way.'|tr(locale) }}</p>{% endif %}
+  <div class="overview-inline-list">
+    <div class="overview-static-row"><span>{{ 'Instalments paid'|tr(locale) }}</span><b>{{ progress.paid }} {{ 'of'|tr(locale) }} {{ terms.members }}</b></div>
+    <div class="overview-static-row"><span>{{ 'Next instalment'|tr(locale) }}</span><b>{% if progress.next_date %}{{ progress.next_date }} · {{ terms.installment|money(False, 0) }}{% else %}{{ 'All recorded'|tr(locale) }}{% endif %}</b></div>
+    <div class="overview-static-row"><span>{{ 'Your turn'|tr(locale) }}</span><b>{{ progress.payout_date }} · {{ terms.payout|money(False, 0) }}{% if progress.payouts %} · {{ 'received'|tr(locale) }}{% endif %}</b></div>
+  </div>
+  {% if progress.overdue %}<p class="muted">{{ 'An instalment is past its date and not recorded yet.'|tr(locale) }}</p>{% endif %}
+  {% if progress.all_recorded and not progress.finished %}<p class="muted">{{ 'Everything is recorded, but the balance is not zero. Record the difference, such as a fee, in this account.'|tr(locale) }}</p>{% endif %}
+  {% if progress.finished %}<p class="muted">{{ 'This circle is finished. It no longer appears in your forecast.'|tr(locale) }}</p>{% endif %}
+  <p class="muted small">{{ 'Instalments and your payout move money between your accounts. They are never income or spending.'|tr(locale) }}</p>
+</section>
+
+{% if progress.next_index %}
+<section class="card" id="record-instalment" style="margin-top:16px">
+  <h2>{{ 'Record instalment'|tr(locale) }}</h2>
+  <p class="muted">{{ 'Instalment'|tr(locale) }} {{ progress.next_index }} {{ 'of'|tr(locale) }} {{ terms.members }}</p>
+  {% if error and error_form == 'instalment' %}<p class="error" role="alert">{{ error|tr(locale) }}</p>{% endif %}
+  <form method="post" action="/gameya/{{ account.id }}/instalment" class="stack" style="max-width:760px">
+    <div class="row">
+      <label>{{ 'Date'|tr(locale) }}<input name="date" type="text" value="{{ prefill.instalment_date }}" placeholder="yyyy-mm-dd" data-smart-date required></label>
+      <label>{{ 'Amount'|tr(locale) }} ({{ account.currency }})<input name="amount" value="{{ prefill.instalment_amount }}" inputmode="decimal" required></label>
+      <label>{{ 'Paid from'|tr(locale) }}<select name="account_id" data-own-picker required>{{ account_options(prefill.instalment_from) }}</select></label>
+    </div>
+    <div class="actions"><button class="btn primary">{{ 'Record instalment'|tr(locale) }}</button></div>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+</section>
+{% endif %}
+
+{% if not progress.payouts %}
+<section class="card" id="record-payout" style="margin-top:16px">
+  <h2>{{ 'Record payout'|tr(locale) }}</h2>
+  <p class="muted">{{ 'Record it when the pot reaches you. Taking it before you have paid in everything leaves you owing the circle, and that is counted in What you owe.'|tr(locale) }}</p>
+  {% if error and error_form == 'payout' %}<p class="error" role="alert">{{ error|tr(locale) }}</p>{% endif %}
+  <form method="post" action="/gameya/{{ account.id }}/payout" class="stack" style="max-width:760px">
+    <div class="row">
+      <label>{{ 'Date'|tr(locale) }}<input name="date" type="text" value="{{ prefill.payout_date }}" placeholder="yyyy-mm-dd" data-smart-date required></label>
+      <label>{{ 'Amount'|tr(locale) }} ({{ account.currency }})<input name="amount" value="{{ prefill.payout_amount }}" inputmode="decimal" required></label>
+      <label>{{ 'Received in'|tr(locale) }}<select name="account_id" data-own-picker required>{{ account_options(prefill.payout_into) }}</select></label>
+    </div>
+    <div class="actions"><button class="btn {{ 'primary' if not progress.next_index }}">{{ 'Record payout'|tr(locale) }}</button></div>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+</section>
+{% endif %}
+
+<section class="card" style="margin-top:16px">
+  <details {{ 'open' if error and error_form == 'terms' }}>
+    <summary><b>{{ 'Change terms'|tr(locale) }}</b></summary>
+    {% if error and error_form == 'terms' %}<p class="error" role="alert">{{ error|tr(locale) }}</p>{% endif %}
+    <p class="muted small">{{ 'Recorded instalments and your payout do not change.'|tr(locale) }}</p>
+    {{ terms_form('Save terms') }}
+  </details>
+</section>
+{% endif %}
+<script nonce="{{ request.state.csp_nonce|default('') }}">
+(() => {
+  document.querySelectorAll('[data-gameya-terms]').forEach((form) => {
+    const rate = form.querySelector('[data-gameya-rate]');
+    const choices = form.querySelectorAll('input[name="interest"]');
+    const sync = () => {
+      if (!rate) return;
+      rate.hidden = !form.querySelector('input[name="interest"][value="rate"]').checked;
+      rate.style.display = rate.hidden ? 'none' : '';
+    };
+    choices.forEach((choice) => choice.addEventListener('change', sync));
+    sync();
+  });
+})();
+</script>
+{% endblock %}

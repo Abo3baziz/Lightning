@@ -25,7 +25,7 @@
       {% if error_field == 'currency' %}<small class="error">{{ error }}</small>{% endif %}
     </div>
   </div>
-  <section class="card" id="opening-balance-section" {% if values.account_type == 'DEPOSIT' %}hidden style="display:none;background:var(--surface-2);box-shadow:none;margin:14px 0"{% else %}style="background:var(--surface-2);box-shadow:none;margin:14px 0"{% endif %}>
+  <section class="card" id="opening-balance-section" {% if values.account_type in ('DEPOSIT', 'GAMEYA') %}hidden style="display:none;background:var(--surface-2);box-shadow:none;margin:14px 0"{% else %}style="background:var(--surface-2);box-shadow:none;margin:14px 0"{% endif %}>
     <h2>{{ 'Starting balance'|tr(locale) }}</h2>
     <p class="muted small">{{ 'Enter what this account held when you started tracking it. This sets the opening balance; it is not counted as income. Leave it blank if you’ll import or enter the opening activity separately.'|tr(locale) }}</p>
     <div class="row">
@@ -75,6 +75,7 @@
   if (!type || !help) return;
   const update = () => {
     if (type.value === 'DEPOSIT') help.textContent = 'A bank-specific CD portfolio holds certificates, not cash. Enter the bank under Institution, then record each CD purchase from a bank or cash account.';
+    else if (type.value === 'GAMEYA') help.textContent = 'A gam\'eya holds one savings circle\'s cash. After you add it, enter its terms; each instalment and your payout are transfers.';
     else if (type.value === 'PHYSICAL_ASSET') help.textContent = 'Gold purity belongs to the gold holding itself, so choose its karat when you add the gold investment. This account can hold physical assets.';
     else help.textContent = '';
   };
@@ -84,7 +85,7 @@
   const openingAmount = document.getElementById('opening_balance');
   const syncBalance = () => {
     if (!opening) return;
-    const isPortfolio = type.value === 'DEPOSIT';
+    const isPortfolio = type.value === 'DEPOSIT' || type.value === 'GAMEYA';
     if (isPortfolio && !opening.hidden && openingAmount && openingAmount.value !== '0') {
       opening.dataset.previousValue = openingAmount.value;
       openingAmount.value = '0';
