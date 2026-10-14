@@ -35,6 +35,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-14 · Claude: optional fingerprint unlock on the phone (task 18d): an opt-in Keystore-bound key slot outside the profile (`keys.json` and the PC unchanged), unlocked through BiometricPrompt then the password's own open path; Settings › This phone and a Use fingerprint button on the unlock screen.
+  Cancel counts nothing; changed fingerprints or a key that is not the profile's remove the slot and say to use the password. Java compiled against API 30 stubs only; on-device check in `OWNER.md`.
 - 2026-10-13 · Codex: v1.1.0-beta.1 published as a matched Windows ZIP and signed Android APK; public checksums match the tested pair.
   Website downloads, release notes, archives and feedback choices updated in English and Arabic; v1.1 acceptance items cleared from NOW.md, larger features deferred.
 

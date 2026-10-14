@@ -15,7 +15,7 @@ from lightning.database.currencies import CurrencyRegistry
 from lightning.database.seed import CASH_ASSETS
 from lightning.database.migrator import inspect_schema
 from lightning.database.snapshot import verify_connection
-from lightning.security.keys import (clean_question, create_key_file, new_data_key, new_recovery_key,
+from lightning.security.keys import (clean_question, create_key_file, key_id, new_data_key, new_recovery_key,
                                      normalize_answer, normalize_recovery_key, open_with_recovery, proof_kind,
                                      unwrap_key, validate_key_file, with_password, with_question, with_recovery_key)
 
@@ -385,22 +385,55 @@ class ProfileSession:
                 attempts.failed()
                 raise ProfileError("The password is incorrect.") from exc
             attempts.succeeded()
+            self._open(paths, lock, document, key, role)
+        except BaseException:
+            lock.close()
+            raise
+
+    def _open(self, paths: ProfilePaths, lock: InstanceLock, document: dict, key: bytes, role: SessionRole) -> None:
+        """What follows any unlock that has the data key, whichever way it was obtained: put back a missing key
+        file, check an interrupted restore, verify the database, open it in `role`. The caller closes `lock`
+        if this raises."""
+        try:
+            if read_slot(paths.keys_path) != document:
+                raise ProfileError("damaged")
+        except ProfileError:
+            publish_keys(paths, document)  # put back a missing or damaged key file from its copy
+        from lightning.runtime.restore import EncryptedBackupRestorer
+        EncryptedBackupRestorer._check_restore_control(paths, key)
+        self._verify(paths, key)
+        if role.writable:
+            container = build(paths.db_path, key=key, backup_dir=paths.backups_dir, backup_on_start=True)
+        else:
             try:
-                if read_slot(paths.keys_path) != document:
-                    raise ProfileError("damaged")
-            except ProfileError:
-                publish_keys(paths, document)  # put back a missing or damaged key file from its copy
-            from lightning.runtime.restore import EncryptedBackupRestorer
-            EncryptedBackupRestorer._check_restore_control(paths, key)
-            self._verify(paths, key)
-            if role.writable:
-                container = build(paths.db_path, key=key, backup_dir=paths.backups_dir, backup_on_start=True)
-            else:
-                try:
-                    container = build(paths.db_path, key=key, read_only=True)
-                except ReadOnlyCopyError as exc:
-                    raise ProfileError(str(exc)) from exc
-            self._activate(paths, lock, container, role)
+                container = build(paths.db_path, key=key, read_only=True)
+            except ReadOnlyCopyError as exc:
+                raise ProfileError(str(exc)) from exc
+        self._activate(paths, lock, container, role)
+
+    def fingerprint_target(self, selected: str) -> tuple[str, str]:
+        """(profile id, key id) of a locked profile, for the phone's fingerprint unlock; ("", "") when the profile
+        has no identifier or its key file cannot be read (the password screen says why)."""
+        paths = self._select(selected)
+        if paths.profile is None:
+            return "", ""
+        try:
+            return paths.profile.profile_id, read_keys(paths)["key_id"]
+        except ProfileError:
+            return "", ""
+
+    def unlock_with_key(self, selected: str, key: bytes, *, role: SessionRole = SessionRole.HOME) -> None:
+        """Open a profile with its data key, already released by the phone's fingerprint. It takes the same road
+        as a password unlock after the password step (restore checks, verification, roles), refuses a key that is
+        not the one in keys.json, and counts nothing: Android counts fingerprint failures, and a fingerprint
+        neither guesses the password nor clears its wait."""
+        paths = self._select(selected)
+        lock = self._acquire(paths)
+        try:
+            document = read_keys(paths)
+            if not isinstance(key, bytes) or len(key) != 32 or not secrets.compare_digest(key_id(key), document["key_id"]):
+                raise ProfileError("That fingerprint key does not belong to this profile. Unlock with your password.")
+            self._open(paths, lock, document, key, role)
         except BaseException:
             lock.close()
             raise
@@ -497,6 +530,20 @@ class ProfileSession:
         document, key, attempts = self._open_key_file()
         self._prove(document, key, attempts, proof, "answer", "recovery")
         publish_keys(self.paths, with_password(document, key, password))
+
+    def prove_password(self, password: str) -> bytes:
+        """The password typed again by the person with the profile open (fresh proof before fingerprint unlock is
+        turned on). Returns the data key. A wrong password counts like any other wrong try."""
+        document, key, attempts = self._open_key_file()
+        try:
+            same = secrets.compare_digest(key_id(unwrap_key(document, password)), key_id(key))
+        except ValueError as exc:
+            attempts.failed()
+            raise ProfileError("The password is incorrect.") from exc
+        if not same:
+            raise ProfileError("The password is incorrect.")
+        attempts.succeeded()
+        return key
 
     def change_question(self, recovery: str, question: str, answer: str) -> None:
         """New security question: the open profile plus the recovery key (the old answer may be forgotten)."""

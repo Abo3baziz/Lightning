@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Bank SMS become transactions to review (milestone 3); asked for on From SMS, after saying why. -->
     <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- Optional fingerprint unlock (BiometricPrompt, Settings > This phone); the password always works. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
