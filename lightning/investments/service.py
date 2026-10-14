@@ -26,6 +26,7 @@ from lightning.transactions.service import TransactionService
 
 from .domain import DEFAULT_SALE_FACTOR, Portfolio, Position
 from .xirr import xirr
+from .returns import display_return
 
 DIVIDEND_CATEGORY = "EXP.INVEST.DIVIDEND"
 CENT = Decimal("0.01")
@@ -392,6 +393,7 @@ class InvestmentService:
             holding_cashflows = holding_flows.get((acc_id, asset_id), [])
             if s["qty"] and valuation and valuation.value is not None:
                 holding_cashflows = [*holding_cashflows, (day, valuation.value)]
+            annual_rate = xirr(holding_cashflows, day)
             positions.append(Position(
                 account_id=acc_id, account_label=account.label, asset_id=asset_id, asset_code=asset.code,
                 asset_name=asset.name, asset_class=self.assets.display_name(asset.asset_class_id),
@@ -403,7 +405,9 @@ class InvestmentService:
                 price_source=valuation.source if valuation else "",
                 value=valuation.value if valuation and valuation.value is not None else (
                     None if s["qty"] else ZERO),  # full precision, like net worth; screens round
-                xirr=xirr(holding_cashflows, day),
+                xirr=annual_rate,
+                display_return=display_return(holding_cashflows, day, annual_rate,
+                                              not s["qty"] or bool(valuation and valuation.value is not None)),
                 owned_quantity=own["qty"], owned_cost_basis=_money(own["cost"]),
                 owned_realized=_money(own["realized"]),
             ))
@@ -416,7 +420,10 @@ class InvestmentService:
         positions.sort(key=lambda p: (-(p.value or ZERO), p.asset_name))
         cashflows.extend((day, position.value)
                          for position in positions if position.is_open and position.value is not None)
-        return Portfolio(day, positions, xirr(cashflows, day))
+        annual_rate = xirr(cashflows, day)
+        return Portfolio(day, positions, annual_rate,
+                         display_return(cashflows, day, annual_rate,
+                                        all(p.value is not None for p in positions)))
 
     def holding(self, account_id: int, asset_id: int, as_of=None) -> Decimal:
         for p in self.portfolio(as_of, account_id).positions:

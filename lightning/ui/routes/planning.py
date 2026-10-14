@@ -115,16 +115,13 @@ async def plan_page(request: Request):
 def _plan_stats(f, plan, day, has_income: bool = True) -> list[dict]:
     """Four cards: safe to spend, free cash, what is due before the next income, the lowest point ahead."""
     until = f.next_income_date
-    days = (parse_date(until) - day).days if until else 90
-    per_day = f.safe_to_spend / days if days > 0 and f.safe_to_spend > 0 else None
     low = f.lowest if has_income else None
     nxt = plan["before_income"][0] if plan["before_income"] else None
     return [
         {"key": "safe", "surface": "hold", "label": label("safe_to_spend"), "value": f.safe_to_spend, "kind": "money",
          "badge": {"tone": "over" if f.safe_to_spend < 0 else "flat", "text": f"until {until}" if until else "3 months"},
-         # A per-day figure only helps over a week or more; the day before payday it reads as "404,567 a day".
-         "sub": (f"About {fmt(per_day, 0)} a day for {days} days" if per_day is not None and days >= 7
-                 else f"Until your next income on {until}" if per_day is not None and until
+         "sub": (f"On top of your plan until {until}" if f.safe_to_spend > 0 and until
+                 else "On top of your plan for the next 3 months" if f.safe_to_spend > 0
                  else "Promised payments are larger than your free cash" if f.safe_to_spend < 0 else "Nothing left to spend safely"),
          "href": "#plan-build"},
         {"key": "free", "surface": "hold", "label": label("free_cash"), "value": f.free_cash, "kind": "money",
@@ -172,6 +169,9 @@ async def recurring_page(request: Request):
     labels = _labels(c)
     linked = c.planning.linked_transaction_ids()
     rows = [_row(c, item, labels, day, linked) for item in c.planning.items(RECURRING_KINDS)]
+    rows.sort(key=lambda row: (row["next"] is None,
+                              row["next"].due_date if row["next"] else "",
+                              row["item"].name.casefold()))
     stopped = c.planning.items(RECURRING_KINDS, active_only=False)
     stopped = [i for i in stopped if not i.active]
     subscriptions = sum((r["per_year"] for r in rows if r["item"].kind == PlanKind.SUBSCRIPTION), ZERO)

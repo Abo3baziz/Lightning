@@ -128,3 +128,8 @@ def test_settings_on_the_phone_leads_to_pairing_sms_and_the_profile(phone):
     html = phone.get("/settings").text
     assert 'href="/profiles/devices"' in html and 'href="/sms"' in html and 'href="/profiles"' in html
     assert "Pair a PC" in phone.get("/profiles/devices").text
+
+
+def test_overview_puts_needs_you_before_latest(phone):
+    html = phone.get("/").text
+    assert html.index('class="card phone-needs') < html.index('aria-labelledby="latest-heading"')

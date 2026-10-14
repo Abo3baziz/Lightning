@@ -60,3 +60,22 @@ def test_close_plan_payments_join_one_timeline_label(c, monkeypatch):
     assert "Gym" in rent["title"] and [m["name"] for m in marks[1:]] == ["Internet"]
     page = TestClient(create_app(c)).get("/plan")
     assert "Rent +2" in page.text
+
+
+def test_budget_settings_inline_links_keep_readable_spaces(c):
+    from html.parser import HTMLParser
+
+    class Text(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parts = []
+
+        def handle_data(self, data):
+            self.parts.append(data)
+
+    parser = Text()
+    parser.feed(TestClient(create_app(c)).get("/settings?section=budget").text)
+    text = "".join(parser.parts)
+    assert "the same as Recurring on Categories" in text
+    assert "the same as One-off on Categories" in text
+    assert "income in Recurring instead of the average" in text

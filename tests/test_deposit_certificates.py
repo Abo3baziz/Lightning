@@ -186,3 +186,19 @@ def test_the_one_liquidation_factor_setting_refuses_101_and_applies_50_only_to_c
     assert all(factors[class_id] == Decimal("50") for class_id in held)
     stock = c.assets.get_class_by_code("STOCK").id
     assert stock not in held and factors[stock] == Decimal("95")
+
+
+def test_locked_certificate_has_a_separate_value_and_settings_use_the_same_sale_estimate(c, setup, monkeypatch):
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-10-14")
+    accounts, _ = setup
+    _buy(c, accounts)
+    position = c.position.at("2026-10-14")
+    assert len(position.locked_holdings) == 1
+    assert position.locked_holdings[0].value == Decimal("5000")
+    assert position.locked_holdings[0].locked_until == "2026-11-01"
+    assert _cd_class(c, "2026-10-14").after_sale == Decimal("4750")  # legacy 5,000 at 95%; locked certificate excluded
+    client = TestClient(create_app(c))
+    for path in ("/", "/investments", "/settings?section=assets-valuations"):
+        page = client.get(path).text
+        assert "locked until 2026-11-01" in page and "5,000" in page
+    assert not c.position.at("2026-11-01").locked_holdings

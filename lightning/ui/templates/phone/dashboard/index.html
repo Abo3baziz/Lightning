@@ -21,17 +21,18 @@
   <div class="phone-lead">{{ (pos.net_worth if owes else pos.what_you_own)|money }} <small>{{ base }}</small></div>
   {% if pos.unvalued %}<p class="notice">{{ pos.unvalued|length }} asset valuation(s) are missing from this total.</p>{% endif %}
 </section>
-{% from "phone/partials/txn.html" import txn_list with context %}
-<section class="phone-section phone-latest" aria-labelledby="latest-heading">
-  <header class="phone-section-head"><h2 id="latest-heading">{{ 'Latest'|tr(locale) }}</h2><a class="phone-quiet" href="/transactions">{{ 'See all transactions'|tr(locale) }}</a></header>
-  {% if recent_rows %}{{ txn_list(recent_rows, True, False, False, '', '/transactions', '', 6, False) }}{% else %}<p class="phone-note">{{ 'No transactions yet.'|tr(locale) }}</p>{% endif %}
-</section>
 {% if attention %}
 <details class="card phone-needs" aria-labelledby="needs-heading">
   <summary><span class="needs-you-dot" aria-hidden="true"></span><b id="needs-heading">{{ "Needs you"|tr(locale) }}</b><span class="needs-you-count">{{ attention|length }}</span></summary>
   <div class="phone-rows">{% for item in attention %}<a class="phone-row" href="{{ item.href }}"{% if item.popup %} data-popup-open{% endif %}><span>{{ item.label }}<small>{{ item.detail }}</small></span><b class="phone-row-action">{{ item.action or '›' }}</b></a>{% endfor %}</div>
 </details>
 {% else %}<div class="card phone-needs is-empty"><span class="needs-you-dot" aria-hidden="true"></span><b>{{ "Nothing needs you today"|tr(locale) }}</b></div>{% endif %}
+
+{% from "phone/partials/txn.html" import txn_list with context %}
+<section class="phone-section phone-latest" aria-labelledby="latest-heading">
+  <header class="phone-section-head"><h2 id="latest-heading">{{ 'Latest'|tr(locale) }}</h2><a class="phone-quiet" href="/transactions">{{ 'See all transactions'|tr(locale) }}</a></header>
+  {% if recent_rows %}{{ txn_list(recent_rows, True, False, False, '', '/transactions', '', 6, False) }}{% else %}<p class="phone-note">{{ 'No transactions yet.'|tr(locale) }}</p>{% endif %}
+</section>
 
 <section class="phone-section" aria-labelledby="analysis-heading">
   <header class="phone-section-head"><h2 id="analysis-heading">{{ 'This period'|tr(locale) }}</h2><span>{{ date_from }} to {{ date_to }}</span></header>
@@ -73,6 +74,7 @@
     <div class="phone-fold-body">
     <div class="phone-rows">
       <div class="phone-row"><span>{{ fig.free_cash.label }}</span><b>{{ pos.free_cash|money if pos.free_cash is not none else 'Unavailable' }}</b></div>
+      {% for item in pos.locked_holdings %}<div class="phone-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }}<small>{{ "locked until {date}"|tr(locale, date=item.locked_until) }}</small></span><b>{{ item.value|money }}</b></div>{% endfor %}
       <details class="phone-row-more phone-fold"><summary class="phone-row"><span>{{ fig.holdings_after_sale.label }} <span class="phone-chevron" aria-hidden="true">›</span></span><b>{{ pos.holdings_after_sale|money }}</b></summary><div class="phone-fold-body"><div class="phone-rows">
       {% for cls in pos.classes if cls.value %}<a class="phone-row" data-popup-open href="/birdview/class/{{ cls.id }}?as_of={{ as_of }}"><span>{{ cls.name }}<small>{% if cls.locked_until %}{{ "locked until {date}"|tr(locale, date=cls.locked_until) }}{% else %}{{ '%g'|format(cls.factor) }}%{% endif %}</small></span><b>{{ cls.after_sale|money }}</b></a>{% endfor %}
       </div></div></details>

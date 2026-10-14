@@ -205,6 +205,7 @@ async def portfolio(request: Request):
                   owned_cost=owned_cost, owned_unrealized=owned_unrealized, custody_units=custody,
                   own_by_holding=own_by_holding, period=period, period_realized=p.realized-prior.realized,
                   period_dividends=period_distributions, since_xirr=(p.xirr if not any(custody.values()) else None),
+                  since_return=p.display_return if not any(custody.values()) else None,
                   owned_rows=owned_rows, period_activity=period_activity, period_error=period_error,
                   buckets=buckets, targets=targets, target_total=target_total,
                   owned_positions=owned_positions, max_class_result=max_class_result,
@@ -285,6 +286,7 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
                           "price": h.price, "value": yours, "gain": unrealized,
                           "gain_pct": unrealized / capital * 100 if unrealized is not None and capital else None,
                           "xirr": h.xirr * 100 if h.xirr is not None and units == h.quantity else None,
+                          "display_return": h.display_return if units == h.quantity else None,
                           "horizon": horizon, "weight": (yours or ZERO) / holdings_total * 100 if holdings_total else ZERO,
                           **_owned_split(splits.get((h.account_id, h.asset_id)), units, h.quantity, unrealized)})
     for name, item in balances:
@@ -409,7 +411,8 @@ async def holding_detail(request: Request, asset_id: int):
         own_units=max(ZERO,h.quantity-Decimal(str(custody["units"])))
         factor=own_units/h.quantity
         h=replace(h,quantity=own_units,cost_basis=h.owned_cost_basis,realized=h.owned_realized,
-                  dividends=h.dividends*factor,value=(h.value*factor if h.value is not None else None),xirr=None)
+                  dividends=h.dividends*factor,value=(h.value*factor if h.value is not None else None),xirr=None,
+                  display_return=None)
     asset=c.assets.get_asset(asset_id)
     saved_bucket, saved_horizon = c.assets.investment_preferences(asset_id)
     bucket=saved_bucket or h.asset_class.split(" › ")[-1]
@@ -428,6 +431,7 @@ async def holding_detail(request: Request, asset_id: int):
     return render(request,"investments/holding.html",h=h,asset=asset,bucket=bucket,horizon=horizon,day=day,stale_price=stale_price,
                   journey=journey, gain_pct=gain_pct, total_return=total_return, breakdown=breakdown,
                   xirr_pct=h.xirr * 100 if h.xirr is not None else None,
+                  display_return=h.display_return,
                   start=start,period_realized=h.realized-(previous.realized if previous else ZERO),
                   period_dividends=h.dividends-(previous.dividends if previous else ZERO),
                   allocation_classes=_allocation_classes(c),

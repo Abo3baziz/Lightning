@@ -68,6 +68,15 @@ def test_search_page_and_command_bar_ask_the_same_matcher(c):
     assert 'id="command-bar"' in shell and 'href="/search" data-command-open aria-keyshortcuts="Control+K"' in shell
 
 
+def test_category_result_shows_parent_separately_without_breadcrumb(c):
+    category = c.categories.get_by_code("EXP.PERSONAL.FOOD")
+    parent = c.categories.get(category.parent_id)
+    result = next(row for row in matches(c, category.name) if row["kind"] == "Category" and row["label"] == category.name)
+    assert result["context"] == parent.name
+    page = TestClient(create_app(c)).get("/search", params={"q": category.name}).text
+    assert f'{parent.name} › {category.name}' not in page
+
+
 def test_privacy_mode_is_the_windows_cookie_else_what_the_profile_remembers(c):
     _house(c)
     client = TestClient(create_app(c), base_url="http://127.0.0.1")

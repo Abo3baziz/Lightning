@@ -25,7 +25,7 @@
    "sub": (growth|signed_pct ~ '% ' ~ fig.period_growth.label|lower) if growth is not none else ''},
   {"surface": 'hold', "label": fig.portfolio_value.label, "value": value_spark.latest, "empty": 'Unavailable', "href": '#holdings-heading',
    "badge": {"tone": 'flat', "text": 'Today'},
-   "sub": (('XIRR'|tr(locale)) ~ ' ' ~ (since_xirr * 100)|signed_pct ~ ('% a year'|tr(locale))) if since_xirr is not none else ''},
+   "sub": ((('XIRR' if since_return.annualized else 'Return')|tr(locale)) ~ ' ' ~ since_return.percent|signed_pct ~ (('% a year' if since_return.annualized else '%')|tr(locale)) ~ ' · ' ~ ('Held {n} days'|tr(locale, n=since_return.days_held))) if since_return and since_return.percent is not none else ''},
 ] %}
 {{ kpi_tiles(tiles, base) }}
 {% if investment_report.missing %}<p class="flash">Prices missing: {% for issue in investment_report.missing %}{{ issue.asset }}{% if not loop.last %}, {% endif %}{% endfor %}. Their value may be out of date.</p>{% endif %}
@@ -47,6 +47,7 @@
   </article>{% endif %}
 </section>
 
+{% for item in pos.locked_holdings %}<div class="phone-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }}<small>{{ "locked until {date}"|tr(locale, date=item.locked_until) }}</small></span><b>{{ item.value|money }}</b></div>{% endfor %}
 <section class="phone-section" aria-labelledby="holdings-heading">
   <header class="phone-section-head"><h2 id="holdings-heading">{{ 'Holdings'|tr(locale) }}</h2><span>As of {{ period.end_text }}</span></header>
   {% for g in holding_groups %}

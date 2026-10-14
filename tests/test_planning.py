@@ -385,3 +385,14 @@ def test_the_plan_card_and_safe_to_spend_count_the_same_payments(c, setup, monke
     page = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", TestClient(create_app(c)).get("/plan").text))
     card = re.search(r"Bills and loan payments before next income \d+ payments? ([\d,]+) EGP", page)
     assert card and card.group(1) == f"{part:,.0f}"
+
+
+def test_recurring_rows_put_oldest_unpaid_date_first(c, monkeypatch):
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-10-14")
+    for name, due in (("ZZ overdue", "2026-10-01"), ("AA next month", "2026-11-01"),
+                      ("MM next week", "2026-10-20")):
+        c.planning.create(kind="BILL", name=name, amount="100", frequency="ONCE", start_date=due)
+    page = TestClient(create_app(c)).get("/plan/recurring").text
+    # Restrict this to the list: totals and charts also name the items.
+    rows = page.split('id="recurring-list"', 1)[1]
+    assert rows.index("ZZ overdue") < rows.index("MM next week") < rows.index("AA next month")

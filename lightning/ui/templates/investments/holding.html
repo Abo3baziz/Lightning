@@ -17,9 +17,9 @@
   <div class="stat-tile surface-in"><span class="stat-tile-head">{{ tone_icon('in') }}<span class="stat-tile-label">{{ "Total return"|tr(locale) }}</span></span>
     <span class="stat-tile-value{{ ' is-negative' if total_return < 0 }}">{{ total_return|money(True) }}<small>{{ base }}</small></span>
     <span class="stat-tile-sub">{{ "Price change, sales and payouts since you bought it"|tr(locale) }}</span></div>
-  <div class="stat-tile surface-in"><span class="stat-tile-head">{{ tone_icon('in') }}<span class="stat-tile-label">{{ 'XIRR'|tr(locale) }}</span><button type="button" class="info-tip" aria-label="What is XIRR?" data-tip="Average yearly return, counting when you bought, sold and were paid. Annualized even for a holding period shorter than a year.">?</button></span>
-    <span class="stat-tile-value{{ ' is-negative' if xirr_pct is not none and xirr_pct < 0 }}">{% if xirr_pct is not none %}{{ (xirr_pct)|signed_pct }}<small>% a year</small>{% else %}—{% endif %}</span>
-    <span class="stat-tile-sub">{{ 'Since ' ~ j.first if xirr_pct is not none else 'Not enough dated cash flows to calculate a return' }}</span></div>
+  <div class="stat-tile surface-{{ 'over' if display_return and display_return.percent is not none and display_return.percent < 0 else 'in' }}"><span class="stat-tile-head">{{ tone_icon('in') }}<span class="stat-tile-label">{{ ('XIRR' if display_return and display_return.annualized else 'Return')|tr(locale) }}</span></span>
+    <span class="stat-tile-value">{% if display_return and display_return.percent is not none %}{{ display_return.percent|signed_pct }}<small>{{ ('% a year' if display_return.annualized else '%')|tr(locale) }}</small>{% else %}—{% endif %}</span>
+    <span class="stat-tile-sub">{% if display_return and display_return.days_held is not none %}{{ "Held {n} days"|tr(locale, n=display_return.days_held) }}{% else %}{{ 'Not enough dated cash flows to calculate a return'|tr(locale) }}{% endif %}</span></div>
 </section>
 
 <header class="overview-section-head inv-head"><h2>{{ "Is it making money?"|tr(locale) }}</h2><span>Month ends · {{ j.labels[0] if j.labels }} to {{ j.labels[-1] if j.labels }}</span></header>
@@ -35,8 +35,8 @@
   <section><div class="overview-block-head"><div><h3>{{ "Monthly price change"|tr(locale) }}</h3></div></div>
     {{ diverging(j.returns, 'Monthly price change', 'pct', 'growth') if j.returns else '' }}
     <div class="vol-stats">
-      <div><span>{{ "Best month"|tr(locale) }}</span><b class="pos">{% if j.best %}{{ (j.best[1])|signed_pct }}%{% else %}—{% endif %}</b><small>{{ j.best[0] if j.best }}</small></div>
-      <div><span>{{ "Worst month"|tr(locale) }}</span><b class="neg">{% if j.worst %}{{ (j.worst[1])|signed_pct }}%{% else %}—{% endif %}</b><small>{{ j.worst[0] if j.worst }}</small></div>
+      {% if j.best %}<div><span>{{ ("Monthly price change" if j.best and j.worst and j.best[0] == j.worst[0] else "Best month")|tr(locale) }}</span><b class="{{ 'pos' if j.best and j.best[1] > 0 else ('neg' if j.best and j.best[1] < 0 else '') }}">{% if j.best %}{{ (j.best[1])|signed_pct }}%{% else %}—{% endif %}</b><small>{{ j.best[0] if j.best }}</small></div>{% endif %}
+      {% if j.best and j.worst and j.best[0] != j.worst[0] %}<div><span>{{ "Worst month"|tr(locale) }}</span><b class="{{ 'pos' if j.worst[1] > 0 else ('neg' if j.worst[1] < 0 else '') }}">{% if j.worst %}{{ (j.worst[1])|signed_pct }}%{% else %}—{% endif %}</b><small>{{ j.worst[0] if j.worst }}</small></div>{% endif %}
       <div><span>{{ 'Typical move'|tr(locale) }}</span><b>{% if j.typical is not none %}±{{ '%.1f'|format(j.typical) }}%{% else %}—{% endif %}</b><small>{{ 'a month' if j.typical is not none else 'after three months' }}</small></div>
       <div><span>{{ "Months up · down"|tr(locale) }}</span><b>{{ j.up or 0 }} · {{ j.down or 0 }}</b><small>of {{ (j.up or 0) + (j.down or 0) }}</small></div>
     </div></section>

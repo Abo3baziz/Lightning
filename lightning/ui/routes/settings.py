@@ -36,16 +36,19 @@ async def settings_page(request: Request):
         return_to = "/"
     classes = [x for x in c.assets.list_classes() if x.active and x.root_code != "CASH" and x.code not in ("CUSTODY", "GAMEYA")]  # a circle cannot be sold: always 100%
     # The same class values and factors as Birdview's "If you sold today".
-    values = {row.code: row.value for row in c.position.class_values(today())[0]}
+    position_classes = {row.code: row for row in c.position.class_values(today())[0]}
     sources = c.investments.sale_factor_sources()
     own = c.investments.own_liquidation_factors()
     names = {cls.id: cls.name for cls in c.assets.list_classes()}
 
     def factor_row(cls):
         factor, source = sources.get(cls.id, (DEFAULT_SALE_FACTOR, None))
-        value = values.get(cls.code, ZERO)
+        position_class = position_classes.get(cls.code)
+        value = position_class.value if position_class else ZERO
         return {"id": cls.id, "code": cls.code, "name": cls.name, "depth": cls.depth, "value": value,
-                "own": own.get(cls.id), "factor": factor, "estimate": value * factor / 100,
+                "own": own.get(cls.id), "factor": factor,
+                "estimate": position_class.after_sale if position_class else ZERO,
+                "locked": [item for item in position_class.items if item.locked_until] if position_class else [],
                 "from": "the default" if source is None else names.get(source, "")}
 
     # One group per top-level class: its own row (a factor here applies to every child left empty),

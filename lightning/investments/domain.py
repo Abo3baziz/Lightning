@@ -15,6 +15,8 @@ from decimal import Decimal
 
 from lightning.core.money import ZERO
 
+from .returns import DisplayReturn
+
 # Sale factor (percent of value a class would fetch if sold today) when none is set in Settings.
 DEFAULT_SALE_FACTOR = Decimal(95)
 
@@ -43,6 +45,7 @@ class Position:
     owned_quantity: Decimal | None = None
     owned_cost_basis: Decimal | None = None
     owned_realized: Decimal | None = None
+    display_return: DisplayReturn | None = None
 
     @property
     def average_cost(self) -> Decimal | None:
@@ -76,6 +79,7 @@ class Portfolio:
     as_of: str
     positions: list[Position] = field(default_factory=list)  # open and closed
     xirr: Decimal | None = None
+    display_return: DisplayReturn | None = None
 
     @property
     def open(self) -> list[Position]:

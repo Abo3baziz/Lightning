@@ -4,7 +4,16 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 **How to log a change**
 
-- Add one entry at the top of `## [Unreleased]
+- Add one entry at the top of `## [Unreleased]`.
+- Keep it to three lines at most: what changed for the user or the code, and where. The reasons and details belong in the doc that owns them (`AGENTS.md` lists which).
+- To catch up, read only the first entries here, or `git log --oneline -20`. Entries further down are history, not the current specification.
+- When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
+
+## [Unreleased]
+
+- 2026-10-14 · Codex: tab-by-tab trust batch: plain returns before 365 days, annual XIRR afterward; separate locked-certificate values/dates and matching Sale factors; emergency coverage defaults to spending (income optional).
+  Phone Needs you before Latest (C11.1 in both guideline copies); sidebar page-jump; Safe to spend says “on top of your plan”; recurring rows by due date; holding tones by sign; settings spacing and search category labels. English/Arabic checks and regression coverage updated.
+  Validation: full suite passed; PC brand audit at 1366 × 768 and phone overflow check at 360/320 passed.
 - 2026-10-14 · Claude: batch 003 finished (18 of 18): Investing rate = Money added ÷ Net flow (Saved and invested shows the savings rate only); Financial health leads with Over time, each limit one line that opens; the System group names its categories; the website's feedback form sends in the background.
 - 2026-10-14 · Claude: feedback batch 003 built (15 of 18): Your position follows the period end; Free cash beside what it is made of, If you sold today beside Net flow; Sankey splits Invested from Kept and pairs a month with its six; Needs you grouped by kind; month calendar for net cash flow, daily expenses on Spending only.
 - 2026-10-14 · Claude: batch 003 fixes: Plan to invest placement, lone key note on one line, styled file field, one row hover, Budget sub-lists (one chevron, Select all in the header), a one-row 30-day timeline, What you owe rows open. Outcome table in the batch file; open questions in `OWNER.md` › 19.
@@ -22,7 +31,6 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - 2026-10-14 · Claude: phone tiles on Health, Cash planning and Investments lose their coloured edge, icon box and gradient (C01.1, quiet chrome).
 - 2026-10-14 · Claude: phone redesign, money first (guideline 3.31): flat transaction list with a round initial and no balance except on an account; Overview leads with net worth and the latest transactions, analysis after; Expense analysis headline figures as a lead and rows; one Secondary on an account. Arabic copy of Part C still to follow.
 - 2026-10-14 · Claude: owner chose fingerprint unlock (Android, optional), gam'eya (CD backbone, interest optional) and zakat; designs in `docs/proposals/gameya.md`, `zakat.md` and `multiple_devices.md` 18d.
-- 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.
 - 2026-10-14 · Claude: proposal `docs/proposals/website_decision_dashboard.md`: a decision dashboard for the website (verdicts with confidence, trends, the path to a download, fix list, release effect); hand-off in `NOW.md`. Website repo: analytics tests committed.
 - 2026-10-14 · Claude: website dashboard (website repo): page-view records are the single main source (GoatCounter only cross-checks); the Downloads page name is one constant in the receiver script, noted in the README.
 - 2026-10-14 · Claude: website analytics, full structure (website repo): every page view sends an anonymous record (what was on screen or pressed, scroll, errors) even if GoatCounter is blocked; live findability, hesitation, error and speed views; GitHub download counts beside button clicks; Privacy Notice Version 2. Setup order in `OWNER.md`.
@@ -30,8 +38,13 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - 2026-10-14 · Claude: website analytics: every number is behind the dashboard key (website repo): GoatCounter totals go from the GitHub job to the private receiver, no analytics files are committed. Setup order in `OWNER.md`.
 - 2026-10-14 · Claude: website analytics hardening (website repo): linked visits are no longer published (dashboard loads them privately with a key); Apps Script abuse caps and small-group merging; notice says storage works like a cookie. Owner steps in `OWNER.md`.
 - 2026-10-14 · Claude: website Events sheet (Apps Script, website repo): "Received at" shows date and time; each visitor ID gets a sequential Visitor no. (Visitors tab, backfilled, purged after 90 days).
+- 2026-10-14 · Claude: proposal `docs/proposals/tab_by_tab_review.md`: every section and tab walked on PC and phone with the sample household; 15 ranked fixes, about 150 items by tab, nine owner choices (OWNER 19), suggested order and Mohab steps.
+- 2026-10-14 · Claude: optional fingerprint unlock on the phone (task 18d): an opt-in Keystore-bound key slot outside the profile (`keys.json` and the PC unchanged), unlocked through BiometricPrompt then the password's own open path; Settings › This phone and a Use fingerprint button on the unlock screen.
+  Cancel counts nothing; changed fingerprints or a key that is not the profile's remove the slot and say to use the password. Java compiled against API 30 stubs only; on-device check in `OWNER.md`.
+- 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.
 - 2026-10-13 · Claude: website analytics in two tiers (website repo): a consent bar (Keep essential only / Allow all), a Privacy Notice in EN and AR, release-tagged GoatCounter events (`events.csv`) and opt-in linked visits through Apps Script (`journeys.csv`, 90-day purge). Setup in `OWNER.md`.
-
+- 2026-10-13 · Codex: v1.1.0-beta.1 published as a matched Windows ZIP and signed Android APK; public checksums match the tested pair.
+  Website downloads, release notes, archives and feedback choices updated in English and Arabic; v1.1 acceptance items cleared from NOW.md, larger features deferred.
 - 2026-10-12 · Claude: `docs/COMPETITION.md` tests the owner's eight selling points against the evidence and the code (verdict, safe wording, top three); the Lightning row of the field table is current; owner questions in `OWNER.md` 13.
 - 2026-10-12 · Claude: website pages made concise (website repo): Home has one phone-and-PC section, four helpers and four FAQs; Features puts phone and PC second and drops group intros; Current Status merges first run and feedback; every changed page has a new release ID and archive.
 - 2026-10-12 · Claude: guideline 3.30: B06 gains Buttons (vivid, primary, secondary; heights 48/40/36) and "the signup band is the only gradient call-out"; its specimen now matches the live band. Website: one top bar and footer, one Arabic band wording, survey on the landing system (see the website repo).
@@ -42,23 +55,11 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - 2026-10-12 · Claude: `AGENTS.md` points to `tools/claims.py` before pushing and to `CHANGELOG-archive.md` in the skip list.
 - 2026-10-12 · Claude: workflow tooling: UI reads currencies through the container (import contract passes again); `tools/claims.py` warns on files claimed in `NOW.md`; older releases moved to `CHANGELOG-archive.md`; NOW.md tests reject expired messages to all.
   Logs migrations `0050_cash_at_hand.sql`, `0051_adjustment_category.sql`, `0052_system_categories.sql`, missing here.
-
 - 2026-10-12 · Claude: `AGENTS.md` keeps every rule in 6.3 KB instead of 10.2 KB (cheaper start for every session); `CLAUDE.md` now only imports it.
 - 2026-10-12 · Claude: Arabic layout now mirrors on every PC and phone screen: `style.rtl.css`, `phone.rtl.css` and `profiles.rtl.css` (built by `tools/build_rtl_css.js`, charts left as drawn) replace the English files in Arabic only; chevrons and written arrows point the way the eye moves, dates read `٢٠٢٦-١٠-١٢` left to right (they were flipping to `١٢-١٠-٢٠٢٦`), the phone period bar fits, paths and the AI prompt stay left to right, the timeline keeps its axis.
   Arabic text: periods say «لحد», `As of`/`x of y`/asset-class names in Settings/low-confidence and compare lines/forms and titles are Arabic, period words follow C04 (من بداية السنة، مخصص); `tests/test_arabic_no_english.py` now also covers period variants, settings sections, forms and detail pages, and two-letter English words.
 - 2026-10-12 · Claude: the Arabic UI has no English system text on any PC or phone screen: an Arabic last pass over each page (`localize_html`) and ~1,500 new entries (system categories, asset kinds, currencies, months, sentences, errors) in `ui/i18n_system.py`, the glossary's Egyptian terms.
   Test: `tests/test_arabic_no_english.py`.
-- Keep it to three lines at most: what changed for the user or the code, and where. The reasons and details belong in the doc that owns them (`AGENTS.md` lists which).
-- To catch up, read only the first entries here, or `git log --oneline -20`. Entries further down are history, not the current specification.
-- When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
-
-## [Unreleased]
-
-- 2026-10-14 · Claude: proposal `docs/proposals/tab_by_tab_review.md`: every section and tab walked on PC and phone with the sample household; 15 ranked fixes, about 150 items by tab, nine owner choices (OWNER 19), suggested order and Mohab steps.
-- 2026-10-14 · Claude: optional fingerprint unlock on the phone (task 18d): an opt-in Keystore-bound key slot outside the profile (`keys.json` and the PC unchanged), unlocked through BiometricPrompt then the password's own open path; Settings › This phone and a Use fingerprint button on the unlock screen.
-  Cancel counts nothing; changed fingerprints or a key that is not the profile's remove the slot and say to use the password. Java compiled against API 30 stubs only; on-device check in `OWNER.md`.
-- 2026-10-13 · Codex: v1.1.0-beta.1 published as a matched Windows ZIP and signed Android APK; public checksums match the tested pair.
-  Website downloads, release notes, archives and feedback choices updated in English and Arabic; v1.1 acceptance items cleared from NOW.md, larger features deferred.
 
 ## [1.1.0b1] — 2026-10-13 — Windows and Android beta
 
