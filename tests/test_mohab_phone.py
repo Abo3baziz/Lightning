@@ -103,7 +103,7 @@ class PhoneMohab(Mohab):
 
     def enter(self, account, when, party, category, amount, **more):
         """The add button opens the entry sheet (C05.2, C09): Out, In or Transfer, then the fields."""
-        self.b.go(account, "Add transaction")
+        self.b.go("Accounts", account, "Add transaction")  # the Overview leads with transactions now (C11.1)
         value = amount.replace(",", "")
         targets = [label for _, label in self.b.page.form("Save").options.get("to_account_id", [])]
         if any(party.casefold() == t.split(" · ")[0].strip().casefold() for t in targets):
@@ -120,7 +120,7 @@ class PhoneMohab(Mohab):
 
     def transaction_id(self, account, party):
         """The phone's list: each row opens its sheet; the newest comes first."""
-        screen = self.b.go(account)
+        screen = self.b.go("Accounts", account)  # the Overview leads with transactions now (C11.1)
         for href, body in re.findall(r'(?s)<a class="phone-txn" href="([^"]+)"[^>]*>(.*?)</a>', screen.html):
             if party in html.unescape(body):
                 return re.search(r"/transactions/(\d+)", href).group(1)

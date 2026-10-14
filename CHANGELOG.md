@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: phone redesign, money first (guideline 3.31): flat transaction list with a round initial and no balance except on an account; Overview leads with net worth and the latest transactions, analysis after; Expense analysis headline figures as a lead and rows; one Secondary on an account. Arabic copy of Part C still to follow.
 - 2026-10-14 · Claude: owner chose fingerprint unlock (Android, optional), gam'eya (CD backbone, interest optional) and zakat; designs in `docs/proposals/gameya.md`, `zakat.md` and `multiple_devices.md` 18d.
 - 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.
 - 2026-10-14 · Claude: website footer (website repo): a Contact Us section (two emails, Reddit, Discord), then brand and links, on every page in English and Arabic; generated from `tools/footer.py`.

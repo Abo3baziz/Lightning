@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextvars
+from datetime import timedelta
 
 import re
 from decimal import Decimal, InvalidOperation
@@ -110,6 +111,20 @@ def _signed_pct(value, places: int = 1) -> str:
 
 templates.env.filters["signed_pct"] = _signed_pct
 templates.env.filters["tone"] = _tone
+
+
+def _day_label(date_text, locale: str = "en") -> str:
+    """A day header on a phone list (guideline C08.1): Today, Yesterday, then the date as yyyy-mm-dd (A06.1)."""
+    now = today()
+    text = str(date_text)
+    if text == fmt_date(now):
+        return translate("Today", locale)
+    if text == fmt_date(now - timedelta(days=1)):
+        return translate("Yesterday", locale)
+    return text
+
+
+templates.env.filters["day_label"] = _day_label
 templates.env.filters["keep_dates"] = _keep_dates
 
 

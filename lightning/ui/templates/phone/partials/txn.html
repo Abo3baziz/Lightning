@@ -1,0 +1,23 @@
+{# The phone's transaction list (guideline C08): flat on the page, a quiet day header, a round initial, the name and
+   category left, one amount right. The balance after a row shows only on an account's own list (show_balance).
+   Used by the register and by the Overview's latest transactions; import with context. #}
+{% macro txn_list(rows, show_account=False, show_balance=False, selecting=False, picked='', base_url='', keep_qs='', limit=0, with_account=True) %}
+{% set ns = namespace(day='', shown=0) %}
+{% for r in rows if not (show_account and r.type == 'TRF' and r.amount > 0) %}
+  {% if not limit or ns.shown < limit %}
+  {% set ns.shown = ns.shown + 1 %}
+  {% if r.date != ns.day %}{% if not loop.first and ns.day %}</div>{% endif %}<div class="phone-day" role="heading" aria-level="3">{{ r.date|day_label(locale) }}</div><div class="phone-day-rows">{% set ns.day = r.date %}{% endif %}
+  {% set editable = r.type in ('IN', 'OUT', 'TRF') %}
+  {% set who = (r.account_label ~ ' → ' ~ r.other_account_label if show_account and with_account else 'To ' ~ r.other_account_label if show_account else ('From ' if r.amount > 0 else 'To ') ~ r.other_account_label) if r.type == 'TRF' else (r.counterparty or r.description or r.type_label) %}
+  {% set cat = 'Transfer'|tr(locale) if r.type == 'TRF' else (r.type_label|tr(locale) if r.type in ('BUY', 'SEL', 'DIV', 'OPN') or r.type_label == 'Ownership change' else r.category_label.split(' › ')[-1]) %}
+  {% set initial = '⇄' if r.type == 'TRF' else (who|trim)[:1]|upper %}
+  {% if selecting %}<label class="phone-txn is-pick"><input type="checkbox" class="transaction-select" name="txn_ids" value="{{ r.txn_id }}" form="phone-bulk" aria-label="Select {{ who }}"{{ ' checked' if picked == r.txn_id|string }}{{ ' disabled' if r.type == 'OPN' }}>
+  {% else %}<a class="phone-txn" href="{{ ('/transactions/' ~ r.txn_id ~ '/edit-popup?return_to=' ~ (base_url ~ ('?' ~ keep_qs if keep_qs else ''))|urlencode) if editable else '/transactions/' ~ r.txn_id }}" data-txn="{{ r.txn_id }}"{% if editable %} data-popup-open{% endif %}>{% endif %}
+    <span class="phone-txn-av{{ ' is-in' if r.type != 'TRF' and r.amount > 0 }}" aria-hidden="true">{{ initial }}</span>
+    <span class="phone-txn-who"><b>{{ who }}</b><small>{{ cat if cat != who else '' }}{% if show_account and with_account and r.type != 'TRF' %}{{ ' · ' if cat != who }}{{ r.account_label }}{% endif %}</small></span>
+    <span class="phone-txn-amount"><b class="{{ '' if r.type == 'TRF' else ('pos' if r.amount > 0 else '') }}">{{ r.amount|abs|money if r.type == 'TRF' and show_account else r.amount|money(True) }}</b>{% if show_balance and r.balance is not none %}<small>{{ r.balance|money }}</small>{% endif %}</span>
+  {% if selecting %}</label>{% else %}</a>{% endif %}
+  {% endif %}
+{% endfor %}
+{% if ns.day %}</div>{% endif %}
+{% endmacro %}
