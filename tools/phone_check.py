@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 PAGES = ("/", "/birdview/expenses", "/financial-health", "/budget", "/plan", "/plan/recurring", "/plan/loans",
          "/plan/reserves", "/investments", "/investments/planner", "/investments/prices", "/accounts", "/transactions",
-         "/money-from-others", "/settings", "/categories", "/counterparties", "/checks", "/profiles",
+         "/money-from-others", "/zakat", "/settings", "/categories", "/counterparties", "/checks", "/profiles",
          "/profiles/devices", "/accounts/1", "/accounts/1/transaction/new", "/accounts/add-transaction", "/sms")
 SMS = ("تم خصم 147.87 EGP من بطاقة الخصم المباشر رقم 2093 عند Uber                  Dow يوم 06/10/26 الساعه 11:13 "
        "المتاح 3512.40EGP للمزيد إتصل ب ١٩٦٢٣")

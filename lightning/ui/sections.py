@@ -57,6 +57,7 @@ _I = {  # tab icons
     "counterparties": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9",
     "checks": "M9 12l2 2 4-4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
     "rules": "M3 4h18l-7 8v6l-4 2v-8z",
+    "zakat": "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z",
 }
 
 SECTIONS: tuple[Section, ...] = (
@@ -91,6 +92,8 @@ SECTIONS: tuple[Section, ...] = (
         Tab("accounts", "Accounts", "/accounts", _I["accounts"], ("/accounts",)),
         Tab("transactions", "Transactions", "/transactions", _I["transactions"], ("/transactions", "/t/")),
         Tab("others", "Held for others", "/money-from-others", _I["people"], ("/money-from-others",)),
+        Tab("zakat", "Zakat", "/zakat", _I["zakat"], ("/zakat",), settings=("zakat",),
+            gear="/settings?section=zakat", gear_label="Zakat settings"),
     )),
     Section("settings", "Settings", "settings", (
         Tab("data", "Your data", "/settings", _I["data"], ("/settings", "/profiles"), settings=("general",)),

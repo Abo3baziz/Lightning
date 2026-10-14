@@ -50,6 +50,9 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Physical item** | Ledger | A named tangible asset tracked by pieces, net gold weight, karat, cost and valuation; not a security. |
 | **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones. Fine-gold exposure = pieces × net grams × karat/24; the karat-specific price applies to alloy grams, never adjusted again. Manual item valuation is a user-entered dated value. |
 | **Acquisition cost** | Ledger | Total paid for the item's current quantity, including workmanship and fees; price updates never change it. |
+| **Worn** | Ledger | A flag on a physical gold piece: gold you wear. Zakat counts it only if the setting is on. |
+| **Zakat day** | Plan | The date the user picked once for counting zakat; each next one is 354 days later (a lunar year). Hijri dates are not built. |
+| **Zakat category** | Ledger | The system spending category `EXP.SYSTEM.ZAKAT`; zakat paid is ordinary spending in it and lowers Still to pay for its zakat year. |
 | **Category** | Ledger | Label for the activity behind a transaction; never describes counterparty, account or asset. |
 | **Counterparty** | Ledger | The person, business, institution or own account on the other side; up to ten confirmed aliases each; typo matches are only suggestions. |
 | **Transaction** | Ledger | A dated user or system event in the main ledger. |
@@ -119,6 +122,13 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Other you own** | Anything you own that is neither cash nor a holding. | What you own − Cash you own − Holdings value | `planning.position.Position.other_you_own` |
 | **Gam'eya still to pay** | What you owe a savings circle you took the pot from early: its balance while it is below zero. Net worth does not change when you take the pot. | Read directly from the ledger | `planning.position.Position.gameya_still_to_pay` |
 | **Portfolio value** | Holdings value under the name the Investments tab uses: everything you own that is not cash. Cash waiting in a brokerage account counts in Cash you own (owner decisions 2026-10-04). | Holdings value | `planning.position.Position.portfolio_value` |
+| **Shares and funds** | Your stocks and funds at their latest value, counted in full for zakat. | Read directly from the ledger | `zakat.ZakatService.assess` |
+| **Gold held as savings** | Your gold pieces and gold by the gram that you keep as savings, at the gold price. Pieces marked as worn are left out. | Read directly from the ledger | `zakat.ZakatService.assess` |
+| **Gold you wear** | Your gold pieces marked as worn. Zakat counts them only if you turn that on. | Read directly from the ledger | `zakat.ZakatService.assess` |
+| **Gam'eya instalments due now** | Instalments dated today or earlier and not yet recorded, on a savings circle you took the pot from early. Zakat takes them off with the debts due now. | Read directly from the ledger | `zakat.ZakatService.gameya_due_now` |
+| **Nisab** | The least wealth zakat applies to: 85 g of 24K gold at the gold price of the day, or the amount you typed when there is no gold price. | Read directly from the ledger | `zakat.ZakatService.nisab` |
+| **Zakat rate** | The share of zakatable wealth that is due: 2.5% by the common rule. | Read directly from the ledger | `zakat.ZAKAT_RATE` |
+| **Paid this zakat year** | What you spent in the Zakat category since your last zakat day, up to the next. | Read directly from the ledger | `zakat.ZakatService.paid_between` |
 | **Money in** | Your posted income in the period. Transfers, trades and money held for others are left out. | Read directly from the ledger | `reporting.service.CashFlow.inflows` |
 | **Money out** | Your posted spending in the period, after refunds. Transfers, trades and money held for others are left out. | Read directly from the ledger | `reporting.service.CashFlow.outflows` |
 | **Net flow** | What was left of money in after money out. | Money in − Money out | `reporting.service.CashFlow.net` |
@@ -159,6 +169,7 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Loans still to pay** | Every loan payment not paid yet, due or upcoming. | Read directly from the plan | `planning.domain.WhatYouOwe.loans_still_to_pay` |
 | **Bills and subscriptions a month** | What your recurring bills and subscriptions come to in a month: a weekly one counts 52 times a year, a yearly one once, a one-off payment not at all. | Read directly from the plan | `planning.health.HealthService.bills_a_month` |
 | **Loan payments a month** | What your loan payments come to in a month, counting only loans with payments still to make. | Read directly from the plan | `planning.health.HealthService.loans_a_month` |
+| **Debts due now** | What you must pay today or earlier: your bills due. Zakat takes it off unless you turn that off. | Bills due | `planning.position.Position.bills_due` |
 | **Base budget** | The amount the budget rule gives: fixed, a share of income or an average. | Read directly from the plan | `budgeting.domain.BudgetLine.budget` |
 | **Plan leaves to save** | What this month's plan leaves of average monthly income. | Average monthly income − Planned | `planning.health.PlanCheck.plan_saves` |
 | **Planned savings rate** | The share of average monthly income this month's plan leaves unspent. Financial health compares it with your Savings rate limit; the budget and Needs you warn when it falls short. | Plan leaves to save ÷ Average monthly income | `planning.health.PlanCheck.planned_savings_rate` |
@@ -184,6 +195,9 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Free cash** | Cash you can spend without touching reserves or leaving a bill unpaid. | Cash you own − Reserves − Bills due | `planning.position.Position.free_cash` |
 | **Holdings after sale (estimate)** | What your holdings, deposits included, might fetch if sold or cashed in today, after each class's sale factor. CDs before their earliest withdrawal count 0; early-redeemable CDs count their balance × the CD sale factor; matured CDs count their balance. | Σ Holdings value of each class × its sale factor | `planning.position.Position.holdings_after_sale` |
 | **If you sold today (estimate)** | Free cash plus what your holdings might fetch. | Free cash + Holdings after sale (estimate) | `planning.position.Position.if_you_sold_today` |
+| **Zakatable wealth** | What zakat is worked out on: what you hold, less the debts due now. | Cash you own + Deposits + Gam'eya paid in + Shares and funds + Gold held as savings + Gold you wear − Debts due now − Gam'eya instalments due now | `zakat.Assessment.zakatable_wealth` |
+| **Zakat due** | An estimate by the common rule, for a scholar to confirm: the zakat rate of Zakatable wealth when it is at or above the Nisab, else nothing. | Zakatable wealth × Zakat rate | `zakat.Assessment.zakat_due` |
+| **Still to pay** | What is left of Zakat due after what you paid this zakat year; never below zero. | Zakat due − Paid this zakat year | `zakat.Assessment.still_to_pay` |
 | **Change in net worth** | How much net worth grew or shrank in the period. | Net worth at the end − Net worth the day before the start − Opening balances in the period | `planning.position.PositionService.change_in_net_worth` |
 | **Carryover** | Unused plan from last month, added to this month when carryover is on. | Left in plan last month | `budgeting.domain.BudgetLine.opening_carryover` |
 | **Planned** | What you plan to spend this month. The month's total also counts background estimates for untracked categories; one from a single month of spending is low confidence and shows a "!" that says why. | Base budget + Carryover | `budgeting.domain.BudgetLine.available` |
@@ -443,6 +457,17 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | Portfolio value | قيمة المحفظة |
 | Holdings after sale (estimate) | قيمة الاستثمارات بعد البيع (تقديري) |
 | If you sold today (estimate) | لو بعت النهارده (تقديري) |
+| Zakat | الزكاة |
+| Zakat day | يوم الزكاة |
+| Zakatable wealth | المال اللي بتتحسب عليه الزكاة |
+| Nisab | النصاب |
+| Zakat rate | نسبة الزكاة |
+| Zakat due | الزكاة المستحقة |
+| Paid this zakat year | اللي دفعته السنة دي |
+| Shares and funds | الأسهم والصناديق |
+| Gold held as savings | الدهب المحتفظ بيه كمدخرات |
+| Gold you wear | الدهب اللي بتلبسه |
+| Debts due now | ديون مستحقة دلوقتي |
 | Money in | فلوس داخلة |
 | Money out | فلوس خارجة |
 | Net flow | صافي التدفق |

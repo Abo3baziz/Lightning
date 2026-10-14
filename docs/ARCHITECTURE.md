@@ -87,6 +87,7 @@ core/                 dates, money, identifiers, posting rules; no app dependenc
 | `lightning/investments` + `reevaluations.py` | Trades, positions, investment calculations, valuation checkpoints, `journey.py` (a holding's history) |
 | `lightning/deposits` | Certificate terms and gam'eya (savings circle) terms; read-only interest/payout projections |
 | `lightning/money_from_others.py` | Custody attribution for money and units held for others |
+| `lightning/zakat.py` | `ZakatService`: the zakat estimate, its settings and the zakat day (see Position and reporting contract › Zakat) |
 | `lightning/bank_imports.py`, `reconciliation.py` | Staged CSV review and posting; checking an account against the bank's balance (a small difference posts one IN/OUT balance adjustment) |
 | `lightning/sms_imports.py` | Bank SMS: `parse_sms` (CIB, NBE; samples `tests/fixtures/bank_sms.json`) |
 | `lightning/budgeting`, `reserves.py` | Spending plans and cash reserves (separate concepts) |
@@ -134,6 +135,7 @@ The reevaluation ledger keeps per-asset, per-account month-end units, price, val
 - Stones and workmanship have no resale value in the estimate. A manual dated total-item valuation overrides the reference estimate from its date. Labels: `Manual`; reference source and price date; `At cost`; or unavailable.
 - Metadata, weight and karat edits post nothing and never change history or cost (the audit log keeps before/after). Purchases and sales are normal `BUY`/`SEL` with pieces and grams kept apart from cash; pieces cannot go below zero; a purchase is not income, expense or owned-wealth change.
 - Values enter the owning account and the Gold allocation path exactly once; gram-based gold positions are untouched.
+- `physical_items.worn` (default 0, migration 0054) marks gold the user wears; only Zakat reads it.
 
 ## Data ownership and derived values
 
@@ -178,6 +180,17 @@ Uses posted, non-void main-ledger entries by transaction date, scoped to `owner_
 **Request cache** (`lightning/core/memo.py`). `ui/web.py` wraps each request in `request_cache(container.db)`; a read decorated `@request_cached` runs once per distinct call per request. It lives one request, any write empties it, it is bypassed inside a transaction, and callers get copies. `tests/test_reporting_performance.py` caps SELECTs per tab and checks pages are byte-identical with and without it.
 
 **Page speed** (2026-10-03, 2,239 transactions: Overview 507 to 163 ms, Budget › All time 4.6 s to 0.33 s). Fixes: the request cache; `cipher_memory_security` off (see Encryption); registers read one page of 50 (`ReportingService.register_page`; a search or category filter shows no running balance); bundled fonts. Open: routes are `async def` with synchronous database work.
+
+### Zakat
+
+An estimate by the common rule, never a ruling: the page says once that a scholar answers your own case (owner decision 2026-10-14). `lightning/zakat.py`, `ZakatService.assess(day)`, Python only; routes `lightning/ui/routes/zakat.py`; migration `0054_zakat.sql`.
+
+- **Built from the one position** (`PositionService.at`), never re-adding balances; *Held for others* is never in it. **Zakatable wealth** = Cash you own + Deposits (principal; unpaid estimated interest left out) + Gam'eya paid in + Shares and funds (latest price, full value, no sale factor) + Gold held as savings (physical pieces and gram gold at the gold price) + Gold you wear, only if `count_worn_gold` − Debts due now (Bills due) − Gam'eya instalments due now (unrecorded instalments dated by that day on a circle you owe, capped at what you owe it; before your turn an instalment is saving, not debt), both unless `deduct_debts_due` is off; never below zero. Other assets, property and vehicles are not counted. A line off by its setting is still listed, with a note.
+- **Nisab** = 85 g × the price of a gram of 24K gold on the day (`ZakatService.gold_price_24k`: the 24K reference price, else the newest other gold reference ÷ its purity); with no gold price, the nisab the user typed (kept with its date). **Zakat due** = 2.5% of Zakatable wealth when it is at or above the Nisab, else 0. A missing valuation (`Position.unvalued`) or a missing nisab gives no estimate and says why, never zero. A silver nisab is not built.
+- **Zakat day.** The user picks a date once (`zakat_settings.zakat_day`); the next is +354 days (`zakat_days`), so it moves about 11 days earlier each year. The page shows the Gregorian date and says it follows the lunar year; Hijri dates are not built. Nothing is shown as due on a day until one is picked.
+- **Paid and Still to pay.** Zakat is paid as ordinary spending in the system category **Zakat** (`EXP.SYSTEM.ZAKAT`, pickable, counted in money out). **Paid this zakat year** = that category's money out after the previous zakat day, up to and including the next one; **Still to pay** = Zakat due − Paid, never below zero. The page's *Record payment* opens the first bank or wallet's entry sheet with the category set.
+- **Settings** (`zakat_settings`, one row: `zakat_day`, `typed_nisab_e6` and its date, `count_worn_gold` 0, `deduct_debts_due` 1) sit behind the Zakat tab's gear, audited as `zakat_settings`. The tab is in Accounts, beside Held for others (four tabs fit the phone's two rows).
+- **Cash planning** shows `ZakatService.forecast(day)`: the next zakat day and what is still to pay then at today's figures, as a labelled line under the forecast. It changes no balance and is not in the forecast months; it is absent until a zakat day is set.
 
 ## Cash planning contract
 

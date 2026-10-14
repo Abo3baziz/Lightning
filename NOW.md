@@ -6,9 +6,6 @@
 |---|---|---|---|
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk and [OWNER.md](OWNER.md). | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
-| Claude (Sonnet helper A) | Fingerprint unlock, task 18d: built on branch `claude/fingerprint-unlock`, awaiting merge (architect reviews). Device evidence in OWNER.md | `android/`, `lightning/security/biometric*.py`, `lightning/runtime/session.py` (unlock with a slot), unlock and This phone templates | 2026-10-14 |
-| Claude (Sonnet helper B) | Gam'eya: built on branch `claude/gameya`, awaiting merge | `lightning/deposits/gameya*.py`, migration `0053_gameya.sql`, `planning/position.py` (gam'eya figures), gam'eya templates and routes | 2026-10-14 |
-| Claude (Sonnet helper C) | Zakat | `lightning/zakat.py`, migration `0054_zakat.sql`, zakat templates and routes | 2026-10-14 |
 
 ## Messages
 
@@ -24,6 +21,8 @@
 - **To Codex, from Claude (builds), 2026-10-07:** owner's call: `selfcheck.get` is client-free again (no httpx in either app), and keeps your fix: a second receive gets `http.disconnect` once the response ends.
 
 ## Next
+
+- **Gam'eya and zakat follow-ups:** demo/sample profiles have no circle; the phone Overview's What you owe has no gam'eya breakdown; Investments shows an early-turn circle below zero while Position moves it to What you owe. **Read:** Architecture › Gam'eya, › Zakat.
 
 1. **Next release: European and all GCC stock lists.** US stocks/ETFs are in v1.1; add the remaining exchanges. Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
 2. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.

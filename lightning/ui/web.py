@@ -42,7 +42,7 @@ def _minus(text: str) -> str:
 _ROUND_MONEY: contextvars.ContextVar[bool] = contextvars.ContextVar("round_money", default=False)
 REPORTING_TEMPLATES = ("dashboard/", "budget.html", "birdview/", "investments/index.html", "investments/holding.html", "financial_health.html",
                        "investments/_targets.html", "investments/targets.html", "investments/report_detail.html",
-                       "planning/plan.html", "reserves.html", "settings/index.html", "accounts/currencies.html")
+                       "planning/plan.html", "reserves.html", "settings/index.html", "accounts/currencies.html", "zakat.html")
 
 
 def _money(value, signed: bool = False, places: int | None = None) -> str:
@@ -357,7 +357,7 @@ class RequestCache:
 
 
 def create_app(c: Container | None = None) -> FastAPI:
-    from .routes import accounts, bank_imports, birdview, budget, categories, counterparties, dashboard, deposits, exports, financial_health, gameya, integrity, investments, physical_items, planning, reserves, rules, search, settings, sms, transactions
+    from .routes import accounts, bank_imports, birdview, budget, categories, counterparties, dashboard, deposits, exports, financial_health, gameya, integrity, investments, physical_items, planning, reserves, rules, search, settings, sms, transactions, zakat
 
     app = FastAPI(title="Lightning", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.container = c
@@ -409,7 +409,7 @@ def create_app(c: Container | None = None) -> FastAPI:
         return JSONResponse({"value": format(value.normalize(), "f")})
 
     app.mount("/static", StaticFiles(directory=str(UI_DIR / "static")), name="static")
-    for module in (dashboard, financial_health, accounts, deposits, gameya, bank_imports, birdview, transactions, budget, investments, physical_items, planning, reserves, integrity, counterparties, categories, rules, settings, search, exports, sms):
+    for module in (dashboard, financial_health, accounts, deposits, gameya, bank_imports, birdview, transactions, budget, investments, physical_items, planning, reserves, integrity, counterparties, categories, rules, settings, search, exports, sms, zakat):
         app.include_router(module.router)
 
     @app.exception_handler(NotFoundError)

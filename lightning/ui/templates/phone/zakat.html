@@ -1,0 +1,46 @@
+{# Zakat on a phone (guideline Part C): what counts as rows (C07.2, C08), then Your zakat with the answer as the lead
+   (C06.2). The same figures as the PC; the estimate is said once at the foot. #}
+{% extends "base.html" %}
+{% block title %}{{ 'Zakat'|tr(locale) }}{% endblock %}
+{% block heading %}<h1>{{ 'Zakat'|tr(locale) }}</h1><p>{{ 'As of {date}'|tr(locale, date=a.as_of) }}{% if a.zakat_day %} · {{ 'zakat day {date}'|tr(locale, date=a.zakat_day) }}{% endif %}</p>{% endblock %}
+{% block top_actions %}{% if payment_link %}<a class="btn" href="{{ payment_link }}" data-popup-open>{{ 'Record payment'|tr(locale) }}</a>{% endif %}{% endblock %}
+{% block content %}
+{% if not a.zakat_day %}
+<section class="phone-section" aria-labelledby="zakat-day-head">
+  <header class="phone-section-head"><h2 id="zakat-day-head">{{ 'Your zakat day'|tr(locale) }}</h2></header>
+  <form class="card phone-card" method="post" action="/zakat/settings">
+    <p class="phone-note">{{ 'Pick the day each year that you count zakat from. The next ones follow the lunar year, 354 days apart.'|tr(locale) }}</p>
+    <input type="hidden" name="only_day" value="1"><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+    <div class="field"><label for="zakat-day">{{ 'Zakat day'|tr(locale) }}</label><input id="zakat-day" name="zakat_day" type="date" data-native-date required></div>
+    <button class="btn primary phone-save">{{ 'Save zakat day'|tr(locale) }}</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="phone-section" aria-labelledby="zakat-counts-head">
+  <header class="phone-section-head"><h2 id="zakat-counts-head">{{ 'What counts'|tr(locale) }}</h2></header>
+  <article class="card phone-card"><div class="phone-rows">
+    {% for line in a.lines %}
+    <div class="phone-row"><span>{{ line.label|tr(locale) }}{% if not line.counted %}<small>{{ ('Not taken off. Turn it on behind the gear.' if line.minus else 'Not counted. Turn it on behind the gear.')|tr(locale) }}</small>{% endif %}</span>
+      <b class="{{ 'muted' if not line.counted }}">{% if line.minus and line.counted %}{{ (0 - line.amount)|money }}{% else %}{{ line.amount|money }}{% endif %}</b></div>
+    {% endfor %}
+  </div></article>
+</section>
+
+<section class="phone-section" aria-labelledby="zakat-yours-head">
+  <header class="phone-section-head"><h2 id="zakat-yours-head">{{ 'Your zakat'|tr(locale) }}</h2>{% if a.zakat_day %}<span>{{ 'zakat day {date}'|tr(locale, date=a.zakat_day) }}</span>{% endif %}</header>
+  <article class="card phone-card">
+    {% if a.zakat_day %}<h3 class="phone-card-title">{{ fig.zakat_still_to_pay.label }}</h3>
+    <div class="phone-lead">{% if a.still_to_pay is not none %}{{ a.still_to_pay|money }} <small>{{ base }}</small>{% else %}—{% endif %}</div>{% endif %}
+    <div class="phone-rows">
+      <div class="phone-row"><span>{{ fig.zakatable_wealth.label }}</span><b>{{ a.zakatable_wealth|money }}</b></div>
+      <div class="phone-row"><span>{{ fig.nisab.label }}{% if a.nisab_source == 'gold' %}<small>{{ '85 g of 24K gold at the price of {date}'|tr(locale, date=a.nisab_date) }}</small>{% elif a.nisab_source == 'typed' %}<small>{{ 'The nisab you typed on {date}'|tr(locale, date=a.nisab_date) }}</small>{% endif %}</span><b>{% if a.nisab is not none %}{{ a.nisab|money }}{% else %}—{% endif %}</b></div>
+      <div class="phone-row"><span>{{ fig.zakat_due.label }}{% if a.zakat_due is not none %}<small>{{ ('2.5% of your zakatable wealth' if a.reaches_nisab else 'Below the nisab, so nothing is due')|tr(locale) }}</small>{% endif %}</span><b>{% if a.zakat_due is not none %}{{ a.zakat_due|money }}{% else %}—{% endif %}</b></div>
+      {% if a.zakat_day %}<div class="phone-row"><span>{{ fig.zakat_paid.label }}<small>{{ a.previous_day }} {{ 'to'|tr(locale) }} {{ a.zakat_day }}</small></span><b>{{ a.paid|money }}</b></div>{% endif %}
+    </div>
+    {% if a.unavailable_reason %}<p class="phone-note">{{ a.unavailable_reason|tr(locale) }}</p>{% endif %}
+    {% if a.zakat_day %}<p class="phone-note">{{ 'Your zakat day is {date}. The next is 354 days later: it follows the lunar year, so it comes about 11 days earlier each year.'|tr(locale, date=a.zakat_day) }}</p>{% endif %}
+  </article>
+</section>
+<p class="phone-note">{{ 'This is an estimate by the common rule: 2.5% of your zakatable wealth when it reaches the nisab on your zakat day; a scholar answers your own case. Lightning counts cash, deposits, gam’eya, shares and funds, and gold. Other assets are not in it.'|tr(locale) }}</p>
+{% endblock %}

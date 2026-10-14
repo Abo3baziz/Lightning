@@ -97,6 +97,27 @@ _TABLE = [
     ("if_you_sold_today", "If you sold today (estimate)",
      "Free cash plus what your holdings might fetch.",
      "Free cash + Holdings after sale (estimate)"),
+    # ------------------------------------------------------------ zakat (an estimate by the common rule)
+    ("shares_and_funds", "Shares and funds", "Your stocks and funds at their latest value, counted in full for zakat."),
+    ("gold_held_as_savings", "Gold held as savings", "Your gold pieces and gold by the gram that you keep as savings, at "
+     "the gold price. Pieces marked as worn are left out."),
+    ("gold_you_wear", "Gold you wear", "Your gold pieces marked as worn. Zakat counts them only if you turn that on."),
+    ("debts_due_now", "Debts due now", "What you must pay today or earlier: your bills due. Zakat takes it off unless "
+     "you turn that off.", "Bills due"),
+    ("gameya_due_now", "Gam'eya instalments due now", "Instalments dated today or earlier and not yet recorded, on "
+     "a savings circle you took the pot from early. Zakat takes them off with the debts due now."),
+    ("zakatable_wealth", "Zakatable wealth", "What zakat is worked out on: what you hold, less the debts due now.",
+     "Cash you own + Deposits + Gam'eya paid in + Shares and funds + Gold held as savings + Gold you wear "
+     "− Debts due now − Gam'eya instalments due now"),
+    ("nisab", "Nisab", "The least wealth zakat applies to: 85 g of 24K gold at the gold price of the day, or the "
+     "amount you typed when there is no gold price."),
+    ("zakat_rate", "Zakat rate", "The share of zakatable wealth that is due: 2.5% by the common rule."),
+    ("zakat_due", "Zakat due", "An estimate by the common rule, for a scholar to confirm: the zakat rate of Zakatable "
+     "wealth when it is at or above the Nisab, else nothing.", "Zakatable wealth × Zakat rate"),
+    ("zakat_paid", "Paid this zakat year", "What you spent in the Zakat category since your last zakat day, up to the "
+     "next."),
+    ("zakat_still_to_pay", "Still to pay", "What is left of Zakat due after what you paid this zakat year; never below "
+     "zero.", "Zakat due − Paid this zakat year"),
     # ------------------------------------------------------------ activity (a period)
     ("money_in", "Money in", "Your posted income in the period. Transfers, trades and money held for others are left out."),
     ("money_out", "Money out", "Your posted spending in the period, after refunds. Transfers, trades and money held for others are left out."),
@@ -222,6 +243,17 @@ _SOURCES = {
     "portfolio_value": (LEDGER, f"{P}.portfolio_value"),
     "holdings_after_sale": (BOTH, f"{P}.holdings_after_sale"),
     "if_you_sold_today": (BOTH, f"{P}.if_you_sold_today"),
+    "shares_and_funds": (LEDGER, "lightning.zakat.ZakatService.assess"),
+    "gold_held_as_savings": (LEDGER, "lightning.zakat.ZakatService.assess"),
+    "gold_you_wear": (LEDGER, "lightning.zakat.ZakatService.assess"),
+    "debts_due_now": (PLAN, f"{P}.bills_due"),
+    "gameya_due_now": (LEDGER, "lightning.zakat.ZakatService.gameya_due_now"),
+    "zakatable_wealth": (BOTH, "lightning.zakat.Assessment.zakatable_wealth"),
+    "nisab": (LEDGER, "lightning.zakat.ZakatService.nisab"),
+    "zakat_rate": (LEDGER, "lightning.zakat.ZAKAT_RATE"),
+    "zakat_due": (BOTH, "lightning.zakat.Assessment.zakat_due"),
+    "zakat_paid": (LEDGER, "lightning.zakat.ZakatService.paid_between"),
+    "zakat_still_to_pay": (BOTH, "lightning.zakat.Assessment.still_to_pay"),
     "money_in": (LEDGER, f"{CF}.inflows"),
     "money_out": (LEDGER, f"{CF}.outflows"),
     "net_flow": (LEDGER, f"{CF}.net"),

@@ -85,7 +85,8 @@ Specs live in [Architecture](ARCHITECTURE.md); terms in the [Glossary](GLOSSARY.
 - **Investments:** buy, sell, dividends; prices fetched, typed or from shared files; Net gain or loss; Holdings after sale; target allocation; certificates and time deposits per certificate; US stocks priced in USD with price and FX parts of the gain (v1.1).
 - **Currencies:** foreign cash with dated rates, Convert, per-currency position with realized and unrealized FX gain (v1.1).
 - **Held for others** and **cash ownership:** reassign cash between you and a saved person, or record an expense paid for you.
-- **Gold:** pieces with weight, karat and cost.
+- **Gold:** pieces with weight, karat and cost; a piece can be marked as worn.
+- **Zakat:** an estimate by the common rule (2.5% at or above 85 g of 24K gold) from your position; zakat day, what you paid in the Zakat category and what is still to pay; one dated line in Cash planning. Accounts › Zakat; no ruling, Hijri dates not built.
 - **Rules:** Settings › Rules file counterparties by condition.
 - **Search and type faster:** Ctrl-K, #tags, sums in amount fields, privacy mode (the eye).
 - **Arabic and phone:** the whole app in English or Egyptian Arabic, PC and phone; the phone records daily, reads CIB and NBE bank SMS with permission and hands the ledger to a PC over local Wi-Fi.
@@ -243,7 +244,7 @@ Ideas added 2026-10-05 unless dated; each names its source app (evidence: [Compe
 | 11 | Move in from Wallet, Money Manager, Masareef exports | Say reviews | Not started |
 | 12 | Deeper investments (splits, lots, reinvested dividends, time-weighted return) | Quicken, GnuCash | Proposals: [investment_*](proposals/), [bonus_shares_and_splits](proposals/bonus_shares_and_splits.md) |
 | 13 | Silver, property, vehicles | Qershnat | Not started |
-| 14 | Gam'eya and zakat | Qershnat, Masroofy | Gam'eya built on branch `claude/gameya` (2026-10-14), awaiting merge: [Architecture](ARCHITECTURE.md#certificates-and-time-deposits). Zakat: [zakat.md](proposals/zakat.md) |
+| 14 | Gam'eya and zakat | Qershnat, Masroofy | Built 2026-10-14: gam'eya ([Architecture](ARCHITECTURE.md#certificates-and-time-deposits)) and zakat (Architecture › Zakat). Open: silver nisab, Hijri dates |
 
 For the code (Actual Budget): one change note per change, joined at release; visual snapshots of key screens; a warning on pushes that touch a migration.
 

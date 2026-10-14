@@ -23,7 +23,7 @@ def test_every_page_sits_in_one_tab():
         "/investments": ("investments", "holdings"), "/investments/holding/4": ("investments", "holdings"),
         "/investments/planner": ("investments", "planner"), "/investments/reevaluations": ("investments", "prices"),
         "/accounts/2": ("accounts", "accounts"), "/transactions": ("accounts", "transactions"),
-        "/money-from-others": ("accounts", "others"), "/settings": ("settings", "data"),
+        "/money-from-others": ("accounts", "others"), "/zakat": ("accounts", "zakat"), "/settings": ("settings", "data"),
         "/categories/5/edit": ("settings", "categories"), "/checks": ("settings", "checks"),
     }
     for path, (section, tab) in expected.items():
@@ -32,6 +32,7 @@ def test_every_page_sits_in_one_tab():
     # A Settings page that holds a tab's settings opens under that tab.
     assert locate("/settings", "budget")[1].key == "budget"
     assert locate("/settings", "financial-health")[1].key == "health"
+    assert locate("/settings", "zakat")[1].key == "zakat"
 
 
 def test_the_tab_bar_and_gears_lead_where_they_say(c):

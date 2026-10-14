@@ -52,6 +52,15 @@
   {% endif %}
 </section>
 
+{% if zakat %}
+<section class="phone-section" aria-labelledby="zakat-section">
+  <header class="phone-section-head"><h2 id="zakat-section">{{ 'Zakat'|tr(locale) }}</h2><span>{{ zakat.day }}</span></header>
+  <article class="card phone-card" id="plan-zakat"><div class="phone-rows">
+    <a class="phone-row" href="/zakat"><span>{{ 'Zakat day'|tr(locale) }}<small>{{ 'An estimate at today’s figures. It changes no balance and is not in the forecast above.'|tr(locale) }}</small></span><b>{% if zakat.amount %}{{ zakat.amount|money }} <small>{{ base }}</small>{% else %}{{ 'Nothing due'|tr(locale) }}{% endif %}</b></a>
+  </div></article>
+</section>
+{% endif %}
+
 <section class="phone-section" aria-labelledby="owe-section">
   <header class="phone-section-head"><h2 id="owe-section">{{ "What is promised"|tr(locale) }}</h2><span>{{ 'Today'|tr(locale) }}</span></header>
   <article class="card phone-card" aria-labelledby="owe-heading">

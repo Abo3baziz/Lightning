@@ -757,6 +757,17 @@ def _the_feedback_round(o: Mohab) -> None:
     b.submit({"currency": "USD", "date": "2027-09-30", "rate": "49.40"}, action="/settings/fx-rate")
     o.ask("dollars", "I bought 1,000 dollars. What did they cost me and what are they worth?", "Currencies")
 
+    # Zakat: he picks his zakat day once, gives part of it from his pay account (spending in the Zakat category)
+    # and reads what is still to pay. It is an estimate by the common rule, said once.
+    o.ask("zakat_start", "Do I owe zakat?", "Accounts", "Zakat")
+    o.notes["zakat_day"] = b.submit({"zakat_day": "2027-12-01"}, button="Save zakat day")
+    o.notes["zakat_before"] = b.go("Accounts", "Zakat")
+    o.notes["zakat_figures_before"] = o.c.zakat.assess("2027-09-30")
+    o.enter("CIB Payroll", "2027-09-30", "Charity", "Zakat", "-1,000")
+    o.ask("zakat", "And how much is still to pay?", "Accounts", "Zakat")
+    o.notes["zakat_figures_after"] = o.c.zakat.assess("2027-09-30")
+    o.ask("zakat_plan", "Does Cash planning know about it?", "Cash planning")
+
 
 @pytest.fixture(scope="module")
 def mohab(tmp_path_factory):
@@ -1530,3 +1541,20 @@ def test_cash_planning_lists_the_instalments_still_to_pay(mohab):
     assert [e.kind for e in events] == ["INSTALLMENT"] * 7 and events[0].date == "2027-10-05"
     assert mohab.c.gameya.progress(next(a.id for a in mohab.c.accounts.list() if a.name == "Office gam'eya"),
                                    "2027-09-30").paid == 3
+
+# ------------------------------------------------------------------ zakat
+def test_zakat_is_an_estimate_from_his_position_and_what_he_gave_lowers_what_is_still_to_pay(mohab):
+    assert route(mohab, "zakat_start") == ["/", "/accounts", "/zakat"]
+    assert mohab.answers["zakat_start"].shows("Your zakat day", "What counts", "Cash you own", "Debts due now",
+                                              "a scholar answers your own case")
+    assert mohab.notes["zakat_day"].shows("Zakat day saved.", "zakat day 2027-12-01")
+    before, after = mohab.notes["zakat_before"], mohab.answers["zakat"].screen
+    first, then = mohab.notes["zakat_figures_before"], mohab.notes["zakat_figures_after"]
+    assert before.shows("Zakatable wealth", "Nisab", "Zakat due", "Paid this zakat year", "Still to pay",
+                        "2026-12-12 to 2027-12-01", "lunar year")
+    assert first.zakat_due and first.zakat_due > 0 and first.paid == 0 and first.still_to_pay == first.zakat_due
+    assert before.shows(f"{first.zakat_due:,.0f}", f"{first.nisab:,.0f}", f"{first.zakatable_wealth:,.0f}")
+    assert then.paid == 1000 and then.zakatable_wealth == first.zakatable_wealth - 1000   # the gift left his cash too
+    assert then.still_to_pay == then.zakat_due - 1000 and after.shows(f"{then.still_to_pay:,.0f}")
+    plan = mohab.answers["zakat_plan"]
+    assert plan.shows("Zakat", "2027-12-01", "An estimate at today’s figures")

@@ -78,7 +78,7 @@ async def new_item(request: Request, account_id: int):
     return render(request, "physical_item_form.html", account=account, item=None,
                   references=_references(c, account), values={"name": "", "kind": "Jewelry", "weight": "",
                                                               "karat": "18", "reference_asset_id": "",
-                                                              "details": ""})
+                                                              "details": "", "worn": ""})
 
 
 @router.post("/accounts/{account_id:int}/items/new")
@@ -87,9 +87,11 @@ async def create_item(request: Request, account_id: int):
     account = c.accounts.get(account_id)
     form = await request.form()
     values = {key: str(form.get(key, "")) for key in ("name", "kind", "weight", "karat", "reference_asset_id", "details")}
+    values["worn"] = "1" if form.get("worn") == "1" else ""
     try:
         asset_id = c.physical_items.create(account_id, values["name"], values["kind"], values["weight"],
-                                           int(values["karat"]), int(values["reference_asset_id"]), values["details"])
+                                           int(values["karat"]), int(values["reference_asset_id"]), values["details"],
+                                           worn=values["worn"] == "1")
     except (ValueError, LightningError) as exc:
         error = exc if isinstance(exc, LightningError) else LightningError("Choose a matching gold price reference.")
         return render(request, "physical_item_form.html", status_code=400, account=account, item=None,
@@ -108,7 +110,7 @@ async def edit_item(request: Request, account_id: int, asset_id: int):
     values = {"name": asset.name, "kind": item["item_kind"],
               "weight": str(Decimal(item["net_gold_grams_e6"]) / Decimal(1_000_000)),
               "karat": str(item["karat"]), "reference_asset_id": str(item["reference_asset_id"]),
-              "details": item["details"]}
+              "details": item["details"], "worn": "1" if item["worn"] else ""}
     return render(request, "physical_item_form.html", account=account, item=item,
                   references=_references(c, account), values=values)
 
@@ -120,9 +122,11 @@ async def save_item(request: Request, account_id: int, asset_id: int):
     if c.physical_items.get(asset_id)["account_id"] != account_id:
         return redirect(f"/accounts/{account_id}", "That item belongs to another account.")
     values = {key: str(form.get(key, "")) for key in ("name", "kind", "weight", "karat", "reference_asset_id", "details")}
+    values["worn"] = "1" if form.get("worn") == "1" else ""
     try:
         c.physical_items.update(asset_id, values["name"], values["kind"], values["weight"],
-                                int(values["karat"]), int(values["reference_asset_id"]), values["details"])
+                                int(values["karat"]), int(values["reference_asset_id"]), values["details"],
+                                worn=values["worn"] == "1")
         c.reevaluations.process_due()
     except (ValueError, LightningError) as exc:
         error = exc if isinstance(exc, LightningError) else LightningError("Choose a matching gold price reference.")

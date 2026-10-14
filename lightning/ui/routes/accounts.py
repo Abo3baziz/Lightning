@@ -222,6 +222,12 @@ def _transaction_popup_context(request, account, values, action, error=None, txn
                 error=error.message if error else "", error_field=error.field if error else "")
 
 
+def _category_id(request) -> str:
+    """A category to start the entry with (Zakat's Record payment opens it with the Zakat category)."""
+    text = str(request.query_params.get("category_id", ""))
+    return text if text.isdigit() else ""
+
+
 def _safe_return(value, fallback):
     value = str(value or "")
     return value if value.startswith("/") and not value.startswith("//") else fallback
@@ -230,7 +236,7 @@ def _safe_return(value, fallback):
 @router.get("/{account_id:int}/transaction/new")
 async def new_transaction_popup(request: Request, account_id: int):
     account = container(request).accounts.get(account_id)
-    values = {"kind": "out", "date": fmt_date(today()), "amount": "", "category_id": "",
+    values = {"kind": "out", "date": fmt_date(today()), "amount": "", "category_id": _category_id(request),
               "counterparty": "", "owner_id": "", "to_account_id": "",
               "notes": "", "return_to": _safe_return(request.query_params.get("return_to"), f"/accounts/{account_id}")}
     return render(request, "transactions/form_popup.html",

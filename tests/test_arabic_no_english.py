@@ -16,10 +16,10 @@ from lightning.ui.web import create_app
 
 PC_PAGES = ("/", "/budget", "/plan", "/plan/recurring", "/plan/loans", "/plan/reserves", "/investments",
             "/investments/prices", "/accounts", "/settings", "/search", "/rules", "/categories", "/counterparties",
-            "/checks", "/financial-health", "/birdview/expenses", "/transactions", "/money-from-others")
+            "/checks", "/financial-health", "/birdview/expenses", "/transactions", "/money-from-others", "/zakat")
 PERIODS = ("period=ytd", "period=all", "period=month&month=2026-09", "period=custom&date_from=2026-03&date_to=2026-08")
 PERIOD_PAGES = ("/", "/budget", "/birdview/expenses", "/investments", "/transactions", "/financial-health")
-SETTINGS_SECTIONS = ("budget", "currencies", "document", "financial-health", "targets", "valuations", "assets-valuations")
+SETTINGS_SECTIONS = ("budget", "currencies", "document", "financial-health", "targets", "valuations", "assets-valuations", "zakat")
 EXTRA_PAGES = ("/accounts/1", "/accounts/2", "/accounts/3", "/accounts/6", "/accounts/1/edit", "/accounts/1/reconcile",
                "/accounts/1/transaction/new", "/accounts/1/import", "/accounts/1/ownership/new", "/accounts/new",
                "/accounts/currencies", "/accounts/6/items/new", "/budget/raise?month=2026-10", "/budget/move?month=2026-10",
@@ -31,7 +31,7 @@ EXTRA_PAGES = ("/accounts/1", "/accounts/2", "/accounts/3", "/accounts/6", "/acc
 PHONE_EXTRA = ("/accounts/1", "/accounts/6", "/plan/loans", "/plan/recurring", "/plan/reserves", "/investments/holding/11",
                "/transactions/315", "/accounts/1/transaction/new", "/budget/raise?month=2026-10", "/search?q=a")
 PHONE_PAGES = ("/", "/budget", "/plan", "/investments", "/accounts", "/transactions", "/birdview/expenses",
-               "/financial-health", "/settings", "/categories")
+               "/financial-health", "/settings", "/categories", "/zakat")
 
 # Brand, keyboard keys, data sources and the one prompt meant to be pasted into an AI tool.
 ALLOWED_WORDS = {"Lightning", "Ctrl", "Enter", "Esc", "TradingView", "Yahoo", "Finance", "Mubasher", "Nasdaq",
