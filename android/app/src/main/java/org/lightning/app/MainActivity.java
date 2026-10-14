@@ -50,6 +50,7 @@ public final class MainActivity extends Activity {
     public void onCreate(Bundle state) {
         super.onCreate(state);
         SmsBridge.activity = this;
+        BiometricBridge.activity = this;
         takeShare(getIntent());
         WebView.setWebContentsDebuggingEnabled(false);
         FrameLayout frame = new FrameLayout(this);

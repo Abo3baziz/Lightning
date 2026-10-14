@@ -9,6 +9,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
   Migration `0053_gameya.sql` adds `gameya_terms` and rebuilds `accounts` for the new type; roundtrip fixture rebuilt for schema 53.
 - 2026-10-14 · Claude: owner chose fingerprint unlock (Android, optional), gam'eya (CD backbone, interest optional) and zakat; designs in `docs/proposals/gameya.md`, `zakat.md` and `multiple_devices.md` 18d.
 - 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.
+- 2026-10-14 · Claude: website footer (website repo): a Contact Us section (two emails, Reddit, Discord), then brand and links, on every page in English and Arabic; generated from `tools/footer.py`.
 - 2026-10-14 · Claude: website analytics: every number is behind the dashboard key (website repo): GoatCounter totals go from the GitHub job to the private receiver, no analytics files are committed. Setup order in `OWNER.md`.
 - 2026-10-14 · Claude: website analytics hardening (website repo): linked visits are no longer published (dashboard loads them privately with a key); Apps Script abuse caps and small-group merging; notice says storage works like a cookie. Owner steps in `OWNER.md`.
 - 2026-10-14 · Claude: website Events sheet (Apps Script, website repo): "Received at" shows date and time; each visitor ID gets a sequential Visitor no. (Visitors tab, backfilled, purged after 90 days).
@@ -36,6 +37,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-14 · Claude: optional fingerprint unlock on the phone (task 18d): an opt-in Keystore-bound key slot outside the profile (`keys.json` and the PC unchanged), unlocked through BiometricPrompt then the password's own open path; Settings › This phone and a Use fingerprint button on the unlock screen.
+  Cancel counts nothing; changed fingerprints or a key that is not the profile's remove the slot and say to use the password. Java compiled against API 30 stubs only; on-device check in `OWNER.md`.
 - 2026-10-13 · Codex: v1.1.0-beta.1 published as a matched Windows ZIP and signed Android APK; public checksums match the tested pair.
   Website downloads, release notes, archives and feedback choices updated in English and Arabic; v1.1 acceptance items cleared from NOW.md, larger features deferred.
 
