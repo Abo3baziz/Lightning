@@ -42,6 +42,9 @@ def _num(value: Decimal) -> str:
     return text
 
 
+PRICE_REFERENCE_CODES = ("GLD:18K", "REF:GLD-21K", "REF:GLD-24K")  # seeded in database/seed.py
+
+
 class InvestmentService:
     def __init__(self, db: Database, accounts: AccountService, assets: AssetService, categories: CategoryService,
                  transactions: TransactionService, reporting: ReportingService, reevaluations=None):
@@ -559,6 +562,9 @@ class InvestmentService:
         return account
 
     def _validate_asset_account(self, account: Account, asset):
+        if asset.code in PRICE_REFERENCE_CODES:  # a price series, not something you can own
+            raise ValidationError(f"{asset.name} only supplies a price. Record the gold you own as an item "
+                                  "in a physical-asset account.", "asset")
         root_code = self.assets.get_class(asset.asset_class_id).root_code
         if root_code in {"STOCK", "FUND"} and account.account_type != AccountType.BROKERAGE:
             raise ValidationError("Stocks and funds can only be traded in a brokerage account.", "account")

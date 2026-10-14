@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-14 · Claude: a gold price reference (18K/21K/24K) can no longer be bought or added as a holding; it only supplies a price: `InvestmentService._validate_asset_account`; test in `tests/test_physical_items.py`.
 - 2026-10-14 · Claude: a bill or income due date already paid or skipped cannot be recorded again (a second press made a second real payment): `PlanningService.record_payment`, `PlanningRepository.is_settled`; test in `tests/test_planning.py`.
 
 - 2026-10-14 · Codex: tab-by-tab trust batch: plain returns before 365 days, annual XIRR afterward; separate locked-certificate values/dates and matching Sale factors; emergency coverage defaults to spending (income optional).

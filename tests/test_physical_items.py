@@ -103,3 +103,11 @@ def test_item_custody_ownership_and_existing_gram_gold_remain_separate(c):
 def test_invalid_karat_does_not_crash_reference_filter(c):
     physical, _cash, _reference, _item_id = setup_ring(c)
     assert _references(c, c.accounts.get(physical.id), "not-a-karat") == []
+
+
+def test_a_gold_price_reference_cannot_be_bought_as_a_holding(c):
+    physical, cash, reference, _ = setup_ring(c)
+    with pytest.raises(ValidationError):
+        c.investments.buy_total("2026-09-02", physical.id, reference.id, "5", "100", cash.id)
+    with pytest.raises(ValidationError):
+        c.investments.add_holding(physical.id, reference.id, "5", "100")
