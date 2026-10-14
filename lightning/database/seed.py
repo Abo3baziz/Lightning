@@ -80,6 +80,7 @@ CATEGORIES: list[tuple[str, str, dict]] = [
     ("EXP.SYSTEM.TRANSFERS", "Internal transfers", {"direction": "BOTH"}),
     ("EXP.SYSTEM.CAPITAL", "Capital allocation", {"direction": "BOTH"}),
     ("EXP.SYSTEM.ADJUSTMENT", "Adjustment", {"direction": "BOTH"}),
+    ("EXP.SYSTEM.ZAKAT", "Zakat", {"scope": "PERSONAL"}),
     ("EXP.UNACCOUNTED", "Unaccounted Spending", {"scope": "PERSONAL", "is_system": 1}),
     ("EXP.INVEST", "Investment", {"family": "INVESTMENT", "income_class": "INVESTMENT"}),
     ("EXP.INVEST.INTEREST", "Interest", {"movement": "INFLOW", "income_class": "INVESTMENT"}),

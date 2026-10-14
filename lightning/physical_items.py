@@ -19,7 +19,7 @@ class PhysicalItemService:
         self.db, self.accounts, self.assets, self.audit = db, accounts, assets, audit
 
     def create(self, account_id: int, name: str, kind: str, grams_per_piece, karat: int,
-               reference_asset_id: int, details: str = "") -> int:
+               reference_asset_id: int, details: str = "", worn: bool = False) -> int:
         account = self.accounts.require_usable(account_id)
         if account.account_type != AccountType.PHYSICAL_ASSET:
             raise ValidationError("Choose a physical-asset account.", "account_id")
@@ -44,8 +44,9 @@ class PhysicalItemService:
             item_asset = self.assets.create_physical_item_asset(name)
             self.db.execute(
                 "INSERT INTO physical_items(asset_id,account_id,item_kind,net_gold_grams_e6,karat,"
-                "reference_asset_id,details,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
-                (item_asset.id, account.id, kind, to_e6(weight), karat, ref.id, (details or "").strip(), now, now),
+                "reference_asset_id,details,worn,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (item_asset.id, account.id, kind, to_e6(weight), karat, ref.id, (details or "").strip(),
+                 1 if worn else 0, now, now),
             )
             self.audit.record("physical_item", item_asset.id, "create", f"Created {name}", None,
                               self._snapshot(item_asset.id))
@@ -57,14 +58,20 @@ class PhysicalItemService:
             raise ValidationError("Physical item not found.")
         return dict(row)
 
+    def worn_asset_ids(self) -> set[int]:
+        """The pieces marked as worn (Zakat counts gold you wear only by its setting)."""
+        return {row["asset_id"] for row in self.db.all("SELECT asset_id FROM physical_items WHERE worn=1")}
+
     def for_account(self, account_id: int) -> list[dict]:
         return [dict(row) for row in self.db.all(
             "SELECT p.*,a.name FROM physical_items p JOIN financial_assets a ON a.id=p.asset_id "
             "WHERE p.account_id=? ORDER BY a.name COLLATE NOCASE", (account_id,))]
 
     def update(self, asset_id: int, name: str, kind: str, grams_per_piece, karat: int,
-               reference_asset_id: int, details: str = "") -> None:
+               reference_asset_id: int, details: str = "", worn: bool | None = None) -> None:
+        """Edit a piece. `worn` (gold you wear, which Zakat counts only by the setting) keeps its old value when None."""
         old = self.get(asset_id)
+        worn = bool(old["worn"]) if worn is None else bool(worn)
         name, kind = (name or "").strip(), (kind or "").strip()
         weight = check_places(to_decimal(grams_per_piece, "weight"), 6, "weight")
         if not name or not kind or weight <= 0:
@@ -78,11 +85,11 @@ class PhysicalItemService:
                                   "reference_asset_id")
         before = self._snapshot(asset_id)
         after = {"name": name, "kind": kind, "grams_per_piece": str(weight), "karat": karat,
-                 "reference_asset_id": ref.id, "details": (details or "").strip()}
+                 "reference_asset_id": ref.id, "details": (details or "").strip(), "worn": worn}
         with self.db.transaction():
             self.db.execute("UPDATE physical_items SET item_kind=?,net_gold_grams_e6=?,karat=?,reference_asset_id=?,"
-                            "details=?,updated_at=? WHERE asset_id=?",
-                            (kind, to_e6(weight), karat, ref.id, after["details"], now_iso(), asset_id))
+                            "details=?,worn=?,updated_at=? WHERE asset_id=?",
+                            (kind, to_e6(weight), karat, ref.id, after["details"], 1 if worn else 0, now_iso(), asset_id))
             self.db.execute("UPDATE financial_assets SET name=?,updated_at=? WHERE id=?",
                             (name, now_iso(), asset_id))
             self.audit.record("physical_item", asset_id, "edit", f"Updated {name}", before, after)
@@ -131,4 +138,4 @@ class PhysicalItemService:
         return {"name": self.assets.get_asset(asset_id).name, "kind": item["item_kind"],
                 "grams_per_piece": str(Decimal(item["net_gold_grams_e6"]) / Decimal(1_000_000)),
                 "karat": item["karat"], "reference_asset_id": item["reference_asset_id"],
-                "details": item["details"]}
+                "details": item["details"], "worn": bool(item["worn"])}

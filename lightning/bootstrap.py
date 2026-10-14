@@ -36,6 +36,7 @@ from lightning.integrity import IntegrityService
 from lightning.money_from_others import MoneyFromOthersService
 from lightning.ownership_migration import migrate_legacy_ownership
 from lightning.physical_items import PhysicalItemService
+from lightning.zakat import ZakatService
 from lightning.reporting.service import ReportingService
 from lightning.reconciliation import ReconciliationService
 from lightning.reserves import CashReserveService
@@ -77,6 +78,7 @@ class Container:
     forecaster: CashForecaster
     position: PositionService
     health: HealthService
+    zakat: ZakatService
     backup_dir: Path | None = None
 
     @property
@@ -183,6 +185,7 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
     budgets.reserve_goal_needs = forecaster.goal_needs
     health = HealthService(planning, position, budgets)
     forecaster.savings_rate = lambda: health.limit_values()["savings_rate"] or Decimal(0)
+    zakat = ZakatService(db, position, reporting, assets, categories, physical_items, audit)
     return Container(
         db=db,
         data_dir=data_dir,
@@ -212,5 +215,6 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
         forecaster=forecaster,
         position=position,
         health=health,
+        zakat=zakat,
         backup_dir=backup_dir,
     )
