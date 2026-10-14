@@ -152,8 +152,10 @@ html.phone.keyboard-open .phone-tabbar, html.phone.sheet-open .phone-tabbar { di
 .phone-kpi:hover { text-decoration: none; }
 .phone-kpi-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; }
 .phone-kpi-head .stat-chip { white-space: nowrap; }
+.phone-kpi-head .stat-tile-icon, .phone-kpi-head > svg, .phone-kpi-head > .tone-icon, .phone-kpi-head > span:not(.stat-chip) { display: none; }
+.phone-kpi-head { justify-content: flex-end; min-height: 0; }
 .phone-kpi-label { font-size: 13px; font-weight: 700; line-height: 1.3; } /* wraps, never ends in "…" (C12) */
-.phone-kpi-value { font: 800 26px/1.1 var(--display, inherit); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.phone-kpi-value { font: 800 24px/1.1 var(--display, inherit); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .phone-kpi-value.is-long { font-size: 22px; }
 .phone-kpi-value small { font-size: 14px; margin-left: 2px; }
 .phone-kpi-sub { color: var(--c-ink-2); font-size: 12.5px; }
@@ -227,18 +229,30 @@ html.phone.keyboard-open .phone-tabbar, html.phone.sheet-open .phone-tabbar { di
 .phone-chip.is-chosen a { color: #fff; }
 .phone-month-chip { padding: 0 4px; gap: 0; }
 .phone-month-chip a { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; color: inherit; text-decoration: none; }
-.phone-day { margin: 18px 0 4px; font-size: 12.5px; font-weight: 600; color: var(--c-ink); }
-.phone-day-rows { border-radius: 16px; background: var(--c-surface); box-shadow: var(--shadow); padding: 0 14px; }
-.phone-txn { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 60px; padding: 8px 0;
+.phone-content .phone-day { display: flex; justify-content: space-between; margin: 22px 0 2px; font-size: 12.5px; font-weight: 700; line-height: 1.3; letter-spacing: 0; color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.phone-day-rows { padding: 0; }
+.phone-txn { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 0;
   border-top: 1px solid var(--c-line); color: var(--c-ink); text-decoration: none; box-sizing: border-box; }
 .phone-txn:first-child { border-top: 0; }
 .phone-txn:hover { text-decoration: none; }
-.phone-txn-who { display: flex; flex-direction: column; min-width: 0; }
+.phone-txn-av { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--c-track); color: var(--c-ink-2); font-size: 15px; font-weight: 700; line-height: 1; font-family: var(--display); }
+.phone-txn-av.is-in { background: #DDF3E8; color: #097852; }
+.phone-txn-who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .phone-txn-who b { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
 .phone-txn-who small, .phone-txn-amount small { color: var(--c-muted); font-size: 12.5px; }
 .phone-txn-amount { display: flex; flex-direction: column; align-items: flex-end; flex: none; font-variant-numeric: tabular-nums; }
 .phone-txn-amount b { font-size: 15px; font-weight: 700; white-space: nowrap; }
 .phone-txn-amount b.pos { color: #097852; }
+/* C11.1 hero: the one figure that leads the Overview, on the page and not in a card; then Latest. */
+.phone-hero { margin: 4px 0 0; }
+.phone-hero-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--c-ink-2); }
+.phone-hero-label span { color: var(--c-muted); font-weight: 500; }
+.phone-latest { margin-top: 24px; }
+.phone-latest .phone-day-rows:last-child .phone-txn:last-child { border-bottom: 0; }
+.phone-latest .phone-day { margin-top: 10px; }
+.phone-latest .phone-section-head { margin-bottom: 0; align-items: center; }
+.phone-latest .phone-quiet { font-size: 13px; }
 .phone-more-link { width: 100%; margin: 16px 0 0; justify-content: center; }
 
 /* C05.2: the add button, 56 Nile, 16 from the edge, 16 above the tab bar; the page ends above it so it never covers a row. */
@@ -394,3 +408,10 @@ html.phone[dir="rtl"] .period-buttons:has(.period-month-seg) .period-month-seg {
 html.phone[dir="rtl"] .period-month-seg .period-step:not(#_):not(.x_) { flex: none; width: 22px; }
 
 .info-tooltip { position:fixed; z-index:10000; width:260px; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); overflow:auto; box-sizing:border-box; padding:10px 12px; border-radius:12px; background:var(--action); color:#fff; font:500 13px/1.45 var(--body); text-align:start; box-shadow:var(--shadow-float); white-space:normal; overflow-wrap:anywhere; }
+
+/* C06.3: headline figures as a lead and rows; a change that is down in spending is good (green), up is rose (A03). */
+.phone-hero .phone-rows { margin-top: 8px; }
+.phone-delta { font-weight: 600; }
+.phone-delta.is-down { color: #097852; }
+.phone-delta.is-up { color: #C93D72; }
+.phone-stat-rows { margin-top: 8px; }

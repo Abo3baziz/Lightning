@@ -5,8 +5,7 @@
 {% from "phone/partials/charts.html" import kpi_tiles, bar_rows, flow_bars, month_tiles %}
 {% from "partials/charts.html" import trend, donut %}
 {% block title %}Overview{% endblock %}
-{% block heading %}<h1>{{ 'Overview'|tr(locale) }}</h1><p>{{ range_label }}</p>{% endblock %}
-{% block top_actions %}{% from "partials/macros.html" import period_control with context %}{{ period_control("/", period.key, month, this_month, request.query_params.get("date_from", "") if period_error and period.key == "custom" else period.start_text, request.query_params.get("date_to", "") if period_error and period.key == "custom" else period.end_text) }}{% endblock %}
+{% block heading %}<h1>{{ 'Overview'|tr(locale) }}</h1>{% endblock %}
 {% block content %}
 {% if period_error %}<p class="flash error">{{ period_error }}</p>{% endif %}
 {% if setup %}{% set done = setup|selectattr("done")|list|length %}
@@ -16,6 +15,17 @@
 <form method="post" action="/setup/guide"><input type="hidden" name="action" value="dismiss"><button class="btn small">{{ "Done with setup"|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
 </section>
 {% endif %}
+{% set owes = pos.what_you_owe > 0 %}{% set lead = 'net_worth' if owes else 'what_you_own' %}
+<section class="phone-hero" aria-labelledby="lead-heading">
+  <div id="lead-heading" class="phone-hero-label" role="heading" aria-level="2">{{ fig[lead].label }} <span>{{ "As of {date}"|tr(locale, date=position_as_of) }}</span></div>
+  <div class="phone-lead">{{ (pos.net_worth if owes else pos.what_you_own)|money }} <small>{{ base }}</small></div>
+  {% if pos.unvalued %}<p class="notice">{{ pos.unvalued|length }} asset valuation(s) are missing from this total.</p>{% endif %}
+</section>
+{% from "phone/partials/txn.html" import txn_list with context %}
+<section class="phone-section phone-latest" aria-labelledby="latest-heading">
+  <header class="phone-section-head"><h2 id="latest-heading">{{ 'Latest'|tr(locale) }}</h2><a class="phone-quiet" href="/transactions">{{ 'See all transactions'|tr(locale) }}</a></header>
+  {% if recent_rows %}{{ txn_list(recent_rows, True, False, False, '', '/transactions', '', 6, False) }}{% else %}<p class="phone-note">{{ 'No transactions yet.'|tr(locale) }}</p>{% endif %}
+</section>
 {% if attention %}
 <details class="card phone-needs" aria-labelledby="needs-heading">
   <summary><span class="needs-you-dot" aria-hidden="true"></span><b id="needs-heading">{{ "Needs you"|tr(locale) }}</b><span class="needs-you-count">{{ attention|length }}</span></summary>
@@ -23,15 +33,15 @@
 </details>
 {% else %}<div class="card phone-needs is-empty"><span class="needs-you-dot" aria-hidden="true"></span><b>{{ "Nothing needs you today"|tr(locale) }}</b></div>{% endif %}
 
-{{ kpi_tiles(stats, base) }}
+<section class="phone-section" aria-labelledby="analysis-heading">
+  <header class="phone-section-head"><h2 id="analysis-heading">{{ 'This period'|tr(locale) }}</h2><span>{{ date_from }} to {{ date_to }}</span></header>
+  {% from "partials/macros.html" import period_control with context %}{{ period_control("/", period.key, month, this_month, request.query_params.get("date_from", "") if period_error and period.key == "custom" else period.start_text, request.query_params.get("date_to", "") if period_error and period.key == "custom" else period.end_text) }}
+  {{ kpi_tiles(stats, base) }}
+</section>
 
 <section class="phone-section" aria-labelledby="position-heading">
   <header class="phone-section-head"><h2 id="position-heading">{{ 'Your position'|tr(locale) }}</h2><span>As of {{ position_as_of }}</span></header>
-  {% set owes = pos.what_you_owe > 0 %}{% set lead = 'net_worth' if owes else 'what_you_own' %}
-  <article class="card phone-card" aria-labelledby="lead-heading">
-    <h3 id="lead-heading" class="phone-card-title">{{ fig[lead].label }}</h3><p class="phone-note">{{ "Excludes money held for others"|tr(locale) }}</p>
-    <div class="phone-lead">{{ (pos.net_worth if owes else pos.what_you_own)|money }} <small>{{ base }}</small></div>
-    {% if pos.unvalued %}<p class="notice">{{ pos.unvalued|length }} asset valuation(s) are missing from this total.</p>{% endif %}
+  <article class="card phone-card" aria-labelledby="position-heading">
     <div class="phone-rows">
       {% if owes %}<div class="phone-row"><span>{{ fig.what_you_own.label }}</span><b>{{ pos.what_you_own|money }}</b></div>{% endif %}
       <details class="phone-row-more"><summary class="phone-row"><span>{{ fig.cash_you_own.label }} <span class="phone-chevron" aria-hidden="true">›</span></span><b>{{ pos.cash_you_own|money }}</b></summary>

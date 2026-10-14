@@ -304,14 +304,14 @@ def _first_evening(o: Mohab) -> None:
     o.ask("setup", "My accounts are in. What should I do next?")
 
     # Three months of CIB from the bank's CSV.
-    b.go("CIB Payroll", "Import CSV")
+    b.go("Accounts", "CIB Payroll", "Import CSV")
     b.submit({}, button="Review statement", files={"file": ("cib-jul-sep.csv", _statement(), "text/csv")})
     b.submit({"map_Date": Choose("Date"), "map_Amount": Choose("Amount"), "map_Counterparty": Choose("Description")},
              button="Preview rows")
     o.notes["review"] = b.page
     # Halfway through he leaves to check something, then comes back to the review from the Overview.
     o.ask("import_waiting", "I left the import half done. Does Lightning remember it?")
-    o.notes["import_again"] = b.go("CIB Payroll", "Import CSV")
+    o.notes["import_again"] = b.go("Accounts", "CIB Payroll", "Import CSV")
     b.go("Imported activity needs a decision")
     review = b.page.form("Post ready rows")
     # One decision per name: he answers each imported name once, and every row with that name follows it.
@@ -603,12 +603,12 @@ def _a_dollar_account_and_a_nasdaq_etf(o: Mohab) -> None:
                                        "opening_balance": "3,000", "opening_balance_date": "2027-09-30"},
                                       button="Add account")
     # In his pound brokerage the ETF is on offer but says it needs a dollar account; he is not let buy it there.
-    thndr = b.go("THNDR")
+    thndr = b.go("Accounts", "THNDR")
     o.notes["etf_in_pounds_choice"] = next(x for x in thndr.catalogue("trade-instrument-catalogue") if x.get("ticker") == "QQQM")
     o.notes["etf_in_pounds"] = b.submit({"instrument_key": o.notes["etf_in_pounds_choice"]["key"], "trade_action": "buy",
                                          "date": "2027-09-30", "units": "5", "total": "1,000"}, action="investment-entry",
                                         expect=400)
-    screen = b.go("Dollar brokerage")
+    screen = b.go("Accounts", "Dollar brokerage")
     o.notes["etf_in_dollars_choice"] = next(x for x in screen.catalogue("trade-instrument-catalogue") if x.get("ticker") == "QQQM")
     o.notes["etf_bought"] = b.submit({"instrument_key": o.notes["etf_in_dollars_choice"]["key"], "trade_action": "buy",
                                       "date": "2027-09-30", "units": "10", "total": "2,200", "fees": "5"},

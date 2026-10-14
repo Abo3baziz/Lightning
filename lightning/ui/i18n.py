@@ -576,6 +576,8 @@ ARABIC_UI = {
     'yyyy-mm-dd': 'سنة-شهر-يوم',
     'Today': 'النهارده',
     'Yesterday': 'امبارح',
+    'Latest': 'الأحدث',
+    'See all transactions': 'شوف كل المعاملات',
     'All': 'الكل',
     'All time': 'كل الوقت',
     'YTD': 'من بداية السنة',

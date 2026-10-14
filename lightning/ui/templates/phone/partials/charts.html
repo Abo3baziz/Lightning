@@ -17,6 +17,21 @@
 </section>
 {% endmacro %}
 
+{# C06.3: a page's headline figures as one lead and quiet rows (Expense analysis): the first figure large on the page,
+   its comparisons under it, every other figure one 48-tall row. No card, no icon, no coloured edge. #}
+{% macro stat_rows(stats, base) %}
+{% macro _val(s) %}{% if s.value is none %}{{ s.empty or '—' }}{% elif s.kind == 'rate' %}{{ rate(s.value) }}%{% elif s.kind == 'months' %}{{ '%.1f'|format(s.value) }} {{ "months"|tr(locale) }}{% else %}{{ s.value|money(s.key == 'change' or s.signed is defined and s.signed) }}{% endif %}{% endmacro %}
+{% if stats %}{% set lead = stats[0] %}
+<section class="phone-hero" aria-label="{{ lead.label }}">
+  <div class="phone-hero-label" role="heading" aria-level="2">{{ lead.label }}{% if lead.badge %} <span>{{ lead.badge.text|phone_chip or lead.badge.text }}</span>{% endif %}</div>
+  <div class="phone-lead">{% if lead.value is none %}{{ lead.empty or '—' }}{% elif lead.kind == 'rate' %}{{ rate(lead.value) }}<small>%</small>{% else %}{{ lead.value|money(lead.key == 'change') }} <small>{{ base }}</small>{% endif %}</div>
+  {% if lead.compare %}<div class="phone-rows">{% for k in lead.compare %}<div class="phone-row"><span>{{ k.label }}</span><b class="phone-delta is-{{ k.tone }}">{{ k.text }}</b></div>{% endfor %}</div>{% endif %}
+</section>
+{% if stats|length > 1 %}<div class="phone-rows phone-stat-rows">{% for s in stats[1:] %}{% set tag = 'a' if s.href else 'div' %}
+  <{{ tag }} class="phone-row"{% if s.href %} href="{{ s.href }}"{% endif %}><span>{{ s.label }}{% if s.sub is defined and s.sub %}<small>{{ s.sub }}</small>{% endif %}</span><b>{{ _val(s) }}</b></{{ tag }}>{% endfor %}</div>{% endif %}
+{% endif %}
+{% endmacro %}
+
 {# C07.3.5 and C07.3.2: one row per step, name and amount on one line, the bar under them. #}
 {% macro bar_rows(rows, caption, scheme='cash') %}
 {% set top = (rows|map(attribute='value')|map('abs')|max) if rows else 0 %}

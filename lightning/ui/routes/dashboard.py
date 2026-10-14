@@ -198,10 +198,11 @@ async def dashboard(request: Request):
     networth_trend = visuals.net_worth_trend(c, as_of)
     stats = _period_stats(c, period, first, as_of, period_position, cash_flow, change, change_reason,
                           closing_report["net_money"], networth_trend, urlencode(request.query_params))
+    recent_rows = c.reporting.register_page(None, "1900-01-01", "9999-12-31", 1, 10)[0]  # the phone leads with these (C11.1)
     return render(
         request,
         "dashboard/index.html",
-        stats=stats,
+        stats=stats, recent_rows=recent_rows,
         flow_columns=visuals.cash_flow_columns(c, first, as_of, cash_flow),
         money_in_rows=visuals.money_in_groups(c, first, as_of),
         money_out_rows=visuals.money_out_groups(c, first, as_of),
