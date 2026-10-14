@@ -558,7 +558,7 @@ Claim these subtask IDs instead of claiming a large package for several sessions
 | 18a | 06 (fixtures); accept after 08 or 11 | Add desktop “View saved copy,” date/source/status labels and read-only reports/exports. Build and test with fixture copies; accept in ordinary use once real prefetch (11) or handed-back (08) copies exist. Test disconnected launch, unchanged database hash, unsupported schema and precedence of outstanding local work. | 2, 5 |
 | 18b | 15, 16c | Add operational Pair/Lend/Hand back/status/repair controls as the protocol becomes available, with working back routes. | 2, 5, 8 |
 | 18c | 17, 18a, 18b | Complete phone-width navigation, accessibility and end-to-end UX acceptance; include 18a offline analysis. | 2, 11, 16 |
-| 18d | 16b, owner approval | Optional biometric key-slot prototype and tests; password/recovery still work after cancellation, invalidation or disabling biometrics. | 2, 11 |
+| 18d | 16b, owner approval | **Built** on `claude/fingerprint-unlock` (2026-10-14): key slot, Keystore bridge, session path, Settings and unlock screens, tests with a fake bridge; password/recovery still work after cancellation, invalidation or disabling. Remains: on-device evidence (OWNER.md). | 2, 11 |
 | 19a | 05a | Define/test release compatibility metadata and the old-schema return contract; version names alone confer no compatibility. | 13 |
 | 19b | 19a | Implement installed/required-version display and the official manual-download path; preserve paths and unsent files across ZIP replacement. | 2, 13 |
 | 19c | 15, 16d, 17, 19b | Rehearse phone auto-update, deferred migration, stale paired-PC readiness, old-schema hand-back and update ordering; gate the first beta. | 9, 13, 16 |
