@@ -421,3 +421,16 @@ html.phone[dir="rtl"] .period-month-seg .period-step:not(#_):not(.x_) { flex: no
 .phone .main .stat-tile .stat-tile-icon { display: none; }
 .phone .main .stat-tile, .phone .main .stat-tile.surface-lead, .phone .main .stat-tile.surface-mint, .phone .main .stat-tile.surface-white { background: var(--c-surface); border-color: var(--c-line); }
 .phone .stat-tile-head { justify-content: space-between; }
+
+/* Quiet notes (C01.1): a key note is a white row with a small dot for its tone, never a tinted card with a big numeral.
+   The PC rules are !important, so these are too. */
+.phone .main .key-note { background: var(--c-surface) !important; background-image: none !important; border: 1px solid var(--c-line) !important; box-shadow: none !important; border-radius: 16px; padding: 14px 16px !important; }
+.phone .main .key-note .kn-head { display: flex; align-items: center; gap: 10px; }
+.phone .main .key-note .key-note-icon { width: 10px !important; height: 10px !important; flex: none; border-radius: 50% !important; background: var(--c-muted) !important; padding: 0; box-shadow: none !important; }
+.phone .main .key-note .key-note-icon svg { display: none !important; }
+.phone .main .key-note.tone-attention .key-note-icon { background: #C93D72 !important; }
+.phone .main .key-note.tone-good .key-note-icon { background: #14A874 !important; }
+.phone .main .key-note .kn-label { font-size: 15px; font-weight: 700; color: var(--c-ink); }
+.phone .main .key-note .kn-figure { display: block; margin: 4px 0 0 20px; font-size: 22px !important; line-height: 1.2; color: var(--c-ink) !important; }
+.phone .main .key-note p { margin: 4px 0 0 20px; font-size: 13.5px; color: var(--c-ink-2); }
+.phone .main .key-note a.kn-action { display: inline-flex; align-items: center; min-height: 44px; margin: 4px 0 -6px 20px; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; color: var(--c-ink) !important; font-weight: 700; text-decoration: underline; }
