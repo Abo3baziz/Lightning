@@ -23,6 +23,7 @@
 
 ## Next
 
+- **Tab-by-tab fixes, step 1 (trust):** the P1 items in section 14; X-3, RS-1 and IN-3 wait for OWNER 19. **Read:** `docs/proposals/tab_by_tab_review.md` §1 and §14, then the item's section.
 - **Gam'eya and zakat follow-ups:** demo/sample profiles have no circle; the phone Overview's What you owe has no gam'eya breakdown; Investments shows an early-turn circle below zero while Position moves it to What you owe. **Read:** Architecture › Gam'eya, › Zakat.
 
 
