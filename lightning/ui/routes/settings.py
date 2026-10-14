@@ -34,7 +34,7 @@ async def settings_page(request: Request):
             return_to = "/"
     except Exception:
         return_to = "/"
-    classes = [x for x in c.assets.list_classes() if x.active and x.root_code != "CASH" and x.code != "CUSTODY"]
+    classes = [x for x in c.assets.list_classes() if x.active and x.root_code != "CASH" and x.code not in ("CUSTODY", "GAMEYA")]  # a circle cannot be sold: always 100%
     # The same class values and factors as Birdview's "If you sold today".
     values = {row.code: row.value for row in c.position.class_values(today())[0]}
     sources = c.investments.sale_factor_sources()

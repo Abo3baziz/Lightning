@@ -494,7 +494,7 @@ def cash_plan(c, forecast, day: date) -> dict:
     heading = charts.trend(labels, series)
     # In and out for each month ahead: money in up, what goes out down, one scale.
     # This month is only what is left of it: what already came in is in Free cash, not here.
-    rows = [{"month": m.month, "rest": m.month == day.strftime("%Y-%m"), "income": m.income, "deposit_cash": m.deposit_cash, "in": m.money_in,
+    rows = [{"month": m.month, "rest": m.month == day.strftime("%Y-%m"), "income": m.income, "deposit_cash": m.deposit_cash, "circle_in": m.circle_in, "circle_out": m.circle_out, "in": m.money_in,
              "commitments": m.commitments, "budget_spending": m.budget_spending, "goal_saving": m.goal_saving,
              "emergency_saving": m.emergency_saving, "target_saving": m.target_saving,
              "out": m.money_out, "net": m.net, "estimated": m.income_estimated}

@@ -55,11 +55,12 @@
 <section class="phone-section" aria-labelledby="owe-section">
   <header class="phone-section-head"><h2 id="owe-section">{{ "What is promised"|tr(locale) }}</h2><span>{{ 'Today'|tr(locale) }}</span></header>
   <article class="card phone-card" aria-labelledby="owe-heading">
-    <h3 id="owe-heading" class="phone-card-title">{{ fig.what_you_owe.label }}</h3><p class="phone-note">{{ "Bills already due and loans"|tr(locale) }}</p>
-    <div class="phone-lead">{{ owe.total|money }} <small>{{ base }}</small></div>
+    <h3 id="owe-heading" class="phone-card-title">{{ fig.what_you_owe.label }}</h3><p class="phone-note">{{ "Bills already due, loans and what you owe a gam'eya"|tr(locale) if gameya_owed else "Bills already due and loans"|tr(locale) }}</p>
+    <div class="phone-lead">{{ (owe.total + gameya_owed)|money }} <small>{{ base }}</small></div>
     <div class="phone-rows">
       <div class="phone-row"><span>{{ fig.bills_due.label }}<small>{{ "Other than loan payments"|tr(locale) }}</small></span><b>{{ owe.other_bills_due|money }}</b></div>
       <a class="phone-row" href="/plan/loans"><span>{{ fig.loans_still_to_pay.label }}</span><b>{{ owe.loans_still_to_pay|money }}</b></a>
+      {% if gameya_owed %}<div class="phone-row"><span>{{ fig.gameya_still_to_pay.label }}</span><b>{{ gameya_owed|money }}</b></div>{% endif %}
     </div>
     {% if p.loan_bars and p.loan_bars.rows %}
     <div class="phone-bars" role="list" aria-label="Loans still to pay">{% for r in p.loan_bars.rows if not r.header %}

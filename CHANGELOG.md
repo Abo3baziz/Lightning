@@ -5,6 +5,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: gam'eya (savings circle) on the CD backbone: account type `GAMEYA`, terms and forecast (instalments, payout, optional interest) in `deposits/gameya.py`, figures **Gam'eya paid in** and **Gam'eya still to pay**, circle page on PC and phone. Net worth never moves with an instalment or the payout.
+  Migration `0053_gameya.sql` adds `gameya_terms` and rebuilds `accounts` for the new type; roundtrip fixture rebuilt for schema 53.
 - 2026-10-14 · Claude: phone redesign, money first (guideline 3.31): flat transaction list with a round initial and no balance except on an account; Overview leads with net worth and the latest transactions, analysis after; Expense analysis headline figures as a lead and rows; one Secondary on an account. Arabic copy of Part C still to follow.
 - 2026-10-14 · Claude: owner chose fingerprint unlock (Android, optional), gam'eya (CD backbone, interest optional) and zakat; designs in `docs/proposals/gameya.md`, `zakat.md` and `multiple_devices.md` 18d.
 - 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.

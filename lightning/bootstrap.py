@@ -29,7 +29,7 @@ from lightning.database.seed import CASH_ASSETS
 from lightning.database.migrator import inspect_schema, migrate
 from lightning.database.seed import seed
 from lightning.database.settings import SettingsStore
-from lightning.deposits import DepositService
+from lightning.deposits import DepositService, GameyaService
 from lightning.fx import CurrencyRates
 from lightning.investments.service import InvestmentService
 from lightning.integrity import IntegrityService
@@ -71,6 +71,7 @@ class Container:
     budgets: BudgetService
     investments: InvestmentService
     deposits: DepositService
+    gameya: GameyaService
     account_flows: AccountWorkflows
     integrity: IntegrityService
     planning: PlanningService
@@ -177,7 +178,8 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
     budgets.scheduled_bills = planning.budget_fill_schedule
     budgets.scheduled_income = planning.income_a_month
     investments = InvestmentService(db, accounts, assets, categories, transactions, reporting, reevaluations)
-    deposits = DepositService(db, accounts, assets, transactions)
+    gameya = GameyaService(db, accounts, assets, transactions)
+    deposits = DepositService(db, accounts, assets, transactions, gameya)
     position = PositionService(reporting, assets, investments, money_from_others, reserves, planning, deposits)
     forecaster = CashForecaster(planning, reporting, reserves, budgets, categories, position, deposits)
     budgets.reserve_goal_needs = forecaster.goal_needs
@@ -206,6 +208,7 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
         budgets=budgets,
         investments=investments,
         deposits=deposits,
+        gameya=gameya,
         account_flows=AccountWorkflows(db, accounts, transactions, reporting),
         integrity=IntegrityService(reporting, reserves, budgets, planning),
         planning=planning,

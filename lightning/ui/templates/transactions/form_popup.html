@@ -32,7 +32,7 @@
         <label for="popup-to-account">{{ 'Transfer to'|tr(locale) }}</label>
         <select id="popup-to-account" name="to_account_id" data-own-picker>
           <option value="">{{ 'Choose an account'|tr(locale) }}</option>
-          {% for a in accounts if a.id != account.id and a.account_type.value in ('CASH','BANK','DEPOSIT','BROKERAGE') and a.currency == account.currency %}<option value="{{ a.id }}" {{ 'selected' if values.to_account_id == a.id|string }}>{{ a.label }}</option>{% endfor %}
+          {% for a in accounts if a.id != account.id and a.account_type.value in ('CASH','BANK','DEPOSIT','BROKERAGE','GAMEYA') and a.currency == account.currency %}<option value="{{ a.id }}" {{ 'selected' if values.to_account_id == a.id|string }}>{{ a.label }}</option>{% endfor %}
         </select>
       </div>
       <div class="field money-only {{ 'has-error' if error_field == 'category' }}" {{ 'hidden' if values.kind == 'transfer' }}>

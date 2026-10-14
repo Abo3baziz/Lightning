@@ -1,0 +1,107 @@
+{# A gam'eya on a phone (guideline Part C): the balance first, then what to record, one column, soft wells at 48,
+   Save full width. The same fields and checks as the PC page (gameya/detail.html); the service does the work. #}
+{% extends "base.html" %}
+{% block title %}{{ "Gam'eya"|tr(locale) }} · {{ account.name }}{% endblock %}
+{% block phone_back %}<a class="phone-back" href="/accounts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>{{ 'Accounts'|tr(locale) }}</span></a>{% endblock %}
+{% block heading %}
+<h1>{{ account.name }}</h1><p>{{ "Gam'eya"|tr(locale) }}{% if terms %} · {{ 'run by'|tr(locale) }} {{ terms.organiser }}{% endif %}</p>
+{% if terms %}{% set owes_you = progress.balance > 0 %}{% set you_owe = progress.balance < 0 %}
+<div class="phone-lead">{{ progress.balance|abs|money(False, 0) }} <small>{{ account.currency }}</small></div>
+<p class="phone-note">{% if owes_you %}{{ 'The circle owes you'|tr(locale) }}{% elif you_owe %}{{ 'You owe the circle'|tr(locale) }}{% else %}{{ 'Nothing owed either way.'|tr(locale) }}{% endif %}</p>{% endif %}
+{% endblock %}
+{% block top_actions %}<a class="btn" href="/accounts/{{ account.id }}">{{ 'Account activity'|tr(locale) }}</a>
+<details class="action-menu phone-more-menu"><summary aria-label="{{ 'More actions'|tr(locale) }}">⋯</summary><div><a data-popup-open href="/accounts/{{ account.id }}/edit">{{ 'Edit account'|tr(locale) }}</a></div></details>{% endblock %}
+{% block content %}
+{% macro account_options(chosen) %}<option value="">{{ 'Choose an account'|tr(locale) }}</option>{% for a in cash_accounts %}<option value="{{ a.id }}" {{ 'selected' if chosen == a.id|string }}>{{ a.name }}</option>{% endfor %}{% endmacro %}
+{% macro terms_form(button) %}
+  <form method="post" action="/gameya/{{ account.id }}/terms" class="phone-form" data-gameya-terms>
+    <div class="field"><label for="g-organiser">{{ 'Who runs it'|tr(locale) }}</label><input id="g-organiser" name="organiser" value="{{ values.organiser }}" list="gameya-organisers" data-own-suggestions placeholder="{{ 'A person’s name'|tr(locale) }}" required autocomplete="off">
+      <datalist id="gameya-organisers">{% for person in counterparties %}<option value="{{ person.name }}">{% endfor %}</datalist></div>
+    <div class="field"><label for="g-members">{{ 'Members'|tr(locale) }}</label><input id="g-members" name="members" value="{{ values.members }}" inputmode="numeric" placeholder="10" required></div>
+    <div class="field phone-amount"><label for="g-installment">{{ 'Instalment'|tr(locale) }} ({{ account.currency }})</label><input id="g-installment" name="installment" value="{{ values.installment }}" inputmode="decimal" placeholder="2000" required></div>
+    <div class="field"><label for="g-first">{{ 'First instalment'|tr(locale) }}</label><input id="g-first" name="first_date" type="text" value="{{ values.first_date }}" placeholder="yyyy-mm-dd" data-smart-date required></div>
+    <div class="field"><label for="g-turn">{{ 'Your turn'|tr(locale) }}</label><input id="g-turn" name="my_turn" value="{{ values.my_turn }}" inputmode="numeric" placeholder="3" required><small class="phone-note">{{ 'Month number, 1 is the first pot.'|tr(locale) }}</small></div>
+    <div class="field"><label for="g-payout">{{ 'Your payout'|tr(locale) }} ({{ account.currency }})</label><input id="g-payout" name="payout" value="{{ values.payout }}" inputmode="decimal" placeholder="{{ 'Members × instalment'|tr(locale) }}"><small class="phone-note">{{ 'Leave blank for members × instalment. Change it if the organiser keeps a cut.'|tr(locale) }}</small></div>
+    <div class="phone-segment" role="radiogroup" aria-label="{{ 'Interest'|tr(locale) }}" style="grid-template-columns:repeat(2,1fr)">
+      <label><input type="radio" name="interest" value="none" {{ 'checked' if values.interest != 'rate' }}><span>{{ 'No interest'|tr(locale) }}</span></label>
+      <label><input type="radio" name="interest" value="rate" {{ 'checked' if values.interest == 'rate' }}><span>{{ 'Estimated return'|tr(locale) }}</span></label></div>
+    <div class="field" data-gameya-rate {{ 'hidden' if values.interest != 'rate' }}><label for="g-rate">{{ 'Annual rate (%)'|tr(locale) }}</label><input id="g-rate" name="annual_rate" value="{{ values.annual_rate }}" inputmode="decimal" placeholder="0"><small class="phone-note">{{ 'A planning estimate on what you have paid in, counted at your turn. Never posted: record what you actually get as money in.'|tr(locale) }}</small></div>
+    <div class="field"><label for="g-from">{{ 'Pay instalments from'|tr(locale) }}</label><select id="g-from" name="funding_account_id" data-own-picker required>{{ account_options(values.funding_account_id) }}</select></div>
+    <div class="field"><label for="g-into">{{ 'Receive your payout in'|tr(locale) }}</label><select id="g-into" name="payout_account_id" data-own-picker required>{{ account_options(values.payout_account_id) }}</select></div>
+    {% if not cash_accounts %}<p class="phone-note">{{ 'Add a bank or cash account in this currency first.'|tr(locale) }}</p>{% endif %}
+    <button class="btn {{ 'primary' if not terms }} phone-save">{{ button|tr(locale) }}</button>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+{% endmacro %}
+
+{% if not terms %}
+<section class="card phone-card" aria-labelledby="setup-heading">
+  <h2 id="setup-heading" class="phone-card-title">{{ 'Set up your circle'|tr(locale) }}</h2>
+  <p class="phone-note">{{ 'Everyone pays the same instalment each month and one member takes the pot. Saving the terms posts nothing.'|tr(locale) }}</p>
+  {% if error and error_form == 'terms' %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}
+  {{ terms_form('Save terms') }}
+</section>
+{% else %}
+<section class="card phone-card" aria-labelledby="stand-heading">
+  <h2 id="stand-heading" class="phone-card-title">{{ 'Where you stand'|tr(locale) }}</h2><p class="phone-note">{{ 'As of'|tr(locale) }} {{ today_iso }}</p>
+  <div class="phone-rows">
+    <div class="phone-row"><span>{{ 'Instalments paid'|tr(locale) }}</span><b>{{ progress.paid }} {{ 'of'|tr(locale) }} {{ terms.members }}</b></div>
+    <div class="phone-row"><span>{{ 'Next instalment'|tr(locale) }}</span><b>{% if progress.next_date %}{{ progress.next_date }} · {{ terms.installment|money(False, 0) }}{% else %}{{ 'All recorded'|tr(locale) }}{% endif %}</b></div>
+    <div class="phone-row"><span>{{ 'Your turn'|tr(locale) }}</span><b>{{ progress.payout_date }} · {{ terms.payout|money(False, 0) }}{% if progress.payouts %} · {{ 'received'|tr(locale) }}{% endif %}</b></div>
+  </div>
+  {% if progress.overdue %}<p class="phone-note">{{ 'An instalment is past its date and not recorded yet.'|tr(locale) }}</p>{% endif %}
+  {% if progress.all_recorded and not progress.finished %}<p class="phone-note">{{ 'Everything is recorded, but the balance is not zero. Record the difference, such as a fee, in this account.'|tr(locale) }}</p>{% endif %}
+  {% if progress.finished %}<p class="phone-note">{{ 'This circle is finished. It no longer appears in your forecast.'|tr(locale) }}</p>{% endif %}
+  <p class="phone-note">{{ 'Instalments and your payout move money between your accounts. They are never income or spending.'|tr(locale) }}</p>
+</section>
+
+{% if progress.next_index %}
+<section class="card phone-card" id="record-instalment" aria-labelledby="instalment-heading">
+  <h2 id="instalment-heading" class="phone-card-title">{{ 'Record instalment'|tr(locale) }}</h2>
+  <p class="phone-note">{{ 'Instalment'|tr(locale) }} {{ progress.next_index }} {{ 'of'|tr(locale) }} {{ terms.members }}</p>
+  {% if error and error_form == 'instalment' %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}
+  <form method="post" action="/gameya/{{ account.id }}/instalment" class="phone-form">
+    <div class="field phone-amount"><label for="i-amount">{{ 'Amount'|tr(locale) }} ({{ account.currency }})</label><input id="i-amount" name="amount" value="{{ prefill.instalment_amount }}" inputmode="decimal" required></div>
+    <div class="field"><label for="i-date">{{ 'Date'|tr(locale) }}</label><input id="i-date" name="date" type="text" value="{{ prefill.instalment_date }}" placeholder="yyyy-mm-dd" data-smart-date required></div>
+    <div class="field"><label for="i-from">{{ 'Paid from'|tr(locale) }}</label><select id="i-from" name="account_id" data-own-picker required>{{ account_options(prefill.instalment_from) }}</select></div>
+    <button class="btn primary phone-save">{{ 'Record instalment'|tr(locale) }}</button>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+</section>
+{% endif %}
+
+{% if not progress.payouts %}
+<section class="card phone-card" id="record-payout" aria-labelledby="payout-heading">
+  <h2 id="payout-heading" class="phone-card-title">{{ 'Record payout'|tr(locale) }}</h2>
+  <p class="phone-note">{{ 'Record it when the pot reaches you. Taking it before you have paid in everything leaves you owing the circle, and that is counted in What you owe.'|tr(locale) }}</p>
+  {% if error and error_form == 'payout' %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}
+  <form method="post" action="/gameya/{{ account.id }}/payout" class="phone-form">
+    <div class="field phone-amount"><label for="p-amount">{{ 'Amount'|tr(locale) }} ({{ account.currency }})</label><input id="p-amount" name="amount" value="{{ prefill.payout_amount }}" inputmode="decimal" required></div>
+    <div class="field"><label for="p-date">{{ 'Date'|tr(locale) }}</label><input id="p-date" name="date" type="text" value="{{ prefill.payout_date }}" placeholder="yyyy-mm-dd" data-smart-date required></div>
+    <div class="field"><label for="p-into">{{ 'Received in'|tr(locale) }}</label><select id="p-into" name="account_id" data-own-picker required>{{ account_options(prefill.payout_into) }}</select></div>
+    <button class="btn {{ 'primary' if not progress.next_index }} phone-save">{{ 'Record payout'|tr(locale) }}</button>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+</section>
+{% endif %}
+
+<section class="card phone-card">
+  <details class="phone-more" {{ 'open' if error and error_form == 'terms' }}>
+    <summary>{{ 'Change terms'|tr(locale) }}</summary>
+    {% if error and error_form == 'terms' %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}
+    <p class="phone-note">{{ 'Recorded instalments and your payout do not change.'|tr(locale) }}</p>
+    {{ terms_form('Save terms') }}
+  </details>
+</section>
+{% endif %}
+<script nonce="{{ request.state.csp_nonce|default('') }}">
+(() => {
+  document.querySelectorAll('[data-gameya-terms]').forEach((form) => {
+    const rate = form.querySelector('[data-gameya-rate]');
+    const sync = () => { if (rate) rate.hidden = !form.querySelector('input[name="interest"][value="rate"]').checked; };
+    form.querySelectorAll('input[name="interest"]').forEach((choice) => choice.addEventListener('change', sync));
+    sync();
+  });
+})();
+</script>
+{% endblock %}

@@ -54,10 +54,16 @@ class Group:
 @dataclass
 class NetWorth:
     as_of: str
-    total: Decimal
+    total: Decimal                  # the ledger's total: every account at its balance, a negative circle included
     by_account: list[tuple[Account, Decimal]]
     by_class: list[Group]
     unvalued: list[str]
+    gameya_owed: Decimal = ZERO     # what circles you took the pot from still ask of you (negative balances)
+
+    @property
+    def what_you_own(self) -> Decimal:
+        """What you own: a circle's negative balance is a debt (Gam'eya still to pay), not a negative asset."""
+        return self.total + self.gameya_owed
 
 
 @dataclass
@@ -231,7 +237,7 @@ class ReportingService:
         stale: dict[int, dict] = {}
         for holding in self.holdings(day)[0]:
             if (holding.price_date is None or holding.price_source in ("CASH", "COST")
-                    or holding.asset_class_code.startswith("DEPOSIT") or holding.price_date >= cutoff):
+                    or holding.asset_class_code.startswith(("DEPOSIT", "GAMEYA")) or holding.price_date >= cutoff):
                 continue
             asset = self.assets.get_asset(holding.asset_id)
             stale.setdefault(holding.asset_id, {"asset_id": holding.asset_id, "name": asset.name,
@@ -274,7 +280,9 @@ class ReportingService:
         unvalued.extend(custody_unvalued)
         if custody:
             by_class.append(Group("CUSTODY", "Less: money from others", -custody))
-        return NetWorth(day, total, accounts_sorted, by_class, unvalued)
+        gameya_owed = sum((-(h.value or ZERO) for h in holdings
+                           if h.account.account_type == AccountType.GAMEYA and (h.value or ZERO) < ZERO), ZERO)
+        return NetWorth(day, total, accounts_sorted, by_class, unvalued, gameya_owed)
 
     def owned_liquid_cash(self, as_of: date | str) -> Decimal:
         """Owned wallet, bank, and brokerage cash; excludes custody balances and locked assets."""
@@ -778,7 +786,7 @@ class ReportingService:
             group.children.append(Group(account.code, account.name, value, id=account.id))
         order = list(dict.fromkeys(SIDEBAR_GROUPS.values()))
         gross_total = sum((value for account, value in nw.by_account if account.active), ZERO)
-        return gross_total, nw.total, sorted(groups.values(), key=lambda g: order.index(g.code))
+        return gross_total, nw.what_you_own, sorted(groups.values(), key=lambda g: order.index(g.code))
 
     def investment_lines(self, as_of: date | str, account_id: int | None = None) -> list[dict]:
         """Posted lines of investments (and dividends), oldest first — the input for positions."""

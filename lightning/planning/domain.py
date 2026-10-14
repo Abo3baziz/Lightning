@@ -142,14 +142,17 @@ class ForecastMonth:
     deposit_cash: Decimal = ZERO
     emergency_saving: Decimal = ZERO  # Emergency fund top-up: what the plan check asks the month to leave for it
     target_saving: Decimal = ZERO     # Rest of savings target: what the target asks beyond goals and the top-up
+    circle_in: Decimal = ZERO         # gam'eya payout (and estimated interest) landing in the month
+    circle_out: Decimal = ZERO        # gam'eya instalments falling in the month
 
     @property
     def money_in(self) -> Decimal:
-        return self.income + self.deposit_cash
+        return self.income + self.deposit_cash + self.circle_in
 
     @property
     def money_out(self) -> Decimal:
-        return self.commitments + self.budget_spending + self.goal_saving + self.emergency_saving + self.target_saving
+        return (self.commitments + self.budget_spending + self.goal_saving + self.emergency_saving
+                + self.target_saving + self.circle_out)
 
     @property
     def net(self) -> Decimal:

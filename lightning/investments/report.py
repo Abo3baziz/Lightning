@@ -90,8 +90,11 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
     brokerage_ids = {a.id for a in account_rows if a.account_type == AccountType.BROKERAGE}
     # Cash left in a deposit account (older profiles kept CD money as cash there) is a deposit, and
     # deposits are holdings (owner decision 2026-10-04: everything that is not cash under one roof).
-    balance_ids = (investment_account_ids - brokerage_ids) | {a.id for a in account_rows
-                                                              if a.account_type == AccountType.DEPOSIT}
+    # A gam'eya circle is the same: its balance is its value and instalments and the payout cross the boundary.
+    # While you owe the circle (a negative balance) this page shows it below zero, so it reconciles; the
+    # Position (Overview) moves that debt to What you owe instead.
+    balance_ids = (investment_account_ids - brokerage_ids) | {
+        a.id for a in account_rows if a.account_type in (AccountType.DEPOSIT, AccountType.GAMEYA)}
     placeholders = ",".join("?" for _ in investment_account_ids)
     if not placeholders:
         return {"new_money": ZERO, "withdrawn": ZERO, "net_money": ZERO,

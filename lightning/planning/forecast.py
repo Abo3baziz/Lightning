@@ -142,7 +142,9 @@ class CashForecaster:
         average, average_months = self.average_income(day)
         month_keys = _months(day, months)
         horizon_end = parse_month(month_keys[-1])[1]
-        deposit_events = _deposit_cash_events(self.deposits, day, horizon_end)
+        all_events = _deposit_cash_events(self.deposits, day, horizon_end)
+        deposit_events = [e for e in all_events if getattr(e, "source", "CD") != "GAMEYA"]
+        circle_events = [e for e in all_events if getattr(e, "source", "CD") == "GAMEYA"]
         upcoming = [p for p in self.planning.all_payments(horizon_end, day)
                     if p.status == PaymentStatus.UPCOMING]
         # Payments already due: bills are in free cash already (Bills due); income not yet received
@@ -183,9 +185,12 @@ class CashForecaster:
             emergency_gap -= emergency
             rest = max(target - goals - emergency, ZERO)
             deposit_cash = sum((event.amount for event in deposit_events if event.date[:7] == key), ZERO)
-            closing = opening + income + deposit_cash - commitments - budget_spending - goals - emergency - rest
+            circle_in = sum((e.amount for e in circle_events if e.date[:7] == key and e.amount > ZERO), ZERO)
+            circle_out = -sum((e.amount for e in circle_events if e.date[:7] == key and e.amount < ZERO), ZERO)
+            closing = (opening + income + deposit_cash + circle_in - circle_out - commitments - budget_spending
+                       - goals - emergency - rest)
             rows.append(ForecastMonth(key, opening, income, estimated, commitments, budget_spending, goals, closing,
-                                      deposit_cash, emergency, rest))
+                                      deposit_cash, emergency, rest, circle_in, circle_out))
             opening = closing
 
         next_income = next((p for p in upcoming if p.item.is_income), None)
@@ -196,13 +201,15 @@ class CashForecaster:
         else:
             next_date, next_estimated = None, False
         before = [p for p in upcoming if not p.item.is_income and (next_date is None or p.due_date < next_date)]
-        safe, parts = self._safe_to_spend(free, before, next_date, day, rows)
+        instalments = -sum((e.amount for e in circle_events if e.kind == "INSTALLMENT"
+                            and (next_date is None or e.date < next_date)), ZERO)
+        safe, parts = self._safe_to_spend(free, before, next_date, day, rows, instalments)
         return CashForecast(fmt_date(day), free, average, average_months, next_date, next_estimated,
                             safe, parts, rows, [p for p in upcoming if p.due_date <= next_date] if next_date else upcoming[:10],
                             before)
 
     def _safe_to_spend(self, free: Decimal, before: list[Payment], until: str | None, day: date,
-                       rows: list[ForecastMonth]) -> tuple[Decimal, list[tuple[str, Decimal]]]:
+                       rows: list[ForecastMonth], instalments: Decimal = ZERO) -> tuple[Decimal, list[tuple[str, Decimal]]]:
         """Free cash less what is already promised before the next income.
 
         Budget, goal and savings needs count for every month until the next income, not just this one: between
@@ -227,7 +234,10 @@ class CashForecaster:
             rest += row.target_saving * share
         spending, goals = spending.quantize(Decimal("0.01")), goals.quantize(Decimal("0.01"))
         emergency, rest = emergency.quantize(Decimal("0.01")), rest.quantize(Decimal("0.01"))
-        parts = [(label("free_cash"), free), (label("payments_before_next_income"), -bills),
+        bills_part = (label("payments_before_next_income"), -bills)
+        circle_part = ("Gam'eya instalments before next income", -instalments)
+        parts = [(label("free_cash"), free), bills_part, circle_part,
                  (label("left_in_plan_after_bills"), -spending), (label("saving_for_goals"), -goals),
                  (label("emergency_top_up"), -emergency), (label("savings_target_rest"), -rest)]
-        return free - bills - spending - goals - emergency - rest, [(name, value) for name, value in parts if value or name == label("free_cash")]
+        return (free - bills - instalments - spending - goals - emergency - rest,
+                [(name, value) for name, value in parts if value or name == label("free_cash")])

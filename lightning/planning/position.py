@@ -4,14 +4,20 @@ Base figures are read from the ledger once; every other figure is a formula of t
 never re-adds balances its own way. The names match docs/GLOSSARY.md and the UI figure registry.
 
     In your accounts            = What you own + Held for others
-    What you own                = Cash you own + Deposits + Holdings value + Other you own
+    What you own                = Cash you own + Holdings value + Other you own
+    Holdings value              = everything that is not cash, Deposits and Gam'eya paid in included
     Cash you own                = Bank and wallet cash + Brokerage cash
-    What you owe                = Bills due (other than loan payments) + Loans still to pay
+    What you owe                = Bills due (other than loan payments) + Loans still to pay + Gam'eya still to pay
     Net worth                   = What you own − What you owe
     Free cash                   = Cash you own − Reserves − Bills due
     Portfolio value             = Holdings value + Brokerage cash
     Investments after sale      = Σ (Deposits and Holdings value by class × sale factor)
     If you sold today           = Free cash + Investments after sale
+
+A gam'eya (savings circle) is one GAMEYA account per circle: its positive balance is Gam'eya paid in (a class of
+Holdings value, sale factor 100%, not liquid so never in Cash you own or Free cash); its negative balance, the pot
+taken early, is Gam'eya still to pay, in What you owe and out of What you own. An instalment or a payout moves cash
+between your accounts, so Net worth never changes with either.
 """
 from __future__ import annotations
 
@@ -27,6 +33,8 @@ from lightning.core.money import ZERO
 from lightning.investments.domain import DEFAULT_SALE_FACTOR
 
 from .domain import WhatYouOwe
+
+GAMEYA_CLASS = "GAMEYA"
 
 
 @dataclass
@@ -88,6 +96,7 @@ class Position:
     reserves: Decimal | None            # None when reserve history cannot be rebuilt for the date
     reserve_rows: tuple[dict, ...] | None
     owe: WhatYouOwe
+    gameya_owed: Decimal = ZERO         # Gam'eya still to pay: circles with a negative balance
 
     # ------------------------------------------------------------ base parts
     @property
@@ -98,6 +107,14 @@ class Position:
     def holdings_value(self) -> Decimal:
         # Owner decision 2026-10-04: everything that is not cash sits under one roof, deposits included.
         return sum((c.value for c in self.classes), ZERO)
+
+    @property
+    def gameya_paid_in(self) -> Decimal:
+        return sum((c.value for c in self.classes if c.code == GAMEYA_CLASS), ZERO)
+
+    @property
+    def gameya_still_to_pay(self) -> Decimal:
+        return self.gameya_owed
 
     @property
     def bills_due(self) -> Decimal:
@@ -122,7 +139,7 @@ class Position:
 
     @property
     def what_you_owe(self) -> Decimal:
-        return self.owe.total
+        return self.owe.total + self.gameya_owed
 
     @property
     def net_worth(self) -> Decimal:
@@ -192,6 +209,8 @@ class PositionService:
                 value = valuation.value if valuation else None
             else:
                 value = row.value
+            if row.asset_class_code == GAMEYA_CLASS and (value or ZERO) < ZERO:
+                continue  # the pot taken early is Gam'eya still to pay (What you owe), not a negative holding
             result.append(OwnedHolding(row.account.id, row.account.label, row.asset_id, asset.name,
                                        row.asset_class_code, quantity, value, asset.unit))
         return result, unvalued
@@ -227,6 +246,9 @@ class PositionService:
                     item._locked_until = terms.lockup_end_date
                 elif day >= parse_date(terms.maturity_date):
                     item._realization_factor = Decimal(100)
+        for item in holdings:
+            if item.class_code == GAMEYA_CLASS:
+                item._realization_factor = Decimal(100)  # a circle cannot be sold early: paid in is paid in
         by_code = {cls.code: cls for cls in self.assets.list_classes()}
         rows: dict[int, ClassValue] = {}
         for item in holdings:
@@ -268,7 +290,8 @@ class PositionService:
             return None, ("The first recorded position is missing a required valuation." if since_first_record
                           else "The position immediately before this period is missing a required valuation.")
         # Opening balances recorded inside the period were already yours: not a change.
-        return closing.total - opening.total - self.reporting.opening_balances_between(start_day, end_day), ""
+        return (closing.what_you_own - opening.what_you_own
+                - self.reporting.opening_balances_between(start_day, end_day)), ""
 
     def change_in_net_worth(self, start: date | str, end: date | str,
                             since_first_record: bool = False) -> tuple[Decimal | None, str]:
@@ -303,11 +326,11 @@ class PositionService:
         brokerage = self.reporting.owned_brokerage_cash(text)
         rows = self.reserve_rows(text)
         return Position(
-            as_of=text, what_you_own=wealth.total,
+            as_of=text, what_you_own=wealth.what_you_own,
             held_for_others=self.reporting.money_from_others_total(text),
             unvalued=tuple(dict.fromkeys(wealth.unvalued + unvalued)),
             bank_and_wallet_cash=self.reporting.owned_liquid_cash(text) - brokerage,
             brokerage_cash=brokerage, classes=tuple(classes),
             reserves=None if rows is None else sum((r["effective_allocated"] for r in rows), ZERO),
             reserve_rows=None if rows is None else tuple(rows),
-            owe=self.planning.what_you_owe(day))
+            owe=self.planning.what_you_owe(day), gameya_owed=wealth.gameya_owed)

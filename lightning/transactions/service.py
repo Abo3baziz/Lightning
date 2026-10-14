@@ -878,10 +878,11 @@ class TransactionService:
         dst = self.accounts.require_usable(to_id, "to_account")
         if src.id == dst.id:
             raise ValidationError("Choose two different accounts.", "to_account")
-        source_accounts = {AccountType.CASH, AccountType.BANK, AccountType.BROKERAGE}
+        # A gam'eya circle receives instalments and pays out your turn as transfers (lightning/deposits/gameya.py).
+        source_accounts = {AccountType.CASH, AccountType.BANK, AccountType.BROKERAGE, AccountType.GAMEYA}
         if allow_legacy_deposit_cash:
             source_accounts.add(AccountType.DEPOSIT)
-        destination_accounts = {AccountType.CASH, AccountType.BANK, AccountType.BROKERAGE}
+        destination_accounts = {AccountType.CASH, AccountType.BANK, AccountType.BROKERAGE, AccountType.GAMEYA}
         if src.account_type not in source_accounts or dst.account_type not in destination_accounts:
             raise ValidationError("Transfers can move cash from wallets, banks, or legacy deposit balances into liquid accounts.", "to_account")
         if src.currency != dst.currency:

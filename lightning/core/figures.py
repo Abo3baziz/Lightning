@@ -53,17 +53,22 @@ _TABLE = [
     ("cash_you_own", "Cash you own", "Your cash in banks, wallets and brokerage accounts.",
      "Bank and wallet cash + Brokerage cash"),
     ("deposits", "Deposits", "Your certificates and time deposits, at their balance. They are part of Holdings value."),
+    ("gameya_paid_in", "Gam'eya paid in", "What you have paid into your savings circles and not yet taken out: a "
+     "circle's balance while it owes you. It is part of Holdings value, a circle cannot be sold early (100%)."),
     ("holdings_value", "Holdings value", "Everything you own that is not cash, at its latest value: certificates and "
-     "deposits, stocks, funds, gold and other assets. Assets that are not cash sit under one roof (owner decision "
-     "2026-10-04)."),
+     "deposits, Gam'eya paid in, stocks, funds, gold and other assets. Assets that are not cash sit under one roof "
+     "(owner decision 2026-10-04)."),
     ("other_you_own", "Other you own", "Anything you own that is neither cash nor a holding.",
      "What you own − Cash you own − Holdings value"),
     ("reserves", "Reserves", "Cash you set aside for emergencies and dated goals, less what linked payments "
      "already used. It stays in your accounts and in what you own."),
     ("bills_due", "Bills due", "Bills, subscriptions and loan payments dated today or earlier that nothing has paid yet."),
     ("loans_still_to_pay", "Loans still to pay", "Every loan payment not paid yet, due or upcoming."),
-    ("what_you_owe", "What you owe", "Payments you are certain to make: bills already due and loans.",
-     "Bills due (other than loan payments) + Loans still to pay"),
+    ("gameya_still_to_pay", "Gam'eya still to pay", "What you owe a savings circle you took the pot from early: "
+     "its balance while it is below zero. Net worth does not change when you take the pot."),
+    ("what_you_owe", "What you owe", "Payments you are certain to make: bills already due, loans and what you owe "
+     "a savings circle.",
+     "Bills due (other than loan payments) + Loans still to pay + Gam'eya still to pay"),
     ("net_worth", "Net worth", "What you own after what you owe.", "What you own − What you owe"),
     ("bills_a_month", "Bills and subscriptions a month", "What your recurring bills and subscriptions come to in a "
      "month: a weekly one counts 52 times a year, a yearly one once, a one-off payment not at all."),
@@ -198,12 +203,14 @@ _SOURCES = {
     "brokerage_cash": (LEDGER, "lightning.reporting.service.ReportingService.owned_brokerage_cash"),
     "cash_you_own": (LEDGER, f"{P}.cash_you_own"),
     "deposits": (LEDGER, f"{P}.deposits"),
+    "gameya_paid_in": (LEDGER, f"{P}.gameya_paid_in"),
     "holdings_value": (LEDGER, f"{P}.holdings_value"),
     "other_you_own": (LEDGER, f"{P}.other_you_own"),
     "reserves": (PLAN, "lightning.reserves.CashReserveService.breakdown_at"),
     "bills_due": (PLAN, f"{WYO}.bills_due"),
     "loans_still_to_pay": (PLAN, f"{WYO}.loans_still_to_pay"),
-    "what_you_owe": (PLAN, f"{WYO}.total"),
+    "gameya_still_to_pay": (LEDGER, f"{P}.gameya_still_to_pay"),
+    "what_you_owe": (BOTH, f"{P}.what_you_owe"),
     "net_worth": (BOTH, f"{P}.net_worth"),
     "bills_a_month": (PLAN, "lightning.planning.health.HealthService.bills_a_month"),
     "loan_payments_a_month": (PLAN, "lightning.planning.health.HealthService.loans_a_month"),

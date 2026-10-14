@@ -1517,6 +1517,7 @@ document.querySelectorAll("[data-currency-search]").forEach((search) => {
       const update = () => {
         help.textContent = type.value === "DEPOSIT"
           ? "Certificate or time deposit: include the term, annual return, and maturity date in Notes."
+          : type.value === "GAMEYA" ? "A gam'eya holds one savings circle's cash. After you add it, enter its terms."
           : type.value === "PHYSICAL_ASSET" ? "Add named items such as a ring after creating this account."
           : type.value === "BROKERAGE" ? "Record brokerage cash here before buying investments."
           : "";

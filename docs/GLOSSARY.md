@@ -41,6 +41,7 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | Term | Layer | Meaning |
 |---|---|---|
 | **Account** | Ledger | Where value is held (CIB, Cash wallet, THNDR brokerage). |
+| **Gam'eya** | Ledger | A rotating savings circle: one account per circle; every instalment and your payout is an internal transfer, never income or spending; balance = paid in − received (positive: Gam'eya paid in; negative: Gam'eya still to pay). |
 | **Financial asset** | Ledger | What an account holds or counts (EGP cash, COMI share, fund unit, CD, gold gram). |
 | **Asset class** | Ledger | The kind of wealth an asset is; not where held or why paid. |
 | **Exposure** | Ledger | What an asset economically tracks, apart from its class (a gold fund is a Fund with Gold exposure). |
@@ -113,8 +114,10 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Brokerage cash** | Your uninvested cash inside brokerage accounts. | Read directly from the ledger | `reporting.service.ReportingService.owned_brokerage_cash` |
 | **Cash you own** | Your cash in banks, wallets and brokerage accounts. | Bank and wallet cash + Brokerage cash | `planning.position.Position.cash_you_own` |
 | **Deposits** | Your certificates and time deposits, at their balance. They are part of Holdings value. | Read directly from the ledger | `planning.position.Position.deposits` |
-| **Holdings value** | Everything you own that is not cash, at its latest value: certificates and deposits, stocks, funds, gold and other assets. Assets that are not cash sit under one roof (owner decision 2026-10-04). | Read directly from the ledger | `planning.position.Position.holdings_value` |
+| **Gam'eya paid in** | What you have paid into your savings circles and not yet taken out: a circle's balance while it owes you. It is part of Holdings value, a circle cannot be sold early (100%). | Read directly from the ledger | `planning.position.Position.gameya_paid_in` |
+| **Holdings value** | Everything you own that is not cash, at its latest value: certificates and deposits, Gam'eya paid in, stocks, funds, gold and other assets. Assets that are not cash sit under one roof (owner decision 2026-10-04). | Read directly from the ledger | `planning.position.Position.holdings_value` |
 | **Other you own** | Anything you own that is neither cash nor a holding. | What you own − Cash you own − Holdings value | `planning.position.Position.other_you_own` |
+| **Gam'eya still to pay** | What you owe a savings circle you took the pot from early: its balance while it is below zero. Net worth does not change when you take the pot. | Read directly from the ledger | `planning.position.Position.gameya_still_to_pay` |
 | **Portfolio value** | Holdings value under the name the Investments tab uses: everything you own that is not cash. Cash waiting in a brokerage account counts in Cash you own (owner decisions 2026-10-04). | Holdings value | `planning.position.Position.portfolio_value` |
 | **Money in** | Your posted income in the period. Transfers, trades and money held for others are left out. | Read directly from the ledger | `reporting.service.CashFlow.inflows` |
 | **Money out** | Your posted spending in the period, after refunds. Transfers, trades and money held for others are left out. | Read directly from the ledger | `reporting.service.CashFlow.outflows` |
@@ -154,7 +157,6 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Reserves** | Cash you set aside for emergencies and dated goals, less what linked payments already used. It stays in your accounts and in what you own. | Read directly from the plan | `reserves.CashReserveService.breakdown_at` |
 | **Bills due** | Bills, subscriptions and loan payments dated today or earlier that nothing has paid yet. | Read directly from the plan | `planning.domain.WhatYouOwe.bills_due` |
 | **Loans still to pay** | Every loan payment not paid yet, due or upcoming. | Read directly from the plan | `planning.domain.WhatYouOwe.loans_still_to_pay` |
-| **What you owe** | Payments you are certain to make: bills already due and loans. | Bills due (other than loan payments) + Loans still to pay | `planning.domain.WhatYouOwe.total` |
 | **Bills and subscriptions a month** | What your recurring bills and subscriptions come to in a month: a weekly one counts 52 times a year, a yearly one once, a one-off payment not at all. | Read directly from the plan | `planning.health.HealthService.bills_a_month` |
 | **Loan payments a month** | What your loan payments come to in a month, counting only loans with payments still to make. | Read directly from the plan | `planning.health.HealthService.loans_a_month` |
 | **Base budget** | The amount the budget rule gives: fixed, a share of income or an average. | Read directly from the plan | `budgeting.domain.BudgetLine.budget` |
@@ -173,6 +175,7 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 
 | Figure | Meaning | How it is calculated | Function |
 |---|---|---|---|
+| **What you owe** | Payments you are certain to make: bills already due, loans and what you owe a savings circle. | Bills due (other than loan payments) + Loans still to pay + Gam'eya still to pay | `planning.position.Position.what_you_owe` |
 | **Net worth** | What you own after what you owe. | What you own − What you owe | `planning.position.Position.net_worth` |
 | **Debt to net worth** | What you owe for each pound of net worth. None when net worth is zero or less. | What you owe ÷ Net worth | `planning.health.Ratio.percent` |
 | **Debt to cash** | What you owe for each pound of cash you own: could your cash clear it today? | What you owe ÷ Cash you own | `planning.health.Ratio.percent` |
@@ -421,6 +424,8 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | Brokerage cash | نقدية الاستثمار |
 | Cash you own | النقدية اللي تملكها |
 | Deposits | الودائع والشهادات |
+| Gam'eya paid in | جمعية مدفوعة |
+| Gam'eya still to pay | جمعية لسه عليك |
 | Holdings value | قيمة الاستثمارات |
 | Other you own | أصول تانية تملكها |
 | Reserves | المبالغ المحجوزة |
