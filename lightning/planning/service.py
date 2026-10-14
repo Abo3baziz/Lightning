@@ -232,6 +232,8 @@ class PlanningService:
             raise ValidationError("Enter the amount paid.", "amount")
         party = self.counterparties.get(item.counterparty_id)["name"] if item.counterparty_id else item.name
         with self.db.transaction():
+            if self.repo.is_settled(item.id, due_date):  # a second press or tab must not pay it twice
+                raise ValidationError(f"{item.name} · {due_date} is already settled. Open it again first to change it.")
             record = self.transactions.record_inflow if item.is_income else self.transactions.record_outflow
             txn = record(fmt_date(parse_date(date_paid)), int(account), value, item.category_id,
                          counterparty=party, notes=f"{item.kind_label} · {item.name}")

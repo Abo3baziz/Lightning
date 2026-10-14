@@ -396,3 +396,18 @@ def test_recurring_rows_put_oldest_unpaid_date_first(c, monkeypatch):
     # Restrict this to the list: totals and charts also name the items.
     rows = page.split('id="recurring-list"', 1)[1]
     assert rows.index("ZZ overdue") < rows.index("MM next week") < rows.index("AA next month")
+
+
+def test_a_bill_cannot_be_paid_twice_for_the_same_due_date(c, setup):
+    accounts, cats = setup
+    item_id = c.planning.create(kind="BILL", name="Internet", amount="650", frequency="MONTHLY",
+                                start_date="2026-10-20", account_id=str(accounts["cib"].id),
+                                category_id=str(cats["EXP.PERSONAL.FOOD"].id))
+    day = date(2026, 10, 31)
+    c.planning.record_payment(item_id, "2026-10-20", "2026-10-20", "650", None)
+    spent = c.reporting.cash_flow(date(2026, 10, 1), day).outflows
+    with pytest.raises(ValidationError):
+        c.planning.record_payment(item_id, "2026-10-20", "2026-10-20", "650", None)
+    assert c.reporting.cash_flow(date(2026, 10, 1), day).outflows == spent
+    c.planning.reopen(item_id, "2026-10-20")  # after reopening it can be recorded again
+    c.planning.record_payment(item_id, "2026-10-20", "2026-10-20", "650", None)

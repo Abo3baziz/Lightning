@@ -80,6 +80,13 @@ class PlanningRepository:
             "WHERE p.status='SKIPPED' OR t.status='POSTED'")
         return {(row["planned_item_id"], row["due_date"]): dict(row) for row in rows}
 
+    def is_settled(self, item_id: int, due_date: str) -> bool:
+        """Read fresh (not per request): whether that due date is already paid by a posted transaction or skipped."""
+        return bool(self.db.scalar(
+            "SELECT 1 FROM planned_payments p LEFT JOIN transactions t ON t.id=p.transaction_id "
+            "WHERE p.planned_item_id=? AND p.due_date=? AND (p.status='SKIPPED' OR t.status='POSTED')",
+            (item_id, due_date)))
+
     def settle(self, item_id: int, due_date: str, status: str, transaction_id: int | None, amount) -> None:
         self.db.execute("DELETE FROM planned_payments WHERE planned_item_id=? AND due_date=?", (item_id, due_date))
         self.db.execute(
