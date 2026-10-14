@@ -106,6 +106,7 @@ async def plan_page(request: Request):
     has_income = bool(c.planning.items((PlanKind.INCOME,)))
     stats = _plan_stats(forecast, plan, day, has_income)
     return render(request, "planning/plan.html", tabs=TABS, plan_tab="plan", forecast=forecast, owe=owe, has_income=has_income,
+                  gameya_owed=c.position.at(day).gameya_still_to_pay,
                   notes=[], plan=plan, stats=stats, forecast_chart=visuals.forecast_trend(forecast),
                   next_payments=next_payments, as_of=fmt_date(day), window_end=fmt_date(window_end),
                   has_items=bool(c.planning.items()), labels=_labels(c))

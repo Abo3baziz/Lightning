@@ -151,7 +151,7 @@ class InvestmentService:
         # Deposit accounts are inside the portfolio too: buying a certificate from the bank is money
         # added (owner decision 2026-10-04; the same boundary as the figure).
         ids = [a.id for a in self.accounts.list(active_only=False)
-               if a.account_type in INVESTMENT_ACCOUNT_TYPES or a.account_type == AccountType.DEPOSIT]
+               if a.account_type in INVESTMENT_ACCOUNT_TYPES or a.account_type in (AccountType.DEPOSIT, AccountType.GAMEYA)]
         if not ids:
             return []
         marks = ",".join("?" for _ in ids)

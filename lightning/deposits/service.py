@@ -27,8 +27,10 @@ _COMPOUND_MONTHS = {CompoundingFrequency.MONTHLY: 1, CompoundingFrequency.QUARTE
 class DepositService:
     """Store CD terms and produce future cash events without posting ledger entries."""
 
-    def __init__(self, db: Database, accounts, assets=None, transactions: TransactionService | None = None):
+    def __init__(self, db: Database, accounts, assets=None, transactions: TransactionService | None = None,
+                 gameya=None):
         self.db = db
+        self.gameya = gameya  # savings circles forecast through the same events (lightning/deposits/gameya.py)
         self.accounts = accounts
         self.assets = assets
         self.transactions = transactions
@@ -308,6 +310,8 @@ class DepositService:
             if item is None or item.redeemed or item.units != Decimal(1):
                 continue
             events.extend(self._certificate_events(item.terms, day, horizon))
+        if self.gameya is not None:
+            events.extend(self.gameya.future_events(day, horizon))
         return sorted(events, key=lambda event: (event.date, event.deposit_account_id, event.kind))
 
     def _certificate_events(self, terms: CertificateTerms, day: date, horizon: date) -> list[DepositEvent]:

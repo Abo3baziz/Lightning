@@ -32,6 +32,7 @@ _ACCOUNT_TYPE_LABELS = {
     AccountType.CASH: "Cash",
     AccountType.BANK: "Bank",
     AccountType.DEPOSIT: "Deposits",
+    AccountType.GAMEYA: "Gam'eya",
     AccountType.BROKERAGE: "Brokerage",
     AccountType.PHYSICAL_ASSET: "Physical assets",
     AccountType.OTHER_ASSET: "Other assets",
@@ -72,6 +73,8 @@ def _owned_wealth_rows(c, net_worth, as_of):
         code = root_code(asset.asset_class_id)
         if valuation.value is not None and code in values:
             values[code] -= valuation.value
+    if "GAMEYA" in values:
+        values["GAMEYA"] += net_worth.gameya_owed  # a negative circle is a debt (What you owe), not a negative asset
     brokerage_cash = c.reporting.owned_brokerage_cash(as_of)
     if brokerage_cash:
         if "CASH" in values:
@@ -79,7 +82,7 @@ def _owned_wealth_rows(c, net_worth, as_of):
         values["BROKERAGE_CASH"] = brokerage_cash
         labels["BROKERAGE_CASH"] = "Brokerage cash"
     return [{"code": code, "label": labels[code], "value": value,
-             "percentage": value / net_worth.total * 100 if net_worth.total else ZERO}
+             "percentage": value / net_worth.what_you_own * 100 if net_worth.what_you_own else ZERO}
             for code, value in values.items()]
 
 

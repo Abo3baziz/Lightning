@@ -86,7 +86,8 @@ async def portfolio(request: Request):
     p = c.investments.portfolio(day)
     before_day = fmt_date(period.start.fromordinal(period.start.toordinal()-1))
     invest_ids = [a.id for a in c.investments.investment_accounts()] + [
-        a.id for a in c.accounts.list(active_only=True) if a.account_type == AccountType.DEPOSIT]
+        a.id for a in c.accounts.list(active_only=True)
+        if a.account_type in (AccountType.DEPOSIT, AccountType.GAMEYA)]
     opening_adjustments = c.investments.opening_adjustments(invest_ids, period.start_text, period.end_text)
     investment_report["recon_opening"] = (opening_report["investment_cash"] + opening_report["value"]
                                            if opening_report["value"] is not None and

@@ -23,6 +23,10 @@ class CompoundingFrequency(StrEnum):
     YEARLY = "YEARLY"
 
 
+class GameyaFrequency(StrEnum):
+    MONTHLY = "MONTHLY"  # the enum leaves room for WEEKLY
+
+
 @dataclass(frozen=True)
 class DepositTerms:
     account_id: int
@@ -70,3 +74,22 @@ class DepositEvent:
     kind: str
     deposit_account_id: int
     certificate_id: int | None = None
+    # "CD" for certificates, "GAMEYA" for a savings circle (kinds INSTALLMENT, PAYOUT, INTEREST; an
+    # instalment is a negative amount leaving its funding account).
+    source: str = "CD"
+
+
+@dataclass(frozen=True)
+class GameyaTerms:
+    """One rotating savings circle, held in one GAMEYA account (the account-level shape of ``cd_terms``)."""
+    account_id: int
+    organiser: str
+    members: int
+    installment: Decimal
+    frequency: GameyaFrequency
+    first_date: str
+    my_turn: int
+    payout: Decimal
+    annual_rate: Decimal  # percentage points; 0 means no interest
+    funding_account_id: int
+    payout_account_id: int

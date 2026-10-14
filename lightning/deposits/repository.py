@@ -5,8 +5,8 @@ from decimal import Decimal
 from lightning.core.money import from_e6, to_e6
 from lightning.database.connection import Database
 
-from .domain import (Certificate, CertificateTerms, CompoundingFrequency, DepositTerms, InterestMethod,
-                     PayoutFrequency)
+from .domain import (Certificate, CertificateTerms, CompoundingFrequency, DepositTerms, GameyaFrequency,
+                     GameyaTerms, InterestMethod, PayoutFrequency)
 
 
 class DepositRepository:
@@ -68,6 +68,42 @@ class DepositRepository:
             "GROUP BY le.date ORDER BY le.date",
             (account_id, after),
         )
+
+    # -- gam'eya terms (one row per circle account) -------------------------------------------------
+    def get_gameya(self, account_id: int) -> GameyaTerms | None:
+        row = self.db.one("SELECT * FROM gameya_terms WHERE account_id=?", (account_id,))
+        if row is None:
+            return None
+        return GameyaTerms(
+            account_id=row["account_id"], organiser=row["organiser"], members=row["members"],
+            installment=from_e6(row["installment_e6"]), frequency=GameyaFrequency(row["frequency"]),
+            first_date=row["first_date"], my_turn=row["my_turn"], payout=from_e6(row["payout_e6"]),
+            annual_rate=Decimal(row["annual_rate"]), funding_account_id=row["funding_account_id"],
+            payout_account_id=row["payout_account_id"])
+
+    def save_gameya(self, terms: GameyaTerms) -> None:
+        self.db.execute(
+            "INSERT INTO gameya_terms(account_id,organiser,members,installment_e6,frequency,first_date,my_turn,"
+            "payout_e6,annual_rate,funding_account_id,payout_account_id) VALUES (?,?,?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(account_id) DO UPDATE SET organiser=excluded.organiser,members=excluded.members,"
+            "installment_e6=excluded.installment_e6,frequency=excluded.frequency,first_date=excluded.first_date,"
+            "my_turn=excluded.my_turn,payout_e6=excluded.payout_e6,annual_rate=excluded.annual_rate,"
+            "funding_account_id=excluded.funding_account_id,payout_account_id=excluded.payout_account_id,"
+            "updated_at=CURRENT_TIMESTAMP",
+            (terms.account_id, terms.organiser, terms.members, to_e6(terms.installment), terms.frequency.value,
+             terms.first_date, terms.my_turn, to_e6(terms.payout), str(terms.annual_rate),
+             terms.funding_account_id, terms.payout_account_id))
+
+    def gameya_transfers(self, account_id: int, as_of: str) -> tuple[int, int]:
+        """Posted, user-owned transfers into and out of a circle account up to a date: (instalments paid,
+        payouts received). Interest and other money in are not transfers and are not counted."""
+        rows = self.db.all(
+            "SELECT le.quantity_e6 FROM ledger_entries le "
+            "JOIN transactions t ON t.id=le.transaction_id AND t.status='POSTED' AND t.type='TRF' "
+            "JOIN financial_assets fa ON fa.id=le.asset_id AND fa.is_cash=1 "
+            "WHERE le.account_id=? AND le.owner_id IS NULL AND le.effect='INTERNAL' AND le.date<=?",
+            (account_id, as_of))
+        return (sum(1 for r in rows if int(r["quantity_e6"]) > 0), sum(1 for r in rows if int(r["quantity_e6"]) < 0))
 
     def save_certificate(self, terms: CertificateTerms) -> int:
         cursor = self.db.execute(

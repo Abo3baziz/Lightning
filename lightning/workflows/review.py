@@ -55,6 +55,7 @@ class ReviewInbox:
                           "detail": f"Due {payment.due_date} · {fmt(payment.amount)} {c.base_currency} · not paid yet.",
                           "href": f"/plan/items/{payment.item.id}/pay?due={payment.due_date}&back=%2F",
                           "popup": True, "action": "Mark paid", "priority": 1})
+        items.extend(c.gameya.attention(on))  # an instalment or payout past its date and not recorded
         forecast = c.forecaster.forecast(on)
         lowest = forecast.lowest
         if lowest is not None and lowest.closing < ZERO:

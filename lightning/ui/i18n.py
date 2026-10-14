@@ -467,6 +467,8 @@ ARABIC_UI = {
     'Brokerage cash': 'نقدية الاستثمار',
     'Cash you own': 'النقدية اللي تملكها',
     'Deposits': 'الودائع والشهادات',
+    "Gam'eya paid in": 'جمعية مدفوعة',
+    "Gam'eya still to pay": 'جمعية لسه عليك',
     'Holdings value': 'قيمة الاستثمارات',
     'Other you own': 'أصول تانية تملكها',
     'Bills due': 'فواتير مستحقة',

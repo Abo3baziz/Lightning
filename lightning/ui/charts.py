@@ -27,7 +27,7 @@ def _gap(more: Decimal, less: Decimal) -> Decimal:
 # Asset class code (root or child) -> chart tone. One hue family per kind of asset, a lighter shade
 # for the fund version (App guideline · Asset class colours). Order is the donut order.
 CLASS_TONES = [("CASH", "cash"),
-               ("DEPOSIT", "deposits"), ("FUND.MONEY_MARKET", "money-market"), ("FUND.FIXED_INCOME", "fixed-income"),
+               ("DEPOSIT", "deposits"), ("GAMEYA", "deposits"), ("FUND.MONEY_MARKET", "money-market"), ("FUND.FIXED_INCOME", "fixed-income"),
                ("GOLD", "gold"), ("FUND.GOLD", "gold-fund"),
                ("STOCK", "equity"), ("FUND", "equity-fund"), ("FUND.EQUITY", "equity-fund"),
                ("OTHER", "other"), ("FUND.OTHER", "other-fund")]

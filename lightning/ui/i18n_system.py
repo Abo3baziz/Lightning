@@ -76,6 +76,8 @@ ASSET_KINDS = {
     "Certificates of deposit (CD portfolio)": "شهادات إيداع (محفظة شهادات)",
     "Physical asset (gold and things you own)": "أصل مادي (ذهب ومقتنيات)",
     "Physical asset": "أصل مادي",
+    "Gam'eya (savings circle)": "جمعية (ادخار جماعي)",
+    "Gam'eya": "جمعية",
     "Egyptian Pound": "الجنيه المصري",
     "US Dollar": "الدولار الأمريكي",
     "Euro": "اليورو",

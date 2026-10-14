@@ -21,6 +21,7 @@ ASSET_CLASSES: list[tuple[str, str]] = [
     ("CASH.BROKERAGE", "Brokerage Cash"),
     ("DEPOSIT", "Deposits"),
     ("DEPOSIT.CD", "CDs / Time Deposits"),
+    ("GAMEYA", "Gam'eya paid in"),
     ("STOCK", "Stocks"),
     ("FUND", "Funds"),
     ("FUND.EQUITY", "Equity Fund"),
