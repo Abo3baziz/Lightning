@@ -71,6 +71,9 @@ async def settings_page(request: Request):
         plan = target_plan(c)
     health_limits = c.health.limit_settings() if section == "financial-health" else []
     health_fund = c.health.emergency_fund(today()) if section == "financial-health" else None
+    zakat_on = c.zakat.enabled()
+    if section == "zakat" and not zakat_on:
+        return redirect("/settings", "Zakat is off. Turn it on in Settings.")
     zakat_settings = c.zakat.settings() if section == "zakat" else None
     ai_period = ai_preview = ai_prompt = None
     if section == "general":
@@ -102,7 +105,7 @@ async def settings_page(request: Request):
                   ai_period=ai_period, ai_preview=ai_preview, ai_prompt=ai_prompt,
                   ai_month=month_of(ai_period.end) if ai_period else month_of(today()),
                   current_month=month_of(today()), health_limits=health_limits,
-                  health_fund=health_fund, zakat_settings=zakat_settings,
+                  health_fund=health_fund, zakat_settings=zakat_settings, zakat_on=zakat_on,
                   currencies=currency_registry.list(),
                   currency_suggestions=currency_suggestions,
                   currency_suggestion_codes={row["code"] for row in currency_suggestions},
@@ -112,7 +115,8 @@ async def settings_page(request: Request):
                   # Every tab's gear, so each tab's settings can be reached from Settings too.
                   tab_settings=[{"label": tab.gear_label, "href": tab.gear, "where": section.label
                                  if len(section.tabs) == 1 else f"{section.label} · {tab.label}"}
-                                for section in SECTIONS for tab in section.tabs if tab.gear])
+                                for section in SECTIONS for tab in section.tabs
+                                if tab.gear and (tab.key != "zakat" or zakat_on)])
 
 
 @router.post("/currency")

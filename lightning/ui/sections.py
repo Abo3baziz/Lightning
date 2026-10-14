@@ -6,7 +6,7 @@ Settings pages that belong to another tab, by its ``section``), so old links kee
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 MAX_SECTIONS = 6
 MAX_TABS = 5
@@ -132,4 +132,15 @@ def for_request(request) -> dict:
     """What base.html needs: every section, the current one and its tab (the bar shows only with two tabs
     or more, or with a gear)."""
     section, tab = locate(request.url.path, str(request.query_params.get("section", "") or ""))
-    return {"sections": SECTIONS, "section": section, "tab": tab}
+    hidden = hidden_tabs(request)
+    if not hidden:
+        return {"sections": SECTIONS, "section": section, "tab": tab}
+    def keep(s: Section) -> Section:
+        return replace(s, tabs=tuple(t for t in s.tabs if t.key not in hidden))
+    return {"sections": tuple(keep(s) for s in SECTIONS), "section": keep(section) if section else None, "tab": tab}
+
+
+def hidden_tabs(request) -> set[str]:
+    """Tabs the user has switched off: Zakat until it is turned on in Settings."""
+    current = getattr(request.app.state, "container", None)
+    return set() if current is None or current.zakat.enabled() else {"zakat"}

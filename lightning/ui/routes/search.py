@@ -88,8 +88,9 @@ def matches(c, query: str, privacy: bool = False, per_group: int = 6) -> list[di
     fuzzy = not _LOOKS_NUMERIC.fullmatch(query)  # never a close spelling for amounts or dates
     privacy_action = {"label": "Show amounts" if privacy else "Hide amounts", "href": "#", "kind": "Action",
                       "context": "Privacy mode for this profile", "action": "privacy"}
+    pages = [p for p in PAGES if p[1] != "/zakat" or c.zakat.enabled()]
     if not needle:  # an empty command bar is a launcher: the main pages and the everyday actions
-        return ([{"label": label, "href": href, "kind": "Page", "context": ""} for label, href, _ in PAGES[:10]]
+        return ([{"label": label, "href": href, "kind": "Page", "context": ""} for label, href, _ in pages[:10]]
                 + [{"label": label, "href": href, "kind": "Action", "context": ""} for label, href, _ in ACTIONS[:3]]
                 + [privacy_action])
     found: list[tuple[float, dict]] = []
@@ -103,7 +104,7 @@ def matches(c, query: str, privacy: bool = False, per_group: int = 6) -> list[di
         add(1.0, txn.ref, f"/transactions/{txn.id}", "Transaction", f"{txn.date} · {txn.counterparty or txn.description}")
     except LightningError:
         pass
-    for label, href, words in PAGES:
+    for label, href, words in pages:
         add(max(_score(needle, label, fuzzy), _score(needle, words, False) * 0.85), label, href, "Page")
     for label, href, words in ACTIONS:
         add(max(_score(needle, label, fuzzy), _score(needle, words, False) * 0.85), label, href, "Action")

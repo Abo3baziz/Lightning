@@ -21,9 +21,12 @@ from decimal import ROUND_HALF_UP, Decimal
 from lightning.core.dates import fmt_date, now_iso, parse_date, today
 from lightning.core.errors import ValidationError
 from lightning.core.figures import label
+from lightning.core.memo import request_cached
+from lightning.database.settings import SettingsStore
 from lightning.core.money import ONE, ZERO, check_places, from_e6, to_decimal, to_e6
 
 ZAKAT_CATEGORY = "EXP.SYSTEM.ZAKAT"
+ENABLED_KEY = "zakat_enabled"
 LUNAR_YEAR_DAYS = 354
 NISAB_GRAMS = Decimal(85)
 ZAKAT_RATE = Decimal("0.025")
@@ -103,6 +106,15 @@ class ZakatService:
         self.db, self.position, self.reporting, self.assets = db, position, reporting, assets
         self.categories, self.physical_items, self.audit = categories, physical_items, audit
         self.gameya = gameya
+
+    # ------------------------------------------------------------ the switch
+    @request_cached
+    def enabled(self) -> bool:
+        """Zakat is off until the user turns it on in Settings (owner decision 2026-10-14)."""
+        return self.db.scalar("SELECT value FROM settings WHERE key=?", (ENABLED_KEY,)) == "1"
+
+    def set_enabled(self, on: bool) -> None:
+        SettingsStore(self.db).set(ENABLED_KEY, "1" if on else "0")
 
     # ------------------------------------------------------------ settings
     def settings(self) -> ZakatSettings:
@@ -240,6 +252,8 @@ class ZakatService:
     def forecast(self, day: date | str | None = None) -> ZakatForecast | None:
         """Cash planning's line: the next zakat day and what is still to pay then, at today's figures.
         Nothing until a zakat day is set, and nothing while the estimate cannot be made."""
+        if not self.enabled():
+            return None
         found = self.assess(day)
         if found.zakat_day is None or found.still_to_pay is None:
             return None

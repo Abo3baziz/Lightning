@@ -759,6 +759,8 @@ def _the_feedback_round(o: Mohab) -> None:
 
     # Zakat: he picks his zakat day once, gives part of it from his pay account (spending in the Zakat category)
     # and reads what is still to pay. It is an estimate by the common rule, said once.
+    o.notes["zakat_off"] = b.open("/settings")                    # zakat is off until he turns it on
+    o.notes["zakat_on"] = b.submit({"on": "1"}, action="/zakat/enabled")
     o.ask("zakat_start", "Do I owe zakat?", "Accounts", "Zakat")
     o.notes["zakat_day"] = b.submit({"zakat_day": "2027-12-01"}, button="Save zakat day")
     o.notes["zakat_before"] = b.go("Accounts", "Zakat")
@@ -1544,6 +1546,8 @@ def test_cash_planning_lists_the_instalments_still_to_pay(mohab):
 
 # ------------------------------------------------------------------ zakat
 def test_zakat_is_an_estimate_from_his_position_and_what_he_gave_lowers_what_is_still_to_pay(mohab):
+    assert mohab.notes["zakat_off"].shows("Show zakat") and not mohab.notes["zakat_off"].shows("Zakat settings")
+    assert mohab.notes["zakat_on"].shows("Zakat is on.")
     assert route(mohab, "zakat_start") == ["/", "/accounts", "/zakat"]
     assert mohab.answers["zakat_start"].shows("Your zakat day", "What counts", "Cash you own", "Debts due now",
                                               "a scholar answers your own case")

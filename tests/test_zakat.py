@@ -16,6 +16,11 @@ GOLD_24K = D("3000")        # EGP a gram, so the nisab is 85 × 3,000 = 255,000
 NISAB = D("255000")
 
 
+@pytest.fixture(autouse=True)
+def zakat_on(c):
+    c.zakat.set_enabled(True)   # off by default (owner, 2026-10-14); test_zakat_is_off_until_turned_on checks that
+
+
 @pytest.fixture
 def gold(c):
     reference = c.assets.get_asset_by_code("REF:GLD-24K")
@@ -315,3 +320,28 @@ def test_gameya_paid_in_counts_and_instalments_due_on_a_pot_taken_early_come_off
     assert _lines(c.zakat.assess("2026-10-10"))["gameya_due"].amount == D("12000")
     c.zakat.save_settings(None, "", False, False)
     assert not _lines(c.zakat.assess("2026-10-10"))["gameya_due"].counted
+
+
+def test_zakat_is_off_until_turned_on_in_settings_and_then_shows_everywhere(tmp_path):
+    from lightning.bootstrap import build
+    fresh = build(tmp_path / "fresh.db")
+    try:
+        client = TestClient(create_app(fresh))
+        assert fresh.zakat.enabled() is False and fresh.zakat.forecast("2026-12-31") is None
+        accounts = client.get("/accounts").text
+        assert 'href="/zakat"' not in accounts
+        page = client.get("/zakat", follow_redirects=False)
+        assert page.status_code in (302, 303) and page.headers["location"].startswith("/settings")
+        assert client.get("/settings?section=zakat", follow_redirects=False).status_code in (302, 303)
+        settings = client.get("/settings").text
+        assert "Show zakat" in settings and "Zakat settings" not in settings
+        found = client.get("/search?q=zakat&format=json").json()["results"]
+        assert not any(row["href"] == "/zakat" for row in found)
+        on = client.post("/zakat/enabled", data={"on": "1"})
+        assert on.status_code == 200 and "Zakat is on." in on.text and "What counts" in on.text
+        assert 'href="/zakat"' in client.get("/accounts").text
+        assert "Zakat settings" in client.get("/settings").text
+        off = client.post("/zakat/enabled", data={})
+        assert "Zakat is off." in off.text and fresh.zakat.enabled() is False
+    finally:
+        fresh.db.close()

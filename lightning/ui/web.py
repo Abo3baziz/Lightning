@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jinja2 import pass_context
 from markupsafe import Markup, escape
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -258,6 +259,17 @@ def phone_mode() -> bool:
 
 
 templates.env.globals["phone_mode"] = phone_mode
+
+
+@pass_context
+def zakat_on(context) -> bool:
+    """Zakat shows only once turned on in Settings."""
+    request = context.get("request")
+    current = getattr(getattr(getattr(request, "app", None), "state", None), "container", None)
+    return bool(current is not None and current.zakat.enabled())
+
+
+templates.env.globals["zakat_on"] = zakat_on
 
 _LOCALE: contextvars.ContextVar[str] = contextvars.ContextVar("lightning_locale", default="en")
 
