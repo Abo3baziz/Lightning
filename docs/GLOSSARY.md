@@ -49,6 +49,9 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Physical item** | Ledger | A named tangible asset tracked by pieces, net gold weight, karat, cost and valuation; not a security. |
 | **Net gold weight** | Ledger | Grams of gold alloy per piece, excluding stones. Fine-gold exposure = pieces × net grams × karat/24; the karat-specific price applies to alloy grams, never adjusted again. Manual item valuation is a user-entered dated value. |
 | **Acquisition cost** | Ledger | Total paid for the item's current quantity, including workmanship and fees; price updates never change it. |
+| **Worn** | Ledger | A flag on a physical gold piece: gold you wear. Zakat counts it only if the setting is on. |
+| **Zakat day** | Plan | The date the user picked once for counting zakat; each next one is 354 days later (a lunar year). Hijri dates are not built. |
+| **Zakat category** | Ledger | The system spending category `EXP.SYSTEM.ZAKAT`; zakat paid is ordinary spending in it and lowers Still to pay for its zakat year. |
 | **Category** | Ledger | Label for the activity behind a transaction; never describes counterparty, account or asset. |
 | **Counterparty** | Ledger | The person, business, institution or own account on the other side; up to ten confirmed aliases each; typo matches are only suggestions. |
 | **Transaction** | Ledger | A dated user or system event in the main ledger. |
@@ -448,6 +451,17 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | Portfolio value | قيمة المحفظة |
 | Holdings after sale (estimate) | قيمة الاستثمارات بعد البيع (تقديري) |
 | If you sold today (estimate) | لو بعت النهارده (تقديري) |
+| Zakat | الزكاة |
+| Zakat day | يوم الزكاة |
+| Zakatable wealth | المال اللي بتتحسب عليه الزكاة |
+| Nisab | النصاب |
+| Zakat rate | نسبة الزكاة |
+| Zakat due | الزكاة المستحقة |
+| Paid this zakat year | اللي دفعته السنة دي |
+| Shares and funds | الأسهم والصناديق |
+| Gold held as savings | الدهب المحتفظ بيه كمدخرات |
+| Gold you wear | الدهب اللي بتلبسه |
+| Debts due now | ديون مستحقة دلوقتي |
 | Money in | فلوس داخلة |
 | Money out | فلوس خارجة |
 | Net flow | صافي التدفق |

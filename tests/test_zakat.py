@@ -238,3 +238,58 @@ def test_the_page_says_it_is_an_estimate_once_and_shows_the_figures(c, gold):
                  "2026-12-31", "lunar year", "scholar"):
         assert text in page.text, text
     assert page.text.count("a scholar answers your own case") == 1
+
+
+def test_the_gear_saves_the_settings_and_the_first_time_form_keeps_the_rest(c, gold):
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    assert "Zakat settings" in client.get("/settings?section=zakat").text
+    saved = client.post("/zakat/settings", data={"zakat_day": "2027-03-01", "typed_nisab": "90000",
+                                                 "count_worn_gold": "1"}, follow_redirects=False)
+    assert saved.status_code == 303 and "Zakat%20settings%20saved" in saved.headers["location"]
+    settings = c.zakat.settings()
+    assert (settings.zakat_day, settings.typed_nisab, settings.count_worn_gold, settings.deduct_debts_due) == (
+        "2027-03-01", D("90000"), True, False)                # an unticked box is off
+    client.post("/zakat/settings", data={"only_day": "1", "zakat_day": "2027-04-01"})
+    settings = c.zakat.settings()
+    assert (settings.zakat_day, settings.typed_nisab, settings.count_worn_gold) == ("2027-04-01", D("90000"), True)
+    refused = client.post("/zakat/settings", data={"zakat_day": "2027-04-01", "typed_nisab": "-5"}, follow_redirects=False)
+    assert "nisab" in refused.headers["location"].lower() and c.zakat.settings().typed_nisab == D("90000")
+
+
+def _phone(app):
+    async def phone_app(scope, receive, send):
+        if scope["type"] == "http":
+            scope.setdefault("state", {})["phone"] = True
+        await app(scope, receive, send)
+    return phone_app
+
+
+def test_the_page_works_on_a_phone_and_in_arabic(c, gold):
+    _bank(c, "400000")
+    c.zakat.save_settings("2026-12-31", "", False, True)
+    for phone in (False, True):
+        app = create_app(c)
+        client = TestClient(_phone(app) if phone else app, base_url="http://127.0.0.1")
+        assert "10,000" in client.get("/zakat").text
+        client.post("/settings/locale", data={"locale": "ar"})
+        arabic = client.get("/zakat").text
+        assert "الزكاة المستحقة" in arabic and ">Zakat due<" not in arabic and "Zakatable wealth<" not in arabic
+        client.post("/settings/locale", data={"locale": "en"})
+
+
+def test_the_plan_names_the_zakat_day_and_the_worn_box_reaches_the_service(c, gold):
+    _bank(c, "400000")
+    c.planning.create(kind="INCOME", name="Salary", amount="30000", frequency="MONTHLY", start_date="2026-12-25")
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    assert "Zakat day" not in client.get("/plan").text        # nothing until a zakat day is set
+    c.zakat.save_settings("2027-03-01", "", False, True)
+    plan = client.get("/plan").text
+    assert "2027-03-01" in plan and "10,000" in plan and "changes no balance" in plan
+    home = c.account_flows.open_account("Gold at home", "PHYSICAL_ASSET", "2026-01-01", "0")
+    reference = c.assets.get_asset_by_code("REF:GLD-24K")
+    made = client.post(f"/accounts/{home.id}/items/new", data={
+        "name": "Bangle", "kind": "Bangle", "weight": "10", "karat": "24", "reference_asset_id": str(reference.id),
+        "details": "", "worn": "1"}, follow_redirects=False)
+    assert made.status_code == 303 and len(c.physical_items.worn_asset_ids()) == 1
+    item = next(iter(c.physical_items.worn_asset_ids()))
+    assert "I wear this piece" in client.get(f"/accounts/{home.id}/items/{item}/edit").text

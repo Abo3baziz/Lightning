@@ -5,6 +5,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 **How to log a change**
 
 - Add one entry at the top of `## [Unreleased]
+- 2026-10-14 · Claude: zakat: Accounts › Zakat estimates 2.5% above 85 g of 24K gold from your position (zakat day, Paid in the new Zakat category, Still to pay), a dated line in Cash planning, a worn flag on gold pieces; migration `0054_zakat.sql` (`0053_gameya.sql` here is only the gam'eya branch's placeholder); round-trip fixture rebuilt for schema 54.
 - 2026-10-14 · Claude: owner chose fingerprint unlock (Android, optional), gam'eya (CD backbone, interest optional) and zakat; designs in `docs/proposals/gameya.md`, `zakat.md` and `multiple_devices.md` 18d.
 - 2026-10-13 · Codex: Project Overview sections and nested screen questions now use tiered numbers for clear handoffs; contents table matches.
 - 2026-10-14 · Claude: website analytics: every number is behind the dashboard key (website repo): GoatCounter totals go from the GitHub job to the private receiver, no analytics files are committed. Setup order in `OWNER.md`.

@@ -8,7 +8,7 @@
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 | Claude (Sonnet helper A) | Fingerprint unlock, task 18d | `android/`, `lightning/security/biometric*.py`, `lightning/runtime/session.py` (unlock with a slot), unlock and This phone templates | 2026-10-14 |
 | Claude (Sonnet helper B) | Gam'eya | `lightning/deposits/gameya*.py`, migration `0053_gameya.sql`, `planning/position.py` (gam'eya figures), gam'eya templates and routes | 2026-10-14 |
-| Claude (Sonnet helper C) | Zakat | `lightning/zakat.py`, migration `0054_zakat.sql`, zakat templates and routes | 2026-10-14 |
+| Claude (Sonnet helper C) | Zakat: built on branch `claude/zakat`, awaiting the architect's review and merge. After the gam'eya merge: take gam'eya's `0053_gameya.sql` over the placeholder and add its two lines in `ZakatService.assess` | `lightning/zakat.py`, migration `0054_zakat.sql`, zakat templates and routes | 2026-10-14 |
 
 ## Messages
 
