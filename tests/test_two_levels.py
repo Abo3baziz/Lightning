@@ -37,6 +37,7 @@ def test_every_page_sits_in_one_tab():
 
 def test_the_tab_bar_and_gears_lead_where_they_say(c):
     client = TestClient(create_app(c))
+    c.zakat.set_enabled(True)   # Zakat is a tab only once turned on (test_zakat checks it off)
     for section in SECTIONS:
         for tab in section.tabs:
             page = client.get(tab.href)

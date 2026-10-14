@@ -22,9 +22,20 @@ def _payment_link(c) -> str:
     return f"/accounts/{account.id}/transaction/new?category_id={category.id}&return_to=/zakat"
 
 
+@router.post("/zakat/enabled")
+async def switch_zakat(request: Request):
+    """Settings › Zakat: show or hide zakat everywhere. Turning it off keeps its settings."""
+    form = await request.form()
+    on = form.get("on") == "1"
+    container(request).zakat.set_enabled(on)
+    return redirect("/zakat" if on else "/settings", "Zakat is on." if on else "Zakat is off.")
+
+
 @router.get("/zakat")
 async def zakat_page(request: Request):
     c = container(request)
+    if not c.zakat.enabled():
+        return redirect("/settings", "Zakat is off. Turn it on in Settings.")
     return render(request, "zakat.html", a=c.zakat.assess(today()), payment_link=_payment_link(c),
                   today_iso=fmt_date(today()))
 
@@ -32,6 +43,8 @@ async def zakat_page(request: Request):
 @router.post("/zakat/settings")
 async def save_zakat_settings(request: Request):
     c = container(request)
+    if not c.zakat.enabled():
+        return redirect("/settings", "Zakat is off. Turn it on in Settings.")
     form = await request.form()
     old = c.zakat.settings()
     try:
