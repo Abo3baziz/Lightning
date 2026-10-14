@@ -8,7 +8,6 @@
 {% block heading %}<h1>{{ 'Cash planning'|tr(locale) }}</h1><p>As of {{ as_of }}</p>{% endblock %}
 {% block content %}
 {% set f = forecast %}{% set p = plan %}
-{{ kpi_tiles(stats, base) }}
 
 <section class="phone-section" aria-labelledby="safe-section">
   <header class="phone-section-head"><h2 id="safe-section">{{ 'Safe to spend'|tr(locale) }}</h2><span>To {{ f.next_income_date or 'three months from now' }}</span></header>
@@ -29,6 +28,8 @@
     {% else %}<p class="chart-empty">{{ "Add your bills, subscriptions, income and loans on Recurring to see what is coming."|tr(locale) }}</p><a class="btn primary phone-save" href="/plan/recurring">{{ 'Recurring'|tr(locale) }}</a>{% endif %}
   </article>
 </section>
+{# The answer first; its two figures (safe to spend, free cash) are already in the card above, so the tiles carry the other two. #}
+{{ kpi_tiles(stats|rejectattr("key", "in", ["safe", "free"])|list, base) }}
 
 <section class="phone-section" aria-labelledby="forecast-section">
   <header class="phone-section-head"><h2 id="forecast-section">{{ "Where cash is heading"|tr(locale) }}</h2><span>Next {{ f.months|length }} months</span></header>
