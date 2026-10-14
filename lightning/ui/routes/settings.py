@@ -71,6 +71,7 @@ async def settings_page(request: Request):
         plan = target_plan(c)
     health_limits = c.health.limit_settings() if section == "financial-health" else []
     health_fund = c.health.emergency_fund(today()) if section == "financial-health" else None
+    zakat_settings = c.zakat.settings() if section == "zakat" else None
     ai_period = ai_preview = ai_prompt = None
     if section == "general":
         try:
@@ -101,7 +102,7 @@ async def settings_page(request: Request):
                   ai_period=ai_period, ai_preview=ai_preview, ai_prompt=ai_prompt,
                   ai_month=month_of(ai_period.end) if ai_period else month_of(today()),
                   current_month=month_of(today()), health_limits=health_limits,
-                  health_fund=health_fund,
+                  health_fund=health_fund, zakat_settings=zakat_settings,
                   currencies=currency_registry.list(),
                   currency_suggestions=currency_suggestions,
                   currency_suggestion_codes={row["code"] for row in currency_suggestions},

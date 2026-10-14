@@ -35,6 +35,7 @@ PAGES = (
     ("Loans", "/plan/loans", "debt installments owe"),
     ("Reserves", "/plan/reserves", "emergency fund goals savings"),
     ("Held for others", "/money-from-others", "custody family people their money"),
+    ("Zakat", "/zakat", "zakat nisab zakat day gold wealth 2.5 charity"),
     ("From SMS", "/sms", "sms bank messages paste text instapay card"),
     ("All transactions", "/transactions", "register ledger history"),
     ("Accounts", "/accounts", "banks wallets manage accounts"),

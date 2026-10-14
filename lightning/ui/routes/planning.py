@@ -108,7 +108,7 @@ async def plan_page(request: Request):
     return render(request, "planning/plan.html", tabs=TABS, plan_tab="plan", forecast=forecast, owe=owe, has_income=has_income,
                   notes=[], plan=plan, stats=stats, forecast_chart=visuals.forecast_trend(forecast),
                   next_payments=next_payments, as_of=fmt_date(day), window_end=fmt_date(window_end),
-                  has_items=bool(c.planning.items()), labels=_labels(c))
+                  has_items=bool(c.planning.items()), labels=_labels(c), zakat=c.zakat.forecast(day))
 
 
 def _plan_stats(f, plan, day, has_income: bool = True) -> list[dict]:

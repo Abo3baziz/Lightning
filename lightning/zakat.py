@@ -20,6 +20,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from lightning.core.dates import fmt_date, now_iso, parse_date, today
 from lightning.core.errors import ValidationError
+from lightning.core.figures import label
 from lightning.core.money import ONE, ZERO, check_places, from_e6, to_decimal, to_e6
 
 ZAKAT_CATEGORY = "EXP.SYSTEM.ZAKAT"
@@ -183,17 +184,17 @@ class ZakatService:
                     else:
                         savings_gold += value
         lines = [
-            ZakatLine("cash", "Cash you own", position.cash_you_own),
-            ZakatLine("deposits", "Deposits", position.deposits),
-            ZakatLine("shares", "Shares and funds", shares),
-            ZakatLine("gold", "Gold held as savings", savings_gold),
+            ZakatLine("cash", label("cash_you_own"), position.cash_you_own),
+            ZakatLine("deposits", label("deposits"), position.deposits),
+            ZakatLine("shares", label("shares_and_funds"), shares),
+            ZakatLine("gold", label("gold_held_as_savings"), savings_gold),
             # Gam'eya (once claude/gameya is on main): one more line each, from the two Position figures
             #   ZakatLine("gameya_paid", "Gam'eya paid in", position.<Gam'eya paid in>)
             #   ZakatLine("gameya_owed", "Gam'eya still to pay", position.<Gam'eya still to pay>, settings.deduct_debts_due, minus=True)
         ]
         if worn_gold or settings.count_worn_gold:
-            lines.append(ZakatLine("worn", "Gold you wear", worn_gold, settings.count_worn_gold))
-        lines.append(ZakatLine("debts", "Debts due now", position.bills_due, settings.deduct_debts_due, minus=True))
+            lines.append(ZakatLine("worn", label("gold_you_wear"), worn_gold, settings.count_worn_gold))
+        lines.append(ZakatLine("debts", label("debts_due_now"), position.bills_due, settings.deduct_debts_due, minus=True))
         wealth = max(ZERO, sum((line.signed for line in lines), ZERO))
 
         nisab, source, nisab_date = self.nisab(text, settings)
