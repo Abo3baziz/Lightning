@@ -3,6 +3,13 @@
 Personal finance in one place: accounts, money in and out, transfers, budgets,
 investments, cash reserves, and owned wealth. Historical wealth analysis and a dated cash outlook are planned.
 
+## Licence
+
+Lightning is **source-available**, not open source. It is free for personal and other non-commercial use
+under the [PolyForm Noncommercial License 1.0.0](LICENSE): you may read, run and change it for yourself.
+Commercial use needs the owner's written permission: ask in a
+[GitHub issue](https://github.com/elfekimuhammed/Lightning/issues). To change it together, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Source code, desktop app and private data
 
 This GitHub repository contains the **source code** (`lightning/`), tests (`tests/`),
