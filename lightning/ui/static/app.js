@@ -1144,7 +1144,7 @@ if (tradeCatalogueNode) {
   const basis = form.querySelector('[name="price_basis"]');
   const amountLabel = document.getElementById("investment-total-label");
   const positionHint = document.getElementById("trade-position-hint");
-  const entryHint = document.getElementById("investment-entry-hint");
+  const payLine = document.getElementById("investment-pay-line");
   const addButton = form.querySelector(".investment-entry-submit");
   let selected = instruments.find((item) => item.key === selectedKey.value) || null;
   let activeResult = 0;
@@ -1182,8 +1182,6 @@ if (tradeCatalogueNode) {
     if (feesField) feesField.hidden = isDividend;
     if (feesToggleField) feesToggleField.hidden = isDividend;
     if (fees) fees.disabled = isDividend;
-    const feesLabel = feesField?.querySelector("label");
-    if (feesLabel) feesLabel.textContent = t(feesExcluded?.checked ? "Fees (on top of the amount)" : "Fees (inside the amount)");
     if (feesExcluded) feesExcluded.disabled = isDividend;
     if (unitPrice) unitPrice.disabled = isDividend;
     if (isDividend) {
@@ -1215,19 +1213,31 @@ if (tradeCatalogueNode) {
       positionHint.textContent = t("You hold {quantity} {unit}(s) here.", {quantity: formatted(Number(selected.holding || 0), selected.decimals), unit: selected.unit});
     }
     if (selected && selected.note) positionHint.textContent += ` ${t(selected.note)}`;
-    if (isDividend) entryHint.textContent = dividendBasis?.value === "per_share"
-      ? t("The total dividend uses this rate × shares held by the selected owner on the transaction date.")
-      : t("Enter the total dividend received. The selected owner must hold shares on the transaction date.");
-    else entryHint.textContent = actionKind === "sell"
-      ? t("Enter the number of units sold. Choose whether the sale total includes fees below.")
-      : t("Enter the number of units bought. Fees are included in your cost basis.");
+    // The live "You pay …" line (display only; the posted amounts are recomputed in Python).
+    if (payLine) {
+      const cur = form.dataset.currency || "";
+      const money = (value) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(value);
+      let text = "";
+      if (isDividend) {
+        if (cashTotal !== null && dividendBasis?.value !== "per_share") text = t("You receive {cash} {currency}", {cash: money(cashTotal), currency: cur});
+      } else if (qty !== null && Math.abs(qty) > 0 && cashTotal !== null) {
+        const buying = qty > 0;
+        const gross = cashTotal + (included ? (buying ? -fee : fee) : 0);
+        const cash = buying ? gross + fee : gross - fee;
+        text = t(buying ? "You pay {cash} {currency} · {gross} for {units} units at {price} + {fees} fees"
+                        : "You receive {cash} {currency} · {gross} for {units} units at {price} − {fees} fees",
+                 {cash: money(cash), currency: cur, gross: money(gross), units: formatted(Math.abs(qty), selected ? selected.decimals : 6) || money(Math.abs(qty)),
+                  price: money(gross / Math.abs(qty)), fees: money(fee)});
+      }
+      payLine.textContent = text;
+    }
     addButton.disabled = exceeds;
   };
   const renderResults = () => {
     const query = search.value.trim().toLocaleLowerCase();
     results.replaceChildren();
     if (!query) { results.hidden = true; search.setAttribute("aria-expanded", "false"); return; }
-    const matches = instruments.filter((item) => `${item.name} ${item.ticker} ${item.kind} ${item.exchange || ""}`
+    const matches = instruments.filter((item) => `${item.name} ${item.ticker} ${item.exchange || ""}`
       .toLocaleLowerCase().includes(query)).slice(0, 12);
     activeResult = 0;
     if (!matches.length) {
@@ -1241,12 +1251,13 @@ if (tradeCatalogueNode) {
       button.type = "button"; button.className = "instrument-result"; button.setAttribute("role", "option");
       button.setAttribute("aria-selected", index === activeResult ? "true" : "false");
       if (index === activeResult) button.classList.add("is-active");
-      const name = document.createElement("span"); name.textContent = item.name;
-      const ticker = document.createElement("small"); ticker.textContent = `${item.kind} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
+      const name = document.createElement("span"); name.className = "instrument-name"; name.textContent = item.name;
+      const ticker = document.createElement("small"); ticker.textContent = `${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
+      button.title = `${item.name} · ${ticker.textContent}`;
       button.append(name, ticker);
       const choose = () => {
         selected = item; selectedKey.value = item.key;
-        selectedLabel.value = `${item.name} · ${item.ticker}`;
+        selectedLabel.value = `${item.name} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
         search.value = selectedLabel.value;
         results.hidden = true; search.setAttribute("aria-expanded", "false"); sync();
       };
@@ -1280,7 +1291,7 @@ if (tradeCatalogueNode) {
   });
   search.addEventListener("input", () => {
     selected = null; selectedKey.value = ""; selectedLabel.value = "";
-    positionHint.textContent = t("Choose an instrument from the results."); renderResults(); sync();
+    positionHint.textContent = ""; renderResults(); sync();
   });
   search.addEventListener("focus", renderResults);
   units.addEventListener("input", sync);
@@ -1301,7 +1312,7 @@ if (tradeCatalogueNode) {
       results.hidden = true; search.setAttribute("aria-expanded", "false");
     }
   });
-  if (selected) { search.value = selectedLabel.value || `${selected.name} · ${selected.ticker}`; }
+  if (selected) { search.value = selectedLabel.value || `${selected.name} · ${selected.ticker}${selected.exchange ? ` · ${selected.exchange}` : ""}`; }
   sync();
 }
 
@@ -1333,7 +1344,7 @@ if (catalogueNode) {
     if (!matches.length) { const empty=document.createElement("div"); empty.className="instrument-result"; empty.textContent=t("No match. You can enter the investment details below."); results.append(empty); }
     matches.forEach((item) => {
       const button=document.createElement("button"); button.type="button"; button.className="instrument-result"; button.setAttribute("role","option");
-      const label=document.createElement("span"); label.textContent=item.name; const ticker=document.createElement("small"); ticker.textContent=`${item.kind} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`; button.append(label,ticker);
+      const label=document.createElement("span"); label.textContent=item.name; const ticker=document.createElement("small"); ticker.textContent=`${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`; button.append(label,ticker);
       button.addEventListener("click", () => { name.value=item.name; kind.value=item.class_code; if(symbol) symbol.value=item.ticker; if(venue) venue.value=item.mic||""; search.value=`${item.name} · ${item.ticker}`; results.hidden=true; search.setAttribute("aria-expanded","false"); selection.textContent=t("Selected {name} ({ticker}). Review the details, then save.", {name: item.name, ticker: item.ticker}); }); results.append(button);
     }); results.hidden=false; search.setAttribute("aria-expanded","true");
   };

@@ -20,11 +20,14 @@ def test_the_account_header_has_a_tile_a_figure_strip_one_secondary_and_a_menu(c
     client = TestClient(create_app(c), base_url="http://127.0.0.1")
     page = client.get(f"/accounts/{accounts['cib'].id}").text
     head = page[page.index('<div class="topbar">'):page.index('<div class="actions">')]
-    actions = page[page.index('<div class="actions">'):page.index("</details>", page.index('<div class="actions">'))]
+    start = page.index('<div class="actions">')
+    actions = page[start:page.index("</details>", page.index("More actions", start))]
     assert 'class="inst-tile"' in head and "CIB Current" in head
     assert "Bank account · CIB · EGP" in head
     assert 'class="page-figures"' in head and "Balance" in head
-    assert len(re.findall(r'class="btn"', actions)) == 1 and "Import statement" in actions
+    assert len(re.findall(r'<summary class="btn">', actions)) == 1 and "Money actions" in actions  # the one Secondary
     assert len(re.findall(r'class="action-menu"', actions)) == 1
-    for item in ("Convert", "Change ownership", "Edit account"):
+    for item in ("Import statement", "Adjust balance", "Edit account"):
         assert item in actions.split('class="action-menu"')[1]
+    for item in ("Convert currency", "Change ownership", "Bought in instalments"):
+        assert item in actions.split('class="action-menu"')[0]

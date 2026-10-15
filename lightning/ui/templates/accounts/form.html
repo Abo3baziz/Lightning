@@ -16,7 +16,6 @@
       <select id="account_type" name="account_type" data-groups='{{ groups|tojson }}'>
         {% for value, label in types %}<option value="{{ value }}" {{ 'selected' if values.account_type == value }}>{{ label|tr(locale) }}</option>{% endfor %}
       </select>
-      <div class="help">{{ 'Shown under'|tr(locale) }} <b id="group_name">{{ groups.get(values.account_type, '') }}</b>.</div>
     </div>
     <div class="field {{ 'has-error' if error_field == 'currency' }}">
       <label for="currency">{{ 'Currency'|tr(locale) }}</label>
@@ -28,7 +27,6 @@
   </div>
   <section class="soft-section" id="opening-balance-section" {% if values.account_type in ('DEPOSIT', 'GAMEYA') %}hidden style="display:none"{% endif %}>
     <h2>{{ 'Starting balance'|tr(locale) }}</h2>
-    <p class="muted small">{{ 'Enter what this account held when you started tracking it. This sets the opening balance; it is not counted as income. Leave it blank if you’ll import or enter the opening activity separately.'|tr(locale) }}</p>
     <div class="form-grid">
       <div class="field {{ 'has-error' if error_field == 'opening_balance' }}">
         <label for="opening_balance">Balance ({{ account.currency if account else values.currency or base }})</label>

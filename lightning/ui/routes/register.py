@@ -156,12 +156,29 @@ def _budget_feedback(c, txn) -> str:
     return "Budget · " + "; ".join(impacts[:2]) if impacts else ""
 
 
+
+def _catalog_asset(assets, item):
+    """The held asset behind a catalogue row: same ticker on the same exchange (U9)."""
+    prefix = "STK" if item["class_code"] == "STOCK" else "FND"
+    symbol, mic = slug(item["ticker"], 20), (item.get("mic") or "").upper()
+    for asset in assets:
+        if asset.code in (f"{prefix}:{symbol}", f"{prefix}:{symbol}-{mic}" if mic else ""):
+            if not mic or not asset.mic or asset.mic.upper() == mic:
+                return asset
+    return None
+
+
+def _catalog_key(item, duplicated):
+    """catalog:TICKER, or catalog:TICKER@MIC when the same ticker is listed on more than one exchange."""
+    mic = (item.get("mic") or "").upper()
+    return f"catalog:{item['ticker']}@{mic}" if mic and item["ticker"].casefold() in duplicated else f"catalog:{item['ticker']}"
+
+
 def _trade_choices(c, account, positions) -> list[dict]:
     """Typeahead choices: bundled stocks/funds plus any custom assets already in this account."""
     if not account or account.account_type not in INVESTMENT_ACCOUNT_TYPES:
         return []
     assets = c.assets.investments(active_only=True)
-    by_code = {asset.code: asset for asset in assets}
     held = {position.asset_id: position.quantity for position in positions}
     choices, included_ids = [], set()
     accounts_in = {a.currency for a in c.accounts.list(active_only=True)}
@@ -179,14 +196,17 @@ def _trade_choices(c, account, positions) -> list[dict]:
             return translate(f"Priced in {currency}: buy it from a {currency} account.", c.settings.get("locale") or "en")
         return ""
 
-    for item in catalog_instruments():
-        prefix = "STK" if item["class_code"] == "STOCK" else "FND"
-        code = f"{prefix}:{slug(item['ticker'], 20)}"
-        asset = by_code.get(code)
+    catalogue = catalog_instruments()
+    seen, duplicated = set(), set()
+    for item in catalogue:
+        name = item["ticker"].casefold()
+        (duplicated if name in seen else seen).add(name)
+    for item in catalogue:
+        asset = _catalog_asset(assets, item)
         if asset:
             included_ids.add(asset.id)
         choices.append({
-            "key": f"asset:{asset.id}" if asset else f"catalog:{item['ticker']}",
+            "key": f"asset:{asset.id}" if asset else _catalog_key(item, duplicated),
             "name": asset.name if asset else item["name"],
             "ticker": item["ticker"],
             "kind": "Stock" if item["class_code"] == "STOCK" else "Fund",
@@ -331,7 +351,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
     if investment_entry.get("instrument_key") and not investment_entry.get("instrument_label"):
         picked = next((item for item in trade_choices if item["key"] == investment_entry["instrument_key"]), None)
         if picked:
-            investment_entry["instrument_label"] = f"{picked['name']} · {picked['ticker']}"
+            investment_entry["instrument_label"] = f"{picked['name']} · {picked['ticker']}" + (f" · {picked['exchange']}" if picked.get("exchange") else "")
     keep = {k: v for k, v in (("q", q), ("tag", "" if q.startswith("#") else filter_tag), ("month", month),
                               ("preset", preset), ("date_from", from_query), ("date_to", to_query),
                               ("category_id", str(raw_category_id) if raw_category_id else "")) if v}
@@ -593,7 +613,7 @@ async def create_investment_entry(request: Request, account_id: int):
               ("date", "instrument_key", "trade_action", "units", "total", "dividend_basis", "unit_price", "price_basis", "fees",
                "fees_included", "cash_account_id", "notes", "whom")}
     values["instrument_label"] = str(form.get("instrument_label", ""))
-    values["is_others"] = "1" if form.get("is_others") else ""
+    values["is_others"] = "1" if (form.get("is_others") or values.get("whom")) else ""
     try:
         if account.account_type not in INVESTMENT_ACCOUNT_TYPES:
             raise ValidationError("Investment entries can only be added to an investment account.")
@@ -624,14 +644,14 @@ async def create_investment_entry(request: Request, account_id: int):
                 if asset.is_cash or not asset.active:
                     raise ValidationError("Choose an active investment.", "instrument")
             elif key.startswith("catalog:"):
-                ticker = key[8:]
-                ticker_row = next((row for row in catalog_instruments() if row["ticker"].casefold() == ticker.casefold()), None)
+                ticker, _, wanted_mic = key[8:].partition("@")
+                ticker_row = next((row for row in catalog_instruments() if row["ticker"].casefold() == ticker.casefold()
+                                   and (not wanted_mic or (row.get("mic") or "").upper() == wanted_mic.upper())), None)
                 if ticker_row is None:
                     raise ValidationError("That instrument is not in the local catalogue. Search and choose a result.",
                                           "instrument")
                 prefix = "STK" if ticker_row["class_code"] == "STOCK" else "FND"
-                code = f"{prefix}:{slug(ticker_row['ticker'], 20)}"
-                asset = next((item for item in c.assets.investments() if item.code == code), None)
+                asset = _catalog_asset(c.assets.investments(), ticker_row)
                 if asset is None:
                     if units is not None and units < ZERO:
                         raise ValidationError(f"You do not hold {ticker_row['name']} in this account yet.", "units")
