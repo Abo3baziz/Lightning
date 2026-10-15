@@ -124,8 +124,13 @@ def _budget_feedback(c, txn) -> str:
                     break
                 parent = c.categories.get(parent).parent_id
         label = budget_line.name if shown is budget_line else f"inside {shown.name}"
-        impacts.append(f"{label}: " + (f"{fmt(shown.remaining)} {c.base_currency} left this month"
-                                       if shown.remaining is not None else "no covering limit"))
+        if shown.remaining is None:
+            state = "no covering limit"
+        elif shown.remaining < 0:
+            state = f"{fmt(-shown.remaining)} {c.base_currency} over this month"
+        else:
+            state = f"{fmt(shown.remaining)} {c.base_currency} left this month"
+        impacts.append(f"{label}: {state}")
     return "Budget · " + "; ".join(impacts[:2]) if impacts else ""
 
 

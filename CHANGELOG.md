@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: saving a transaction past its budget says "N EGP over this month" instead of "-N EGP left": `_budget_feedback` in `lightning/ui/routes/register.py`; test `tests/test_budget_feedback.py`.
+
 - 2026-10-15 · Claude: whole-number figures round half up everywhere (468.50 read 468 on the Spending comparison and day calendar but 469 elsewhere): `whole` filter, `_compact`, Spending compare and plan chart titles; test `tests/test_half_up_figures.py`.
 
 - 2026-10-14 · Codex: Section 13 milestone 1: optional salary/payday setup, bank CSV presets, full financial Excel/CSV exports, instalment purchase plans and previewed early loan payments in existing screens.

@@ -2327,6 +2327,7 @@ PAGES = {
     "{name} · {date} skipped.": "{name} · {date} اتخطى.",
     "You paid {a} instead of {b}; Recurring offers to use {c} from now on.": "دفعت {a} بدل {b}؛ والمتكرر بيعرض يستخدم {c} من دلوقتي.",
     "{a} {cur} left this month": "فاضل {a} {cur} الشهر ده",
+    "{a} {cur} over this month": "زيادة {a} {cur} الشهر ده",
     "Created {name}.": "اتعمل {name}.",
     "Saved Emergency Fund: {a} reserved.": "صندوق الطوارئ اتحفظ: {a} محجوزة.",
     "Completed {name}; its assigned cash is free again.": "{name} خلص؛ والنقدية المخصصة له بقت متاحة تاني.",
