@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: `user feedback/` retired (all three batches processed; 12 still-open requests kept in `docs/proposals/open_feedback.md`); new skill `.claude/skills/feedback-review` for compile, investigate, build, delete.
+
 - 2026-10-15 · Claude: licence added: PolyForm Noncommercial 1.0.0 (`LICENSE`, README section, `CONTRIBUTING.md`, `pyproject.toml`); personal use and changes allowed, commercial use needs the owner.
 
 - 2026-10-15 · Claude: month parsing is memoised (the Overview asked for the same months about 900 times a page): `parse_month` in `lightning/core/dates.py`. Pages already render in 20–100 ms with ten months of data.

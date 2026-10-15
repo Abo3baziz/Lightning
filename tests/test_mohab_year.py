@@ -27,7 +27,7 @@ he would see there.
 - Clarity: plain words and numbers a person can read (no "System", no −1,351.7%), the date or period
   every figure belongs to, and a warning when something cannot work as planned.
 - UI: compact rows, readable messages, and layouts that work in the app window and on a phone.
-User feedback (the "user feedback" folder) is added here as steps Mohab takes and checked by screen
+User feedback (open items: docs/proposals/open_feedback.md) is added here as steps Mohab takes and checked by screen
 assertions. Speed and look are judged on a real PC and in a browser; this file covers what screens show.
 """
 from __future__ import annotations
@@ -691,7 +691,7 @@ def _year_statement() -> bytes:
 
 def _the_feedback_round(o: Mohab) -> None:
     """30 September 2027, after the year's answers are read: the pain points users reported in
-    user feedback/user-feedback-batch-001.md, walked through by Mohab. Nothing here changes an answer above."""
+    feedback batch 001, walked through by Mohab. Nothing here changes an answer above."""
     b = o.b
     # Reports: All time, a past month, and what is a snapshot of today.
     b.go()
@@ -1196,7 +1196,7 @@ def test_cash_ownership_and_external_expense_keep_the_account_total(mohab):
 
 
 # ------------------------------------------------------------------ what users reported (user feedback, batch 001)
-# The pain points from "user feedback/user-feedback-batch-001.md", met by Mohab on his way through the year.
+# The pain points from feedback batch 001, met by Mohab on his way through the year.
 # Fixed points are checked like any other answer; each named gap has a direct screen assertion.
 
 def _review_choices(screen: Screen, prefix: str) -> list[str]:

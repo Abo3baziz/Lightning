@@ -1,4 +1,4 @@
-"""Feedback batch 003 (user feedback/user-feedback-batch-003.md): the screen fixes, one test per ticket."""
+"""Feedback batch 003 (retired 2026-10-15; see git history): the screen fixes, one test per ticket."""
 from decimal import Decimal
 from pathlib import Path
 
