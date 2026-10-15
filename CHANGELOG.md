@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: website recaptured from main (Mohab to 2026-10-04): seven places with the dollar brokerage, a Pounds and dollars section, Download as the header button and the home page's main action, search titles under 60.
+  Six findings from the capture filed in `report/` (device line, Currencies screen, the sample's reconciliation gap).
 - 2026-10-15 · Claude: account page header: the type and bank line sits under the title, and the three figures (in this account, what you own, held for others) share one strip, the first largest; `register.html`, `style.css`.
 - 2026-10-15 · Codex: Spending compares the same days across months; running comparisons stay neutral. Holdings gains include income and sales; PC/phone register rows keep signs and cents, account totals stay whole.
   Gam’eya shows every due instalment and payout, with atomic dated catch-up. Overview previews Needs you and shows portfolio KPIs together; Reserves and Health show separate emergency liquidity context. Phone list shells, alias action and comparison spacing now follow Part C; Arabic text and RTL mirrors updated.
