@@ -160,7 +160,7 @@ This is why history ships in the file: it turns a minute of live requests that m
 
 ## Rights and limits
 
-These need the owner's decision before the file is published (`OWNER.md`):
+These need the owner's decision before the file is published:
 
 - **Mubasher** asks automated clients not to use `/api/` in its robots.txt (as the open-source funds tracker reports). Use it at most once a day, or ask Mubasher for permission or a feed.
 - **TradingView and Yahoo** terms forbid automated collection and republishing. They are fine as cross-checks a user's own app performs, but publishing their data in our file is a risk, more so in a paid app.

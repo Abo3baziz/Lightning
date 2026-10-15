@@ -3,7 +3,7 @@
 #
 # - Each schedule runs the packs whose market has just closed; the collector itself skips a pack on a day
 #   its market does not trade, so one schedule can serve markets with different weeks.
-# - Nothing is published until the owner decides the data rights and turns it on (OWNER.md): the repository
+# - Nothing is published until the owner decides the data rights and turns it on : the repository
 #   variable MARKET_PUBLISH set to true and the secret LIGHTNING_MARKET_TOKEN (Contents: read and write on
 #   the data repository only). Until then every run still asks every source and fails visibly when one
 #   breaks, and the packs it made are kept for seven days as an artifact.

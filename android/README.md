@@ -72,7 +72,7 @@ OpenSSL 3.5.4, target flags in `CFLAGS_aarch64_linux_android`, which cibuildwhee
 (static libffi 3.5.2) and `pydantic_core==2.46.5`; native libraries link with 16 KB pages. The
 [probe run 37434558665](https://github.com/elfekimuhammed/Lightning/actions/runs/37434558665) installs them
 (`-PwheelDir`) and builds the APK. 04a passes only when that APK, launched on a real arm64 phone, shows the
-SQLCipher version (owner step in `OWNER.md`). Still unverified: loading on a device and 16 KB page alignment of
+SQLCipher version (an owner step). Still unverified: loading on a device and 16 KB page alignment of
 the packaged libraries.
 
 **04a passed (2026-10-06).** On the owner's arm64 phone the probe from

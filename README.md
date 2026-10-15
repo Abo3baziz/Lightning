@@ -92,7 +92,6 @@ lint-imports              # architecture contracts
 ```
 
 - [NOW.md](NOW.md) — the hand-off between the AIs: claimed work, messages, what is next
-- [OWNER.md](OWNER.md) — what only the owner can do or decide
 - [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) — start here: what Lightning is, what it answers, the roadmap
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — structure, rules, data model
 - [docs/GLOSSARY.md](docs/GLOSSARY.md) — what every term and code means

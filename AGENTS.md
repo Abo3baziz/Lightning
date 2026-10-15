@@ -9,7 +9,6 @@ Each fact lives in one file; link to it, never copy it. No other files under `do
 | File | Holds | Update when |
 |---|---|---|
 | [NOW.md](NOW.md) | Hand-off: claims, messages, next steps (each with a **Read:** line) | You claim/finish long work, message another AI, or change what's next |
-| [OWNER.md](OWNER.md) | What only the owner can do or decide | You need the owner; remove once done |
 | [Project Overview](docs/PROJECT_OVERVIEW.md) | Product, owner decisions, screen questions, Mohab, UX plan, gaps, roadmap | The owner decides, or the product/plan changes |
 | [Architecture](docs/ARCHITECTURE.md) | Modules, financial rules, data model, UI contract, desktop app, encrypted profiles | How something is built or calculated changes |
 | [Glossary](docs/GLOSSARY.md) | One name and meaning per term and figure | You add or rename one |
@@ -18,7 +17,7 @@ Each fact lives in one file; link to it, never copy it. No other files under `do
 | [CHANGELOG.md](CHANGELOG.md) | Every change, newest first under `Unreleased` | Every push |
 | `docs/proposals/` | Unbuilt designs, one file each | Once built, move what holds into Architecture and delete it |
 
-**The brand guideline is strict.** CSS that differs from it is wrong. Missing a rule? Use the closest one and ask in `OWNER.md`; never invent a style. On a phone Part C wins over Part A, and never reuse the PC layout.
+**The brand guideline is strict.** CSS that differs from it is wrong. Missing a rule? Use the closest one and ask the owner in a GitHub issue; never invent a style. On a phone Part C wins over Part A, and never reuse the PC layout.
 
 **Before it ships (guideline A16).** A screen with any of these is not done: All caps: Anywhere. · Coloured headers: Headers are Ink. · A colour off its meaning: Check A03. · Vivid gradient card: Brand only. · KPI by position: Tone by meaning. · Chip by direction: Good or bad. · Decimals on big figures: Whole EGP. · "L1 › L2": Header, then list. · Five or more names: Four, then Other. · White or boxed fields: Soft wells. · Dropdown for your data: Type and pick. · Card in a card: Never. · A line that repeats its label: Cut it. `tests/test_docs_structure.py` keeps this list the same as the guideline's.
 
@@ -29,7 +28,7 @@ Never at the cost of a test, a required check, or a read you need.
 - **Start:** `NOW.md` + `git log --oneline -15`. A *Next* item's **Read:** line names the rest.
 - **Read sections, not files:** `grep -n '^## ' <file>`, then read that range. Guideline: never open whole; `python tools/guideline.py` lists sections, `python tools/guideline.py A12` prints one.
 - **Grep before reading.** Don't re-read what you just edited or read code you aren't changing.
-- **Skip unless needed:** `OWNER.md`, `CHANGELOG-archive.md` (0.5.0b1 and older), `docs/proposals/`, `user feedback/`, `Claude outputs/`, the Glossary's figures table.
+- **Skip unless needed:** `CHANGELOG-archive.md` (0.5.0b1 and older), `docs/proposals/`, `user feedback/`, `Claude outputs/`, the Glossary's figures table.
 - **Tests:** changed areas with `-q`, failures only; full suite once before pushing: `-n auto --dist loadfile`.
 - **Write short:** changelog entry ≤ 3 lines; `NOW.md` < 4,500 bytes.
 - **CI minutes cost money** (2,000/month, Windows ×2): pushes run Linux only; run Windows/Android workflows by hand only when your change needs that evidence now. Push finished steps, not every edit.
@@ -44,11 +43,11 @@ Never at the cost of a test, a required check, or a read you need.
 4. **Test.** For visible changes also run Mohab (`tests/test_mohab_year.py`) and check A16.
 5. **Record:** changelog entry atop `Unreleased` (`2026-10-03 · Claude:` / `· Codex:`, date from `date`); update the §1 files you touched.
 6. **Check claims:** `python tools/claims.py --me <Claude|Codex|Luna>` lists changed files someone else claimed; leave them or ask the owner.
-7. **Hand off:** update/remove your claim, drop finished *Next* items, add new ones with **Read:**. Messages only for what your commit doesn't say; owner items in `OWNER.md`. Push.
+7. **Hand off:** update/remove your claim, drop finished *Next* items, add new ones with **Read:**. Messages only for what your commit doesn't say; owner questions as GitHub issues. Push.
 
 - **Claims and messages belong to their author.** Never edit another AI's, except deleting a message to you once handled (to all: keep seven days). Make each claim's *Work* distinguish parallel sessions. A helper (Codex's Luna) gets its own rows, written by its AI.
-- **Push rejected?** `git pull --rebase`, keep both sides in changelog/`NOW.md`/`OWNER.md`, retest, push.
-- **Never undo another AI's work** without the owner; disagree in `OWNER.md` *To decide*.
+- **Push rejected?** `git pull --rebase`, keep both sides in changelog and `NOW.md`, retest, push.
+- **Never undo another AI's work** without the owner; disagree in a GitHub issue for the owner.
 
 ## 4. Product rules
 

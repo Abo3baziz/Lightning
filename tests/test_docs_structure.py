@@ -22,12 +22,12 @@ def _guideline_tool():
 
 def test_the_hand_off_is_short_and_has_its_parts():
     text = (ROOT / "NOW.md").read_text(encoding="utf-8")
-    assert len(text.encode("utf-8")) < 4500, "NOW.md must stay under 4,500 bytes: done work is in the changelog, owner items in OWNER.md"
+    assert len(text.encode("utf-8")) < 4500, "NOW.md must stay under 4,500 bytes: done work is in the changelog, owner questions in GitHub issues"
     for heading in ("## Claimed", "## Messages", "## Next"):
         assert re.search(rf"^{re.escape(heading)}", text, re.M), f"NOW.md lost its {heading!r} part"
     assert "| Who | Work | Files | Since |" in text, "NOW.md's claims are one table: Who, Work, Files, Since"
     old_parts = re.findall(r"^## (?:Claude|Codex|For the owner)\b.*$", text, re.M)
-    assert not old_parts, f"NOW.md has no lanes: claims go in Claimed, owner items in OWNER.md (AGENTS.md section 3): {old_parts}"
+    assert not old_parts, f"NOW.md has no lanes: claims go in Claimed (AGENTS.md section 3): {old_parts}"
     overview = (DOCS / "PROJECT_OVERVIEW.md").read_text(encoding="utf-8")
     assert "## Now and next" not in overview, "the hand-off lives in NOW.md only"
 
@@ -47,12 +47,6 @@ def test_every_next_step_says_what_to_read():
     assert steps, "NOW.md's Next part lists its steps as 1. 2. 3."
     missing = [step.split("\n", 1)[0][:70] for step in steps if "Read:" not in step]
     assert not missing, f"each Next step has a Read: line naming what it needs (AGENTS.md section 3): {missing}"
-
-
-def test_owner_items_live_in_owner_md():
-    text = (ROOT / "OWNER.md").read_text(encoding="utf-8")
-    for heading in ("## To do", "## To decide"):
-        assert re.search(rf"^{re.escape(heading)}", text, re.M), f"OWNER.md lost its {heading!r} part"
 
 
 def test_docs_holds_only_the_carrying_files_and_proposals():

@@ -212,7 +212,7 @@ def test_needs_you_names_a_category_planned_below_its_bills(c):
     assert c.budgets.below_scheduled(MONTH) == []
 
 
-# ---- The smarter plan, all of it (owner, 2026-10-05: "do them all", OWNER.md item 11)
+# ---- The smarter plan, all of it (owner, 2026-10-05: "do them all")
 
 def test_safe_to_spend_keeps_the_rest_of_the_savings_target(c):
     _plan(c, "8000")  # the fund is full and no goal is dated: the 20% target (2,000) is what is kept back

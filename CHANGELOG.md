@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: open-source cleanup: `OWNER.md` removed (owner questions go in GitHub issues), its links and checks dropped, `NOW.md` messages older than seven days deleted.
+
 - 2026-10-15 · Claude: "Held 1 day" instead of "Held 1 days" on Investments (PC and phone, Arabic too): templates `investments/index`, `holding`, phone `index`; test in `tests/test_investments.py`.
 
 - 2026-10-15 · Claude: saving a transaction past its budget says "N EGP over this month" instead of "-N EGP left": `_budget_feedback` in `lightning/ui/routes/register.py`; test `tests/test_budget_feedback.py`.

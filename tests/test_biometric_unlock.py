@@ -1,6 +1,6 @@
 """Optional fingerprint unlock on the phone (task 18d): a device-bound slot outside the profile folder, opened
 only through the phone's bridge (a fake here, with a real AES-GCM Keystore stand-in), then the same unlock road as
-the password. What cannot be tested without a phone (the Java bridge, the system prompt) is in NOW.md and OWNER.md."""
+the password. What cannot be tested without a phone (the Java bridge, the system prompt) is in NOW.md."""
 import base64
 import json
 import os
