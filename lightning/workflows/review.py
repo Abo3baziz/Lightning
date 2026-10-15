@@ -96,11 +96,29 @@ class ReviewInbox:
                           "popup": True, "action": "Mark paid", "priority": 1})
         items.extend(c.gameya.attention(on))  # an instalment or payout past its date and not recorded
         forecast = c.forecaster.forecast(on)
-        lowest = forecast.lowest
-        if lowest is not None and lowest.closing < ZERO:
+        # A dated daily forecast takes precedence over its monthly summary: the summary can hide which
+        # day or account runs short, and would duplicate a more useful warning.
+        dated = getattr(forecast, "dated", None)  # older forecast doubles may not expose this yet
+        first_shortfall = getattr(dated, "first_shortfall", None)
+        account_shortfalls = getattr(dated, "account_shortfalls", ()) or ()
+        if first_shortfall is not None:
             items.append({"label": "Cash may run short",
-                          "detail": f"The cash forecast ends {lowest.month} at {fmt(lowest.closing)} {c.base_currency}.",
-                          "href": "/plan", "priority": 1})
+                          "detail": f"Scheduled payments may leave cash short by {fmt(abs(first_shortfall.balance))} "
+                                    f"{first_shortfall.currency} on {first_shortfall.date}.",
+                          "href": "/plan#plan-dated-cash", "priority": 1})
+        elif account_shortfalls:
+            earliest = min(account_shortfalls, key=lambda item: item.date)
+            items.append({"label": f"{earliest.account_name} may run short",
+                          "detail": f"Scheduled payments may leave this account short by {fmt(abs(earliest.balance))} "
+                                    f"{earliest.currency} on {earliest.date}.",
+                          "href": "/plan#plan-dated-cash", "priority": 1})
+        else:
+            # Keep the existing monthly warning for deficits caused by the variable-budget forecast.
+            lowest = forecast.lowest
+            if lowest is not None and lowest.closing < ZERO:
+                items.append({"label": "Cash may run short",
+                              "detail": f"The cash forecast ends {lowest.month} at {fmt(lowest.closing)} {c.base_currency}.",
+                              "href": "/plan", "priority": 1})
         # Honest numbers: a holding priced more than two months ago is shown at an old value.
         # Month-end prices the price files lack (a fund they do not cover, a stock listed later): typed by hand.
         missing = missing_prices(c)

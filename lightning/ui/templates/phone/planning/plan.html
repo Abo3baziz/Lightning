@@ -28,6 +28,23 @@
     {% else %}<p class="chart-empty">{{ "Add your bills, subscriptions, income and loans on Recurring to see what is coming."|tr(locale) }}</p><a class="btn primary phone-save" href="/plan/recurring">{{ 'Recurring'|tr(locale) }}</a>{% endif %}
   </article>
 </section>
+{% set dated = f.dated %}
+{% if dated and (dated.first_shortfall or dated.account_shortfalls or dated.unassigned_payments or dated.unvalued_currencies) %}
+<section id="plan-dated-cash" class="phone-section" aria-labelledby="dated-cash-heading">
+  <article class="card phone-card phone-flat-rows" aria-labelledby="dated-cash-heading">
+    <h3 id="dated-cash-heading" class="phone-card-title">{{ "Scheduled cash checks"|tr(locale) }}</h3>
+    <p class="phone-note">{{ 'Through {date}'|tr(locale, date=dated.through) }}</p>
+    {% if dated.first_shortfall %}<p class="flash error">{{ 'Total cash may be below zero at day-end on {date}: {balance} {currency}.'|tr(locale, date=dated.first_shortfall.date, balance=dated.first_shortfall.balance|money(True), currency=dated.first_shortfall.currency) }}</p>{% endif %}
+    {% if dated.account_shortfalls %}<div class="phone-rows">
+      {% for shortfall in dated.account_shortfalls[:4] %}<a class="phone-row" href="/accounts/{{ shortfall.account_id }}"><span>{{ shortfall.account_name }}<small>{{ 'May run short on'|tr(locale) }} <bdi>{{ shortfall.date }}</bdi></small></span><b class="neg">{{ shortfall.balance|money(True) }} {{ shortfall.currency }}</b></a>{% endfor %}
+      {% if dated.account_shortfalls|length > 4 %}<a class="phone-row" href="/accounts"><span>{{ 'and {count} more account balances'|tr(locale, count=dated.account_shortfalls|length - 4) }}</span><b>{{ 'Accounts'|tr(locale) }}</b></a>{% endif %}
+    </div>{% endif %}
+    <p class="phone-note">{{ 'Scheduled payments only. Excludes variable spending, savings goals and overdue income; reserves remain in cash. Uses day-end balances and current exchange rates.'|tr(locale) }}</p>
+    {% if dated.unassigned_payments %}<p class="phone-note">{{ 'Unassigned scheduled payments are included in combined cash using your profile currency, but excluded from account checks.'|tr(locale) }} <a href="/plan/recurring">{{ 'Assign accounts'|tr(locale) }}</a>.</p>{% endif %}
+    {% if dated.unvalued_currencies %}<p class="phone-note">{{ 'Combined cash is unavailable without a current rate for {currencies}. Account checks use each account’s own currency.'|tr(locale, currencies=dated.unvalued_currencies|join(', ')) }}</p>{% endif %}
+  </article>
+</section>
+{% endif %}
 {# The answer first; its two figures (safe to spend, free cash) are already in the card above, so the tiles carry the other two. #}
 {{ kpi_tiles(stats|rejectattr("key", "in", ["safe", "free"])|list, base) }}
 

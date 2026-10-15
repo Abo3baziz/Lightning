@@ -225,13 +225,13 @@ Reference code to inspect for financial rules, as of 2026-10-04. Check the licen
 
 ### Suggested order
 
-1. Dated cash-shortfall warning (new reproduced gap; linked report below).
+1. Dated scheduled-cash warnings are built locally: day-end total and funding-account shortages, linked to Needs you. See Architecture › Cash planning contract.
 2. General undo, then an integrated activity review with safer matching/provenance and reconciliation protection. Undo is the foundation for larger grouped confirmations.
 3. Partial reserve suggestions and configurable bill matching; certificate receipt reconciliation and reimbursable-expense links.
 4. Optional cash funding/payday allocation, followed by saved views and reports. The funding policy is a product choice, not an arithmetic patch to the current budget.
 5. Reminders and a weekly review over the existing inbox. Defer credit-card accounting to an explicit scope decision.
 
-**Reproduced findings:** [within-month shortfall](../report/visual-improvement/2026-10-15-plan-dated-cash-shortfalls.md), [multiple import sources](../report/visual-improvement/2026-10-15-import-attach-multiple-source-records.md), [partial reserve suggestions](../report/visual-improvement/2026-10-15-reserves-suggest-partial-expense-links.md). These are separate from already-proposed undo, month lock, merge and saved filters.
+**Remaining reproduced findings:** [multiple import sources](../report/visual-improvement/2026-10-15-import-attach-multiple-source-records.md), [partial reserve suggestions](../report/visual-improvement/2026-10-15-reserves-suggest-partial-expense-links.md). These are separate from already-proposed undo, month lock, merge and saved filters.
 
 **Efficiency measurement:** `python tools/perf_check.py`, 2026-10-15, temporary sample-year SQLite database. All 18 pages stayed below the project's 150 ms / 400 query thresholds: Overview 59 ms / 349 queries; Budget 29 / 109; Cash planning 41 / 203; Spending 25 / 108. This measures warm server responses on this host, not encrypted Windows/WebView rendering or a large real database. No immediate speed optimisation is justified by this run. If scale requires it, the measured repeated work is counterparty resolution per register row (34 calls), aliases per counterparty (34), and carryover reads per category (21 on Overview); remeasure at scale before choosing a fix.
 

@@ -90,6 +90,7 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | **Loan** | Plan | Entered as its payments (amount, next date, payments left, optional amount borrowed). Each payment is spending when paid (System Categories › Loan payments unless changed); paying lowers cash, spending room and loans still to pay together, so net worth is unchanged. |
 | **Payment status** | Plan | **Paid** (a posted transaction settles it), **Skipped**, **Due** (today or earlier, unsettled) or **Upcoming**; voiding the transaction makes it Due again. |
 | **Cash forecast** | Plan | Free cash carried month by month with scheduled payments, projected CD proceeds and savings lines. Changes neither net worth nor free cash. |
+| **Scheduled cash checks** | Plan | Dated day-end checks of owned cash after scheduled payments and projected deposit/circle cash. Flags total and individual-account shortages. Includes reserved cash; excludes variable spending, savings goals and overdue income. Changes no balance. |
 | **CD terms** | Plan | Start, earliest withdrawal, maturity, principal, rate, simple payout or compounding, destination. Forecast cash, never post it. |
 | **Sale factor** | Plan | 0-100% estimate of what an asset class fetches if sold today; 95% if unset. Feeds Holdings after sale and If you sold today. A CD uses it only after its earliest withdrawal date (first date it can be redeemed early), 100% at maturity. Formerly *liquidation factor*. |
 

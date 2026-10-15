@@ -10,8 +10,10 @@ from decimal import Decimal
 from lightning.core.dates import fmt_date, month_of, parse_date, parse_month, today
 from lightning.core.figures import label
 from lightning.core.money import ZERO, from_e6
+from lightning.deposits.domain import DepositEvent
 
 from .domain import CashForecast, ForecastMonth, Payment, PaymentStatus, PlanKind
+from .dated_cash import dated_cash_forecast
 
 HORIZON_MONTHS = 3
 
@@ -19,6 +21,20 @@ HORIZON_MONTHS = 3
 def _months(start: date, count: int) -> list[str]:
     index = start.year * 12 + start.month - 1
     return [f"{(index + i) // 12}-{(index + i) % 12 + 1:02d}" for i in range(count)]
+
+
+def _due_circle_events(service, day: date) -> list[DepositEvent]:
+    """Cash still needed today, without guessing when an overdue payout arrives."""
+    gameya = getattr(service, "gameya", None)
+    if gameya is None:
+        return []
+    result = []
+    for circle, terms in gameya.circles():
+        progress = gameya.progress(circle.id, day)
+        if progress.due_amount:
+            result.append(DepositEvent(fmt_date(day), terms.funding_account_id, -progress.due_amount,
+                                       "INSTALLMENT", circle.id, source="GAMEYA"))
+    return result
 
 
 def _deposit_cash_events(service, as_of: date, end: date):
@@ -206,7 +222,9 @@ class CashForecaster:
         safe, parts = self._safe_to_spend(free, before, next_date, day, rows, instalments)
         return CashForecast(fmt_date(day), free, average, average_months, next_date, next_estimated,
                             safe, parts, rows, [p for p in upcoming if p.due_date <= next_date] if next_date else upcoming[:10],
-                            before)
+                            before, dated_cash_forecast(self.reporting, due + upcoming,
+                                                      all_events + _due_circle_events(self.deposits, day),
+                                                      day, horizon_end))
 
     def _safe_to_spend(self, free: Decimal, before: list[Payment], until: str | None, day: date,
                        rows: list[ForecastMonth], instalments: Decimal = ZERO) -> tuple[Decimal, list[tuple[str, Decimal]]]:

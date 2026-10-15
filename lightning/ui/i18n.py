@@ -14,6 +14,18 @@ from lightning.core.figures import FIGURES
 from lightning.ui.i18n_system import FULL_MONTHS, MONTHS, SERVER_ONLY, SYSTEM_TEXT, WEEKDAYS
 
 ARABIC_UI = {
+    'Scheduled cash checks': 'مراجعة النقدية حسب المواعيد',
+    'Through {date}': 'لحد {date}',
+    'Total cash may be below zero at day-end on {date}: {balance} {currency}.': 'إجمالي النقدية ممكن يبقى بالسالب في آخر يوم {date}: {balance} {currency}.',
+    'May run short on': 'ممكن ميبقاش فيه نقدية كفاية يوم',
+    'and {count} more account balances': 'وأرصدة {count} حسابات كمان',
+    'Scheduled payments only. Excludes variable spending, savings goals and overdue income; reserves remain in cash. Uses day-end balances and current exchange rates.': 'حسب مواعيد الدفعات بس، من غير المصروف المتغير أو أهداف الادخار أو الدخل المتأخر. الاحتياطيات لسه ضمن النقدية. الحساب بأرصدة آخر اليوم وأسعار الصرف الحالية.',
+    'Unassigned scheduled payments are included in combined cash using your profile currency, but excluded from account checks.': 'الدفعات اللي من غير حساب محدد بتدخل في إجمالي النقدية بعملة ملفك، بس مش في مراجعة كل حساب لوحده.',
+    'Assign accounts': 'حدد الحسابات',
+    'Combined cash is unavailable without a current rate for {currencies}. Account checks use each account’s own currency.': 'إجمالي النقدية مش متاح من غير سعر صرف حالي لـ {currencies}. مراجعة كل حساب بتكون بعملته.',
+    'Scheduled payments may leave cash short by {amount} {currency} on {date}.': 'الدفعات المخططة ممكن تعمل عجز في النقدية بقيمة {amount} {currency} يوم {date}.',
+    '{account_name} may run short': 'النقدية في {account_name} ممكن متكفيش',
+    'Scheduled payments may leave this account short by {amount} {currency} on {date}.': 'الدفعات المخططة ممكن تعمل عجز في الحساب ده بقيمة {amount} {currency} يوم {date}.',
     '{sa} to {sb} so far': '{sa} لحد {sb}، لحد دلوقتي',
     '{sa} days {n}–{m}': '{sa} من يوم {n} ليوم {m}',
     'So far': 'لحد دلوقتي',

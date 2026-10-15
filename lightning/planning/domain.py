@@ -6,6 +6,8 @@ from enum import StrEnum
 
 from lightning.core.money import ZERO
 
+from .dated_cash import DatedCashForecast
+
 
 class PlanKind(StrEnum):
     BILL = "BILL"
@@ -182,6 +184,7 @@ class CashForecast:
     upcoming: list[Payment]
     # The payments Safe to spend takes off: scheduled, not yet due, before the next income.
     payments_before_income: list[Payment] = field(default_factory=list)
+    dated: DatedCashForecast | None = None
 
     @property
     def first_short_month(self) -> ForecastMonth | None:

@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Codex: Cash planning and Needs you now flag dated scheduled-cash shortages, including an underfunded payment account when total cash is sufficient. PC and phone show account links and explicit FX/unassigned-account limits; monthly free-cash estimates remain separate.
+
 - 2026-10-15 · Codex: refreshed Actual Budget comparison from current code/docs; recorded cash-timing, multi-source import and partial-reserve workflow findings. Measured 18 sample-data pages; runtime behaviour unchanged.
 
 - 2026-10-15 · Claude: account page header: the type and bank line sits under the title, and the three figures (in this account, what you own, held for others) share one strip, the first largest; `register.html`, `style.css`.
