@@ -35,3 +35,14 @@
     event.target.querySelectorAll?.("[data-field-was]").forEach(putBack);
   }, true);
 })();
+
+/* Phone tables (guideline C12): CSS stacks every table row; each cell carries its column's heading as a label. */
+(() => {
+  document.querySelectorAll("table").forEach((table) => {
+    const heads = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+    if (!heads.some(Boolean)) return;
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      [...row.cells].forEach((cell, i) => { if (heads[i] && cell.textContent.trim() && !cell.dataset.label) cell.dataset.label = heads[i]; });
+    });
+  });
+})();
