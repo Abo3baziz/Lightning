@@ -11,6 +11,10 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: feedback rows 32 to 76 settled by the owner: built 35 and 50; declined 38 (pie), 54 (one card destination), 60 (S/M/L tags), 62 (price volume), 63 (fall from high), 65 (free emergency target), 73 (review timeout), recorded in Architecture › UI contract; 76 was already built (ticket 88); 32 and 75 stay as reports. The combined request report is deleted.
+
+- 2026-10-15 · Claude: feedback rows 32 to 76 settled by the owner: built 35 and 50; declined 38 (pie), 54 (one card destination), 60 (S/M/L tags), 62 (price volume), 63 (fall from high), 65 (free emergency target), 73 (review timeout), recorded in Architecture › UI contract; 76 was already built (ticket 88); 32 and 75 stay as reports. The combined request report is deleted.
+
 - 2026-10-15 · Claude: trend dots say how much a line moved since its previous point ("+27,560 (+20%) since the last point"), in the tooltip and the screen-reader label: `charts.trend`, `partials/charts.html`; test in `tests/test_charts.py`. Feedback row 50 built.
 
 - 2026-10-15 · Claude: Cash planning's Lowest point card names the first month that ends below your reserves ("Runs short in 2026-12"); the forecast is monthly, so a daily path stays unbuilt: `CashForecast.first_short_month`, `_plan_stats`; test `tests/test_first_shortfall.py`. Feedback row 35 built.
