@@ -45,7 +45,8 @@ def month_before(day: str) -> str:
 
 EXPENSES = f"/birdview/expenses?period=month&month={month_before(TODAY)}"  # the last whole month
 FULL = {"overview": "/?period=ytd", "budget": "/budget", "investments": "/investments?period=ytd", "expenses": EXPENSES,
-        "plan": "/plan", "currencies": "/accounts/currencies?period=ytd", "import-upload": "/accounts/1/import"}
+        "plan": "/plan", "currencies": "/accounts/currencies?period=ytd", "import-upload": "/accounts/1/import",
+        "account-usd": "/accounts/7"}  # the dollar brokerage: its balance by asset class
 SIDELESS = ("overview", "budget", "investments", "expenses", "plan", "currencies")  # also saved as b-*
 CROPS = {"a-overview": "/?period=ytd", "a-budget": "/budget", "a-investments": "/investments?period=ytd",
          "a-expenses": EXPENSES, "a-plan": "/plan", "a-currencies": "/accounts/currencies?period=ytd"}
@@ -127,6 +128,10 @@ def pc_set() -> None:
             crop.evaluate("() => { document.getElementById('plan-build').scrollIntoView({block: 'start'}); window.scrollBy(0, -66); }")
             crop.wait_for_timeout(400)
             save(crop.screenshot(), "a-plan-working")
+            show(full, BASE + "/investments?period=ytd", NOSIDE)  # the dollar fund's row, its gain split into price and FX parts;
+            full.evaluate("() => document.querySelector('a.holding-link[href*=\"/holding/15?\"]').scrollIntoView({block: 'center'})")
+            full.wait_for_timeout(400)  # the whole window, so the table's last columns fit (2000 x 1250)
+            save(full.screenshot(), "a-holdings-usd")
             tall = page(b, 1296, 1100, SCALE)
             for name, (url, selector) in SECTIONS.items():
                 show(tall, BASE + url, NOSIDE)

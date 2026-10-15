@@ -15,6 +15,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
   Also fixed exact matching limits, wrong-currency payments, early-payment review, numeric CSV exports, Arabic text, profile-scoped reminder dedupe and batched reserve lookup performance.
   Migrations: `0056_checked_history.sql`, `0057_import_provenance.sql`, `0058_saved_views.sql`, `0059_reimbursements.sql`, `0060_plan_matching.sql`, `0061_deposit_receipts.sql`, `0062_cash_funding.sql`.
 
+- 2026-10-15 · Claude: `tools/site_shots.py` adds the dollar brokerage (`account-usd`) and the holdings row with its price/FX split (`a-holdings-usd`) for the website's new dollar savings guide; one Arabic finding filed.
 - 2026-10-15 · Codex: added session undo/redo, checked bank-history protection, multi-source import provenance, safe duplicate merge and combined activity review on PC/phone.
 - 2026-10-15 · Codex: connected partial reserves, configurable bill matching and transaction-to-plan setup, certificate receipt reconciliation and explicit partial reimbursement claims.
 - 2026-10-15 · Codex: added optional funded payday assignments, reusable saved views/report/export, rule correction offers, selected bulk preview, weekly review and opt-in native reminders. Local implementation; automated/native behavioural acceptance outstanding.
