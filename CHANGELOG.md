@@ -10,6 +10,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-15 · Claude: two owner-requested reports, nothing fixed: an outside review of every tab (figures, wording, links, wiring, next steps) and a design for brokerages across exchanges and currencies (pockets, listings, workflows, analysis); `report/`.
 
 - 2026-10-15 · Claude: import posts a day's money in before money out when the day ends at or above zero, so a newest-first statement no longer fails on overdrawn spending (T15, `bank_imports.py`).
 - 2026-10-15 · Claude: Import review is one row per bank line with filter chips and a bulk edit bar; no per-name `group_*` choices; held for works on any row (T12-T14).
