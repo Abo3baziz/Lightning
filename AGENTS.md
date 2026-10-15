@@ -47,7 +47,7 @@ Never at the cost of a test, a required check, or a read you need.
 
 - **Claims and messages belong to their author.** Never edit another AI's, except deleting a message to you once handled (to all: keep seven days). Make each claim's *Work* distinguish parallel sessions. A helper (Codex's Luna) gets its own rows, written by its AI.
 - **Push rejected?** `git pull --rebase`, keep both sides in changelog and `NOW.md`, retest, push.
-- **New user feedback:** follow `.claude/skills/feedback-review/SKILL.md` (compile, investigate, build, then delete the reviewed files).
+- **New user feedback:** follow `.claude/skills/feedback-review/SKILL.md` (compile, investigate, Opus designs, Sonnet builds, then delete the reviewed files; two agents at most).
 - **Never undo another AI's work** without the owner; disagree in a GitHub issue for the owner.
 
 ## 4. Product rules

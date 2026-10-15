@@ -1,50 +1,73 @@
 ---
 name: feedback-review
-description: Compile new user feedback into a batch file, investigate every item against the current code, build or decline each one with a test, record what is still open, then delete the reviewed files. Use when new feedback, survey rows or screenshots arrive, or when old feedback files should be retired.
+description: Turn new user feedback into one report, investigate each ticket, have Opus design the fixes and Sonnet build them (two agents at most), then delete the reviewed files. Use when new feedback, survey rows or screenshots arrive, or when old feedback files should be retired.
 ---
 
-# Feedback review: compile, investigate, delete
+# Feedback review: compile, investigate, design, build, delete
 
-Feedback files are working papers, not documentation. They live in `user feedback/` only until their batch is finished; then
-they are deleted and only three things survive: a test, a changelog line and, if something stays open, one row in
-`docs/proposals/open_feedback.md`. Git history keeps the rest. The repo is public: nothing personal goes into it.
+Feedback files are working papers. They live in `user feedback/` until their batch is finished; then they are deleted and only a test,
+a changelog line and, if something stays open, a row in `docs/proposals/open_feedback.md` survive. Git history keeps the rest.
+The repo is public: nothing personal goes into it.
 
-Work on one branch for the whole batch (`claude/feedback-batch-NNN`, never a vague name), push after each step, and merge to `main` at the end (AGENTS.md §6).
+**Budget: two sub-agents per batch, never more, never in a loop.** Stages 1, 2 and 5 are done by you (the main session, Sonnet).
+Only stage 3 (one Opus agent) and stage 4 (one Sonnet agent) are agents. Hand each agent a file path, not a pasted history.
 
-## 1. Compile
+## Token rules
 
-1. Take the new rows (Drive sheet, form export, pasted text). Number the batch after the last one in the changelog.
-2. **Strip what must not be public** before writing anything: names, emails, phone numbers, account numbers, device ids, links to private folders. Write "a user". Screenshots: keep only ones showing dummy or sample data; otherwise describe the problem in words and drop the image.
-3. Write `user feedback/user-feedback-batch-NNN.md`: source and date, one short ticket per row (what the person saw, what they want, screen), grouped by screen. Drop test and diagnostic rows, and say how many.
-4. Mark duplicates of earlier tickets and of anything in `docs/proposals/open_feedback.md`.
+- Grep for the class, id or text a ticket names; read only the lines around it. Never open a guideline or a whole large file.
+- Look at a screenshot only when the ticket cannot be understood or reproduced without it; one look, no re-reads.
+- Reproduce several tickets from one demo session (`python -m lightning --demo --no-browser`, port 8766); crawl with `curl`, not a browser, unless the ticket is visual.
+- Group tickets by screen and investigate each screen once. Tests: changed areas first, full suite once at the end.
+- Reports are short: one line per ticket, no restating the user's text.
 
-## 2. Investigate
+## 1. Compile (you)
 
-For every ticket, in this order, and write the verdict next to it:
+1. Input is whatever the owner gives: pasted rows, a CSV, files with screenshots. There is no Drive access here; ask for the files if they are missing.
+2. Strip what must not be public: names, emails, phone numbers, account numbers, device ids, private links. Say "a user". Keep a screenshot only if it shows dummy or sample data; otherwise describe it in words.
+3. Write `user feedback/user-feedback-batch-NNN.md` (NNN follows the last batch in the changelog): source and date, then one ticket per row, grouped by screen, each with: what the person saw, what they want, the screen, and the screenshot as a relative link `screenshots/batch-NNN/<ticket>_<n>.png` (name files that way).
+4. Merge duplicates, mark overlaps with `docs/proposals/open_feedback.md`, drop test and diagnostic rows and say how many.
+5. Open the file with a **Report** block: counts by screen, the three biggest themes, anything that looks like a wrong number.
 
-1. **Reproduce.** Run `python -m lightning --demo --no-browser` (port 8766) and open the screen, or read the code. A ticket you cannot reproduce is not fixed: say what you tried.
-2. **Is it a number?** If the report says a figure is wrong, reconcile it across tabs first; a wrong figure outranks every layout wish.
-3. **Verdict**, one of: **Fixed** (a defect, now fixed), **Built** (an enhancement, now built), **Existing** (already works; say where), **Open** (a real request not built; say why), **Declined** (conflicts with the guideline or a decision; say which).
-4. Questions only the owner can answer go to the owner as one GitHub issue, not into the file.
+## 2. Investigate (you)
 
-## 3. Build
+For every ticket, in this order, and write the verdict beside it:
 
-- Fix Fixed/Built tickets with one test each (`tests/test_feedback_batch_NNN.py`) and the usual checks: changed-area tests, then the full suite, Mohab, guideline A16.
-- Do not reopen a ticket an earlier batch marked Fixed or Existing without reproducing it.
-- Changelog: one entry per batch, three lines at most.
+1. Reproduce on the demo app, or read the code. If you cannot reproduce it, say what you tried; it is not "fixed".
+2. If a figure is reported wrong, reconcile it across tabs first. A wrong figure outranks any layout wish.
+3. Verdict: **Defect** (true, needs a fix), **Request** (an enhancement), **Existing** (already works; say where), **Not reproduced**, or **Conflicts** (with the guideline or a decision; say which). Add `file:line` for the cause.
+4. Owner-only questions go to the owner as one GitHub issue, not into the file.
 
-## 4. Record what stays open, then delete
+**Stop here and show the owner the Report.** The owner says which Defects and Requests to build. Do nothing further until they do.
 
-Only when every ticket has a verdict:
+## 3. Design (agent 1: Opus, one call)
 
-1. Add a row to `docs/proposals/open_feedback.md` for each **Open** ticket (request, why it is open). Delete rows there that this batch built or declined.
-2. Check that each Fixed/Built ticket has a test and a changelog line. If one has not, it is not finished: go back to step 3.
-3. `git rm` the batch file and its screenshots. Do not keep "for reference": git history is the reference.
-4. Search for leftover references (`grep -rn "user-feedback-batch-NNN"`) and point them at the test or the changelog.
-5. Commit, push the branch, merge to `main`, push.
+Launch one agent with `model: "opus"`. Its prompt names only: the batch file, the list of chosen tickets, `AGENTS.md`, and the rule to read code by grep, not whole files. It writes `user feedback/designs-NNN.md`:
+
+- per ticket: files to change, the approach in a few lines, the test, risks;
+- one section listing tickets that touch the same file, with the order to build them;
+- anything that needs an owner decision (do not guess it).
+
+It writes designs only; it changes no code.
+
+## 4. Build (agent 2: Sonnet, one call)
+
+Launch one agent with `model: "sonnet"`. It gets the designs file path and `AGENTS.md`. It builds the tickets in the order given, one branch per feature (`claude/<feature>`, AGENTS.md §6), one test per ticket, changed-area tests after each, and the full suite once at the end. It pushes each branch and reports branch names, test results and anything it could not do. It does not merge.
+
+You review the diffs, merge the branches into `main` one at a time and push.
+
+## 5. Delete (you)
+
+Only when every ticket has a verdict and every built ticket has a test and a changelog line:
+
+1. Add a row to `docs/proposals/open_feedback.md` for each ticket left Open or Request; remove rows this batch built.
+2. One changelog entry for the batch, three lines at most.
+3. `git rm` the batch file, the designs file and the screenshots.
+4. `grep -rn "user-feedback-batch-NNN"` and repoint leftovers to the test or changelog.
+5. Commit, push, merge to `main`, push.
 
 ## Rules
 
-- Never delete a batch with an unverified ticket, or an Open ticket that is not in `open_feedback.md`.
+- Never more than two agents. If the work seems to need more, build fewer tickets per batch.
+- Never delete a batch with an unverified ticket, or a left-over ticket that is not in `open_feedback.md`.
 - Never put a respondent's identity, a private link or real financial data in the repo.
-- Report to the owner only: how many tickets, what was built, what is open and needs a decision.
+- Tell the owner only: counts, what was built, what is open and needs a decision.
