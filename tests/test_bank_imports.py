@@ -123,7 +123,7 @@ def test_ui_maps_two_amount_columns_and_previews_signed_amounts(c, setup):
     data = b"When,Credit,Debit\n2026-09-22,100,\n2026-09-23,,25\n"
     response = client.post(f"/accounts/{account_id}/import", files={"file": ("statement.csv", data, "text/csv")},
                            follow_redirects=False)
-    assert response.status_code == 200 and "Money in (inflow) column" in response.text
+    assert response.status_code == 200 and "In and out columns" in response.text and ">Money in<" in response.text
     import re
     payload = re.search(r'name="payload" value="([^"]+)"', response.text).group(1)
     mapped = client.post(f"/accounts/{account_id}/import/map", data={
@@ -389,3 +389,17 @@ def test_a_future_dated_row_is_marked_to_fix_in_the_review_not_when_posting(c, s
     errors = {row["Counterparty"]: row["_errors"] for row in rows}
     assert errors["Talabat"] == []
     assert errors["Future"] and "in the future" in errors["Future"][0]
+
+
+def test_the_map_page_and_the_account_form_use_the_form_grid(c, setup):
+    from fastapi.testclient import TestClient
+    from lightning.ui.web import create_app
+    accounts, _ = setup
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    mapped = client.post(f"/accounts/{accounts['cib'].id}/import",
+                         files={"file": ("sep.csv", b"When,Merchant,Net\n25/09/2026,Shop,14\n", "text/csv")})
+    assert 'class="form-grid"' in mapped.text and '<fieldset class="import-amount-model">' not in mapped.text
+    assert "One amount column" in mapped.text and "In and out columns" in mapped.text and "Reverse the sign" in mapped.text
+    form = client.get("/accounts/new").text
+    assert 'class="form-grid"' in form and 'class="soft-section"' in form and 'class="card" id="opening-balance-section"' not in form
+    assert 'class="field wide"' in form  # Notes takes the whole row

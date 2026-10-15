@@ -1856,6 +1856,11 @@ ARABIC_UI = {
     'Institutions': 'المؤسسات',
     'Used before': 'استخدمتها قبل كده',
     '+ Add "{name}"': '+ أضف "{name}"',
+    'Check the columns we matched. We remember them for this bank.': 'راجع الأعمدة اللي طابقناها. هنفتكرها للبنك ده.',
+    'Amounts': 'المبالغ',
+    'One amount column': 'عمود مبلغ واحد',
+    'In and out columns': 'عمودين: داخل وخارج',
+    'Reverse the sign': 'اعكس العلامة',
 }
 
 
