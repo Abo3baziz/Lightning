@@ -199,9 +199,9 @@ def test_review_screen_offers_link_post_as_new_and_skip(c, setup):
 
     page = client.get(f"/accounts/{cib}/import/{batch_id}")
     assert page.status_code == 200
-    assert f'name="match_{row_id}" value="link:{manual.id}" checked' in page.text
+    assert f'<select name="match_{row_id}"' in page.text and f'<option value="link:{manual.id}" selected>' in page.text
     assert "Link to Carrefour · 2026-10-01" in page.text
-    assert f'name="match_{row_id}" value="new"' in page.text and "Post as new" in page.text
+    assert '<option value="new"' in page.text and "Post as new" in page.text
     assert f'name="skip_{row_id}"' not in page.text  # one choice, not a second Skip box
 
     before = c.reporting.account_balance(cib)

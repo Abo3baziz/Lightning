@@ -1,0 +1,154 @@
+"""Import review as rows (feedback batch 004, T12 to T14): every row has its own counterparty, category and
+held-for, so "money in from Dad" and "transfer to THNDR held for Dad" can both be right."""
+from __future__ import annotations
+
+from decimal import Decimal as D
+
+from fastapi.testclient import TestClient
+
+from lightning.ui.web import create_app
+
+
+def _stage(c, account_id, csv_text, name="statement.csv"):
+    batch_id, _ = c.bank_imports.stage(account_id, name, csv_text.encode())
+    return batch_id, c.bank_imports.preview(batch_id)[1]
+
+
+def _post(c, account_id, batch_id, answers):
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    return client.post(f"/accounts/{account_id}/import/{batch_id}/confirm", data=answers, follow_redirects=False)
+
+
+def _ids(rows):
+    return {int(r["_line"]): r["_import_row_id"] for r in rows}
+
+
+def test_the_dad_scenario_posts_both_rows_with_the_right_owner(c, setup):
+    accounts, _ = setup
+    cib, thndr = accounts["cib"].id, accounts["thndr"].id
+    batch, rows = _stage(c, cib, "Date,Counterparty,Amount\n2026-09-10,INSTAPAY FROM DAD,20000\n"
+                                 "2026-09-11,TRANSFER TO THNDR,-20000\n")
+    ids = _ids(rows)
+    answers = {
+        f"counterparty_{ids[2]}": "Dad", f"counterparty_pick_{ids[2]}": "new:Dad",   # money in from Dad ...
+        f"whom_{ids[2]}": "Dad", f"whom_pick_{ids[2]}": "new:Dad",                  # ... that he asked you to hold
+        f"counterparty_{ids[3]}": "THNDR", f"counterparty_pick_{ids[3]}": f"account:{thndr}",  # your account: a transfer
+        f"whom_{ids[3]}": "Dad", f"whom_pick_{ids[3]}": "new:Dad",                  # of Dad's money
+    }
+    response = _post(c, cib, batch, answers)
+    assert response.status_code == 200 and "Import complete" in response.text, response.text[-600:]
+    summary = c.bank_imports.summary(batch)
+    assert summary["posted"] == 2
+    dads = [p for p in c.counterparties.list_active() if p["name"] == "Dad"]
+    assert len(dads) == 1                                   # created once, from both wells
+    mfo = c.money_from_others
+    assert mfo.cash_balance("Dad", cib, "2026-09-30") == D("0")      # it left the bank ...
+    assert mfo.cash_balance("Dad", thndr, "2026-09-30") == D("20000")  # ... still Dad's, now at THNDR
+    assert c.db.scalar("SELECT COUNT(*) FROM transactions WHERE type='TRF' AND status='POSTED'") == 1
+
+
+def test_two_rows_with_the_same_imported_name_can_get_different_counterparties(c, setup):
+    accounts, cats = setup
+    cib = accounts["cib"].id
+    batch, rows = _stage(c, cib, "Date,Counterparty,Amount\n2026-09-10,INSTAPAY,-100\n2026-09-11,INSTAPAY,-200\n")
+    ids = _ids(rows)
+    food = str(cats["EXP.PERSONAL.FOOD"].id)
+    response = _post(c, cib, batch, {
+        f"counterparty_{ids[2]}": "Alpha", f"counterparty_pick_{ids[2]}": "new:Alpha", f"category_{ids[2]}": food,
+        f"counterparty_{ids[3]}": "Beta", f"counterparty_pick_{ids[3]}": "new:Beta", f"category_{ids[3]}": food})
+    assert "Import complete" in response.text
+    names = {r["counterparty_id"]: r["name"] for r in c.db.all(
+        "SELECT t.counterparty_id, p.name FROM transactions t JOIN counterparties p ON p.id=t.counterparty_id")}
+    assert sorted(names.values()) == ["Alpha", "Beta"]
+    # the statement's own spelling is remembered for both, so next time it resolves
+    assert c.counterparties.resolve("INSTAPAY") is not None
+
+
+def test_a_new_counterparty_typed_on_several_rows_is_made_once(c, setup):
+    accounts, cats = setup
+    cib = accounts["cib"].id
+    batch, rows = _stage(c, cib, "Date,Counterparty,Amount\n2026-09-10,A,-10\n2026-09-11,B,-20\n2026-09-12,C,-30\n")
+    ids = _ids(rows)
+    answers = {}
+    for line in (2, 3, 4):
+        answers[f"counterparty_{ids[line]}"] = "Shop"
+        answers[f"counterparty_pick_{ids[line]}"] = "new:Shop"
+        answers[f"category_{ids[line]}"] = str(cats["EXP.PERSONAL.FOOD"].id)
+    assert "Import complete" in _post(c, cib, batch, answers).text
+    assert len([p for p in c.counterparties.list_active() if p["name"] == "Shop"]) == 1
+
+
+def test_held_for_on_a_transfer_with_no_category_moves_the_custody(c, setup):
+    accounts, _ = setup
+    cib, wallet = accounts["cib"].id, accounts["wallet"].id
+    mom = c.counterparties.create("Mom")
+    custody = c.categories.get_by_code("EXP.SYSTEM.CUSTODY")
+    txn = c.transactions.record_inflow("2026-09-05", cib, "5000", custody.id, allow_system_category=True)
+    c.money_from_others.sync_transaction(txn.id, "2026-09-05", "Mom", cib, D("5000"))
+    batch, rows = _stage(c, cib, "Date,Counterparty,Amount\n2026-09-10,WALLET TOPUP,-3000\n")
+    row = rows[0]["_import_row_id"]
+    response = _post(c, cib, batch, {
+        f"counterparty_{row}": "Wallet", f"counterparty_pick_{row}": f"account:{wallet}",
+        f"whom_{row}": "Mom", f"whom_pick_{row}": f"counterparty:{mom}"})
+    assert "Import complete" in response.text, response.text[-500:]
+    assert c.money_from_others.cash_balance("Mom", wallet, "2026-09-30") == D("3000")
+    assert c.money_from_others.cash_balance("Mom", cib, "2026-09-30") == D("2000")
+
+
+def test_the_review_page_is_rows_with_chips_and_a_bulk_bar(c, setup):
+    accounts, _ = setup
+    cib = accounts["cib"].id
+    batch, rows = _stage(c, cib, "Date,Counterparty,Amount\n2026-09-10,SHOP,-10\n2026-09-11,SHOP,-20\n")
+    page = TestClient(create_app(c), base_url="http://127.0.0.1").get(f"/accounts/{cib}/import/{batch}").text
+    assert page.count('<div class="import-line is-') == 2
+    for chip in ("All", "To fix", "Needs you", "Possible duplicates", "Ready"):
+        assert f"{chip} " in page
+    assert 'id="import-bulk"' in page and "Use this category for this counterparty next time" in page
+    assert 'name="group_' not in page and "Save as" not in page
+
+
+def test_bulk_bar_writes_into_the_ticked_rows_and_posts(c, setup):
+    """Browser: tick a name, fill the bar, Apply, then post; the account shows both rows with the new counterparty."""
+    import shutil
+    from pathlib import Path
+
+    import pytest
+    pytest.importorskip("playwright")
+    from playwright.sync_api import sync_playwright
+    from lightning.runtime.http import Host
+
+    chromium = Path("/opt/pw-browsers/chromium")
+    if not chromium.exists():
+        chromium = Path(shutil.which("chromium") or str(chromium))
+    if not chromium.exists():
+        pytest.skip("Chromium is not installed")
+    accounts, cats = setup
+    cib = accounts["cib"].id
+    batch, rows = _stage(c, cib, "Date,Counterparty,Amount\n2026-09-10,SHOP,-10\n2026-09-11,SHOP,-20\n")
+    host = Host(lambda _: create_app(c)).start()
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(executable_path=str(chromium))
+            page = browser.new_page(viewport={"width": 1500, "height": 900})
+            page.goto(host.launch_url)
+            page.goto(f"{host.origin}/accounts/{cib}/import/{batch}")
+            assert page.locator("#import-bulk").is_hidden()
+            page.locator(".import-pick-group").first.check()
+            assert page.locator("#import-bulk").is_visible()
+            assert page.locator("[data-bulk-count]").inner_text() == "2"
+            page.locator("#bulk-cp").fill("Mega Shop")
+            page.locator("#bulk-cp-pick").evaluate("e => e.value = 'new:Mega Shop'")
+            page.locator("#bulk-category").evaluate(
+                f"e => {{ e.value = '{cats['EXP.PERSONAL.FOOD'].id}'; e.dispatchEvent(new Event('change', {{bubbles: true}})); }}")
+            page.locator("[data-bulk-apply]").click()
+            ids = _ids(rows)
+            assert page.locator(f"#cp-{ids[2]}").input_value() == "Mega Shop"
+            assert page.locator(f"#cp-pick-{ids[3]}").input_value() == "new:Mega Shop"
+            assert page.locator(f"#category-{ids[2]}").input_value() == str(cats["EXP.PERSONAL.FOOD"].id)
+            page.locator("button.btn.primary", has_text="Post ready rows").first.click()
+            page.wait_for_selector("text=Import complete")
+            browser.close()
+    finally:
+        host.stop()
+    assert len([p for p in c.counterparties.list_active() if p["name"] == "Mega Shop"]) == 1
+    assert c.bank_imports.summary(batch)["posted"] == 2

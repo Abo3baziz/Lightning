@@ -46,8 +46,7 @@ def test_every_bank_csv_imports_every_row_with_nothing_to_review(c, on_2_october
                         files={"file": (name, (MOHAB_2026 / name).read_bytes(), "text/csv")})
         if page.shows("Match your columns"):   # the headers are Lightning's own, so this should not happen
             pytest.fail(f"{name} asked for its columns to be matched")
-        assert page.shows("Needs a decision None."), f"{name}: {page.text[:600]}"
-        assert page.shows("Possible duplicates None."), name
+        assert page.shows("To fix 0", "Needs you 0", "Possible duplicates 0"), f"{name}: {page.text[:600]}"
         done = b.submit({}, button="Post ready rows")
         assert done.shows(f"{_lines(name)} posted · 0 skipped · 0 duplicates"), f"{name}: {done.text[:400]}"
     cib = next(a for a in c.accounts.list() if a.name == "CIB Payroll")
@@ -68,13 +67,14 @@ def test_an_internal_row_whose_account_is_unknown_asks_which_account(c, on_2_oct
             "2026-09-11,-300.00,Wallet,Internal transfer,ATM\n").encode()
     b.go("CIB Current", "Import statement")
     page = b.submit({}, button="Review statement", files={"file": ("moves.csv", data, "text/csv")})
-    assert page.shows("Internal transfer · pick the account it moved to or from")
-    assert page.shows("Ready · transfer to Wallet")
-    # One decision per name: the "Savings pot" name gets its account once.
-    unknown = next(k.rsplit("_", 1)[1] for k, v in page.form("Post ready rows").fields.items()
-                   if k.startswith("group_counterparty_") and not k.startswith("group_counterparty_choice_")
-                   and v == "Savings pot")
-    page = b.submit({f"group_transfer_account_id_{unknown}": Choose("Savings")}, button="Post ready rows")
+    assert page.shows("The category says internal, but no account matches")
+    fields = page.form("Post ready rows").fields
+    # "Wallet" is one of his accounts, so it comes already picked as the account (a transfer to it).
+    wallet = next(k.rsplit("_", 1)[1] for k, v in fields.items() if k.startswith("counterparty_") and v == "Wallet")
+    assert fields[f"counterparty_pick_{wallet}"].startswith("account:")
+    # The "Savings pot" row gets its account from the counterparty well, like picking it in the list.
+    unknown = next(k.rsplit("_", 1)[1] for k, v in fields.items() if k.startswith("counterparty_") and v == "Savings pot")
+    page = b.submit({f"counterparty_pick_{unknown}": f"account:{savings.id}"}, button="Post ready rows")
     assert page.shows("2 posted · 0 skipped · 0 duplicates")
     assert c.reporting.account_balance(savings.id) == D("500")
     assert c.reporting.account_balance(cib.id) == D("49200")

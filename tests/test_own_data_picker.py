@@ -61,12 +61,11 @@ def template(name):
 def test_remaining_own_data_selects_use_type_and_pick():
     expectations = {
         "bank_import_preview.html": [
-            # One decision per name: the choices sit on the name, not on every row.
-            'name="group_counterparty_choice_{{ i }}" data-own-picker',
-            'name="group_category_{{ i }}" data-own-picker',
-            'name="group_transfer_account_id_{{ i }}" data-own-picker',
-            'name="group_owner_choice_{{ i }}" data-own-picker',
-            'name="group_counterparty_{{ i }}" value="{{ g.counterparty }}" list=',
+            # Rows like the register: each row's own wells are type-and-pick.
+            'name="category_{{ rid }}" id="category-{{ rid }}"',
+            'data-own-picker',
+            'name="counterparty_{{ rid }}" value="{{ ui.cp }}" list="import-parties" data-own-suggestions',
+            'name="whom_{{ rid }}" value="{{ ui.whom }}" list="import-owners" data-own-suggestions',
         ],
         "transactions/form_popup.html": [
             'name="to_account_id" data-own-picker',
@@ -111,11 +110,10 @@ def test_remaining_own_data_selects_use_type_and_pick():
 def test_redundant_search_fields_are_removed_without_changing_submission_fields():
     source = template("bank_import_preview.html")
     assert "data-option-filter" not in source
-    assert 'name="group_counterparty_choice_{{ i }}"' in source
-    assert 'name="group_category_{{ i }}"' in source
-    assert 'name="group_owner_choice_{{ i }}"' in source
-    assert 'name="group_transfer_account_id_{{ i }}"' in source
-    assert 'name="group_of_{{ rid }}"' in source
+    for name in ("counterparty_{{ rid }}", "counterparty_pick_{{ rid }}", "category_{{ rid }}", "whom_{{ rid }}",
+                 "whom_pick_{{ rid }}", "notes_{{ rid }}", "amount_{{ rid }}", "date_{{ rid }}"):
+        assert f'name="{name}"' in source
+    assert "group_" not in source.replace("data-group", "").replace("import-group", "").replace("pick-group", "")
 
     popup = template("transactions/form_popup.html")
     assert "data-owner-filter" not in popup

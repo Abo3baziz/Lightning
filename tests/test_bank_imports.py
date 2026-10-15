@@ -354,7 +354,7 @@ def test_review_with_a_row_error_rerenders_typed_amounts(c, setup):
         f"counterparty_choice_{second}": "unlinked", f"amount_{second}": "-4x5", f"date_{second}": "2026-09-03",
     })
     assert posted.status_code == 200
-    assert "Nothing was imported" in posted.text and "Fix 1 row" in posted.text
+    assert "Nothing was imported" in posted.text and "To fix 1" in posted.text
 
 
 def test_foreign_statement_keeps_native_amounts_and_values_both_frames_at_dated_fx(c, monkeypatch):

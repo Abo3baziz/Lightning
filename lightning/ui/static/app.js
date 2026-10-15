@@ -230,9 +230,17 @@ find("input[data-own-suggestions][list]").forEach((input) => {
     return tile;
   };
   const rowsOf = () => Array.from(source.querySelectorAll("option")).map((option) => ({
-    value: option.value, label: option.dataset.label || "", group: option.dataset.group || "", mono: option.dataset.mono || "", logo: option.dataset.logo || "",
+    value: option.value, label: option.dataset.label || "", group: option.dataset.group || "", mono: option.dataset.mono || "", logo: option.dataset.logo || "", pick: option.dataset.pick || "",
     hay: `${option.value} ${option.dataset.label || ""} ${option.dataset.search || ""}`.toLocaleLowerCase(),
   }));
+  // data-pick-target names a hidden field that records what the text was picked as (an account, a saved
+  // counterparty, a new one); typing again clears it. data-suggest lists [{v, p}] shown first as "Suggested".
+  const pickField = () => (input.dataset.pickTarget ? document.getElementById(input.dataset.pickTarget) : null);
+  const setPick = (value) => { const field = pickField(); if (field) field.value = value; };
+  const suggested = () => {
+    try { return JSON.parse(input.dataset.suggest || "[]").map((item) => ({ value: item.v, pick: item.p, group: "Suggested", label: "", mono: "", logo: "", hay: item.v.toLocaleLowerCase() })); }
+    catch (error) { return []; }
+  };
   let wellTile = null;
   if (input.hasAttribute("data-tile-well")) {
     wellTile = makeTile("", "", "inst-well"); wrapper.classList.add("has-tile"); wrapper.prepend(wellTile);
@@ -246,7 +254,9 @@ find("input[data-own-suggestions][list]").forEach((input) => {
   };
   const render = () => {
     const query = input.value.trim().toLocaleLowerCase();
-    const matches = rowsOf().filter((row) => row.value && (!query || row.hay.includes(query))).slice(0, query ? 50 : (allowAdd ? 8 : 5));
+    const hints = suggested().filter((row) => !query || row.hay.includes(query));
+    const listed = rowsOf().filter((row) => row.value && (!query || row.hay.includes(query)) && !hints.some((hint) => hint.value === row.value));
+    const matches = [...hints, ...listed].slice(0, query ? 50 : (allowAdd ? 8 : 5));
     list.replaceChildren();
     let lastGroup = "";
     matches.forEach((row, i) => {
@@ -260,22 +270,22 @@ find("input[data-own-suggestions][list]").forEach((input) => {
       option.append(row.value);
       if (row.label && row.label !== row.value) { const hint = document.createElement("span"); hint.className = "counterparty-kind"; hint.textContent = row.label; option.append(hint); }
       option.addEventListener("mousedown", (event) => event.preventDefault());
-      option.addEventListener("click", () => { input.value = row.value; input.dispatchEvent(new Event("change", { bubbles: true })); close(); });
+      option.addEventListener("click", () => { input.value = row.value; input.dispatchEvent(new Event("change", { bubbles: true })); setPick(row.pick); close(); });
       list.append(option);
     });
     const typed = input.value.trim();
     if (allowAdd && typed && !rowsOf().some((row) => row.value.toLocaleLowerCase() === typed.toLocaleLowerCase())) {
       const add = document.createElement("button"); add.type = "button"; add.className = "counterparty-option picker-add";
-      add.setAttribute("role", "option"); add.id = `${list.id}-add`; add.textContent = t('+ Add "{name}"', { name: typed });
+      add.setAttribute("role", "option"); add.id = `${list.id}-add`; add.textContent = t(input.dataset.addLabel || '+ Add "{name}"', { name: typed });
       add.addEventListener("mousedown", (event) => event.preventDefault());
-      add.addEventListener("click", () => { input.value = typed; input.dispatchEvent(new Event("change", { bubbles: true })); close(); });
+      add.addEventListener("click", () => { input.value = typed; input.dispatchEvent(new Event("change", { bubbles: true })); setPick(`new:${typed}`); close(); });
       list.append(add);
     } else if (!matches.length) { close(); return; }
     const rect = input.getBoundingClientRect();
     list.style.left = `${Math.max(8, rect.left)}px`; list.style.top = `${rect.bottom + 4}px`; list.style.width = `${Math.max(230, rect.width)}px`;
     list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
   };
-  input.addEventListener("input", syncTile); input.addEventListener("change", syncTile); syncTile();
+  input.addEventListener("input", () => { setPick(""); syncTile(); }); input.addEventListener("change", syncTile); syncTile();
   input.addEventListener("input", render); input.addEventListener("focus", render);
   input.addEventListener("keydown", (event) => {
     const options = list.querySelectorAll('[role="option"]');
