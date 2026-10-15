@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: date picker: the month title opens a 12-month grid and its year opens a 12-year grid (‹ › page by 12), Escape goes up a level; `app.js`, `style.css`, `phone.css`, guideline A10.3.
 - 2026-10-15 · Claude: short fields sit side by side (`.form-grid`, A10.3): the account form, the CSV column-mapping page (amount model is now a two-choice segment) and the instalment and early-payment forms; starting balance is a soft section, not a card in a card.
 - 2026-10-15 · Claude: field wells are a blue-tinted `#E8F1FA` (focus `#E3EEF9`), defined once as `--field` and `--field-focus`; guideline A10 tokens updated in the app and phone files. Contrast: Ink 14.22/13.81, Ink 2 8.14/7.91, Muted 4.68/4.55.
 - 2026-10-15 · Claude: institutions: the account form's Institution is type-and-pick over 46 Egyptian banks, brokers and wallets (plus your own), with logo-or-monogram tiles in the picker, accounts list and sidebar; migration `0056_institutions.sql`.

@@ -506,6 +506,8 @@ html.phone .iso-date-control [data-smart-date] { font-size: 16px !important; }
 html.phone .date-popup { width: min(320px, calc(100vw - 24px)); }
 html.phone .date-popup-grid button:not(#_) { height: 44px; min-height: 44px; }
 html.phone .date-popup-head button:not(#_) { width: 44px; height: 44px; }
+html.phone .date-popup .date-popup-cell:not(#_) { height: 44px; min-height: 44px; }
+html.phone .date-popup-head .date-popup-title:not(#_) { width: auto; }
 html.phone .iso-date-control:not(#_) { grid-template-columns: minmax(0, 1fr) 48px; }
 
 

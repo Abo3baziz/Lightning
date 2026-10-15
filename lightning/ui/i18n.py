@@ -1861,6 +1861,9 @@ ARABIC_UI = {
     'One amount column': 'عمود مبلغ واحد',
     'In and out columns': 'عمودين: داخل وخارج',
     'Reverse the sign': 'اعكس العلامة',
+    'Choose a year': 'اختار سنة',
+    'Earlier years': 'سنين أقدم',
+    'Later years': 'سنين أحدث',
 }
 
 

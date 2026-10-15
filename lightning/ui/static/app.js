@@ -431,6 +431,7 @@ const CALENDAR_LOCALE = document.documentElement.lang || "en";
 const MONTH_NAMES = Array.from({length: 12}, (_, month) => new Intl.DateTimeFormat(CALENDAR_LOCALE, {month: "long"}).format(new Date(2024, month, 1)));
 const WEEKDAY_NAMES = Array.from({length: 7}, (_, day) => new Intl.DateTimeFormat(CALENDAR_LOCALE, {weekday: "short"}).format(new Date(2024, 0, 1 + day)));
 const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const MONTH_SHORT = Array.from({length: 12}, (_, month) => new Intl.DateTimeFormat(CALENDAR_LOCALE, {month: "short"}).format(new Date(2024, month, 1)));
 let openCal = null;
 const closeCalendar = () => { if (!openCal) return; openCal.panel.remove(); openCal.button?.setAttribute("aria-expanded", "false"); openCal = null; };
 const openCalendar = (text, button) => {
@@ -441,6 +442,8 @@ const openCalendar = (text, button) => {
   const start = picked || today;
   let view = new Date(Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1, 1);
   let focus = start;
+  // The head's title climbs: days -> months (12, with the year and its ‹ ›) -> years (12 at a time).
+  let level = "days", monthFocus = view.getMonth(), yearFocus = view.getFullYear();
   const panel = document.createElement("div");
   panel.className = "date-popup"; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", t("Choose a date"));
   const set = (value) => {
@@ -449,7 +452,30 @@ const openCalendar = (text, button) => {
     text.dispatchEvent(new Event("change", { bubbles: true }));
     closeCalendar(); text.focus();
   };
+  const foot = () => `<div class="date-popup-foot"><button type="button" data-today>${t("Today")}</button>${picked ? `<button type="button" data-clear>${t("Clear")}</button>` : ""}</div>`;
+  const drawMonths = () => {
+    const year = view.getFullYear(), nowYear = Number(today.slice(0, 4)), nowMonth = Number(today.slice(5, 7)) - 1;
+    const pickedYear = picked ? Number(picked.slice(0, 4)) : null, pickedMonth = picked ? Number(picked.slice(5, 7)) - 1 : null;
+    panel.innerHTML = `<div class="date-popup-head"><button type="button" data-year-step="-1" aria-label="${t("Previous year")}">‹</button>
+      <button type="button" class="date-popup-title" data-level="years" aria-label="${t("Choose a year")}">${year}</button>
+      <button type="button" data-year-step="1" aria-label="${t("Next year")}">›</button></div>
+      <div class="date-popup-cells" role="grid">${MONTH_SHORT.map((name, m) => {
+        const cls = ["date-popup-cell", year === nowYear && m === nowMonth ? "is-today" : "", year === pickedYear && m === pickedMonth ? "is-picked" : ""].join(" ");
+        return `<button type="button" class="${cls}" data-month="${m}" tabindex="${m === monthFocus ? 0 : -1}" aria-label="${MONTH_NAMES[m]} ${year}"${year === pickedYear && m === pickedMonth ? ' aria-pressed="true"' : ""}>${name}</button>`;
+      }).join("")}</div>${foot()}`;
+  };
+  const drawYears = () => {
+    const first = Math.floor(yearFocus / 12) * 12, nowYear = Number(today.slice(0, 4)), pickedYear = picked ? Number(picked.slice(0, 4)) : null;
+    panel.innerHTML = `<div class="date-popup-head"><button type="button" data-page-step="-1" aria-label="${t("Earlier years")}">‹</button>
+      <b>${first}–${first + 11}</b><button type="button" data-page-step="1" aria-label="${t("Later years")}">›</button></div>
+      <div class="date-popup-cells" role="grid">${Array.from({length: 12}, (_, i) => first + i).map((y) => {
+        const cls = ["date-popup-cell", y === nowYear ? "is-today" : "", y === pickedYear ? "is-picked" : ""].join(" ");
+        return `<button type="button" class="${cls}" data-year="${y}" tabindex="${y === yearFocus ? 0 : -1}" aria-label="${y}"${y === pickedYear ? ' aria-pressed="true"' : ""}>${y}</button>`;
+      }).join("")}</div>${foot()}`;
+  };
   const draw = () => {
+    if (level === "months") { drawMonths(); return; }
+    if (level === "years") { drawYears(); return; }
     const year = view.getFullYear(), month = view.getMonth();
     const first = new Date(year, month, 1);
     const lead = (first.getDay() + 6) % 7;  // Monday first
@@ -457,15 +483,16 @@ const openCalendar = (text, button) => {
     for (let i = 0; i < 42; i += 1) cells.push(new Date(year, month, 1 - lead + i));
     const rows = cells[35].getMonth() !== month ? 5 : 6;
     panel.innerHTML = `<div class="date-popup-head"><button type="button" data-step="-1" aria-label="${t("Previous month")}">‹</button>
-      <b>${MONTH_NAMES[month]} ${year}</b><button type="button" data-step="1" aria-label="${t("Next month")}">›</button></div>
+      <button type="button" class="date-popup-title" data-level="months" aria-label="${t("Choose a month")}">${MONTH_NAMES[month]} ${year}</button><button type="button" data-step="1" aria-label="${t("Next month")}">›</button></div>
       <div class="date-popup-grid" role="grid">${WEEKDAY_NAMES.map((d) => `<span class="date-popup-dow">${d}</span>`).join("")}
       ${cells.slice(0, rows * 7).map((d) => {
         const iso = isoOf(d);
         const cls = ["date-popup-day", d.getMonth() !== month ? "is-other" : "", iso === today ? "is-today" : "", iso === picked ? "is-picked" : ""].join(" ");
         return `<button type="button" class="${cls}" data-day="${iso}" tabindex="${iso === focus ? 0 : -1}" aria-label="${iso}"${iso === picked ? ' aria-pressed="true"' : ""}>${d.getDate()}</button>`;
-      }).join("")}</div>
-      <div class="date-popup-foot"><button type="button" data-today>${t("Today")}</button>${picked ? `<button type="button" data-clear>${t("Clear")}</button>` : ""}</div>`;
+      }).join("")}</div>${foot()}`;
   };
+  const refocus = () => panel.querySelector('[tabindex="0"]')?.focus();
+  const go = (next) => { level = next; if (next === "days") focus = isoOf(view); if (next === "months") monthFocus = view.getMonth(); if (next === "years") yearFocus = view.getFullYear(); draw(); refocus(); };
   const move = (days) => {
     const d = new Date(Number(focus.slice(0, 4)), Number(focus.slice(5, 7)) - 1, Number(focus.slice(8, 10)) + days);
     focus = isoOf(d);
@@ -477,19 +504,41 @@ const openCalendar = (text, button) => {
     const b = e.target.closest("button");
     if (!b) return;
     e.stopPropagation();
-    if (b.dataset.step) { view = new Date(view.getFullYear(), view.getMonth() + Number(b.dataset.step), 1); focus = isoOf(view); draw(); }
+    if (b.dataset.level) go(b.dataset.level);
+    else if (b.dataset.yearStep) { view = new Date(view.getFullYear() + Number(b.dataset.yearStep), view.getMonth(), 1); focus = isoOf(view); draw(); }
+    else if (b.dataset.pageStep) { yearFocus += 12 * Number(b.dataset.pageStep); draw(); }
+    else if (b.dataset.month) { view = new Date(view.getFullYear(), Number(b.dataset.month), 1); focus = isoOf(view); go("days"); }
+    else if (b.dataset.year) { view = new Date(Number(b.dataset.year), view.getMonth(), 1); focus = isoOf(view); go("months"); }
+    else if (b.dataset.step) { view = new Date(view.getFullYear(), view.getMonth() + Number(b.dataset.step), 1); focus = isoOf(view); draw(); }
     else if (b.dataset.day) set(b.dataset.day);
     else if ("today" in b.dataset) set(today);
     else if ("clear" in b.dataset) set("");
   });
   panel.addEventListener("keydown", (e) => {
     const keys = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+    if (e.key === "Escape") {
+      e.preventDefault(); e.stopPropagation();
+      if (level !== "days") go("days"); else { closeCalendar(); text.focus(); }
+      return;
+    }
+    if (level === "months" || level === "years") {
+      const grid = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 };
+      const page = e.key === "PageUp" ? -1 : e.key === "PageDown" ? 1 : 0;
+      if (!grid[e.key] && !page) return;
+      e.preventDefault();
+      if (level === "months") {
+        const at = monthFocus + (grid[e.key] || 12 * page);
+        view = new Date(view.getFullYear() + Math.floor(at / 12), view.getMonth(), 1); monthFocus = ((at % 12) + 12) % 12;
+      } else yearFocus += grid[e.key] || 12 * page;
+      draw(); refocus();
+      return;
+    }
     if (keys[e.key]) { e.preventDefault(); move(keys[e.key]); }
     else if (e.key === "PageUp" || e.key === "PageDown") {
       e.preventDefault();
       const d = new Date(Number(focus.slice(0, 4)), Number(focus.slice(5, 7)) - 1 + (e.key === "PageUp" ? -1 : 1), 1);
       view = d; focus = isoOf(d); draw(); panel.querySelector(`[data-day="${focus}"]`)?.focus();
-    } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeCalendar(); text.focus(); }
+    }
   });
   draw();
   (text.closest("dialog[open]") || document.body).append(panel);
