@@ -188,8 +188,7 @@ def test_every_tab_of_the_demo_opens_with_its_key_notes(demo):
 def test_the_welcome_button_adds_the_demo_only_once(c, monkeypatch):
     monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-30")
     client = TestClient(create_app(c), base_url="http://127.0.0.1")
-    assert "See Lightning with a sample household" in client.get("/").text
-    added = client.post("/demo", follow_redirects=False)
+    added = client.post("/demo", follow_redirects=False)  # the route stays; the welcome page just no longer offers it
     assert added.status_code == 303 and "Sample+household+added" in added.headers["location"].replace("%20", "+")
     assert len(c.accounts.list()) == 6
     again = client.post("/demo", follow_redirects=False)
@@ -203,6 +202,27 @@ def test_welcome_screen_can_set_the_profile_currency_before_the_first_account(c)
     saved = client.post("/setup/currency", data={"currency": "USD"}, follow_redirects=False)
     assert saved.status_code == 303
     assert c.base_currency == "USD"
+
+
+def test_setup_currency_registers_the_base_and_the_others_held(c):
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    before = client.get("/").text
+    assert "Save your currencies first." in before and 'class="setup-row is-off"' in before
+    assert 'href="/accounts/new?type=BANK"' not in before
+    saved = client.post("/setup/currency", data={"currency": "EGP", "extra": ["USD", "EUR"]}, follow_redirects=False)
+    assert saved.status_code == 303
+    assert {row["code"] for row in c.currencies.list()} == {"EGP", "USD", "EUR"} and c.base_currency == "EGP"
+    after = client.get("/").text
+    assert "EGP · USD · EUR" in after or "EGP · EUR · USD" in after
+    assert 'href="/accounts/new?type=BANK"' in after and "Save your currencies first." not in after
+
+
+def test_the_account_form_lists_only_registered_currencies(c):
+    c.currencies.register("USD")
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    page = client.get("/accounts/new").text
+    assert '<datalist id="account-currencies">' not in page
+    assert '<option value="USD" ' in page and '<option value="EGP" selected' in page and '<option value="GBP"' not in page
 
 
 def test_the_demo_launcher_never_touches_another_database(tmp_path):
@@ -386,3 +406,13 @@ def test_setup_guide_can_be_dismissed_and_shown_again_without_changing_accounts(
     shown = client.post("/setup/guide", data={"action": "show"})
     assert shown.status_code == 200 and "Get set up" in shown.text
     assert [a.id for a in c.accounts.list()] == account_ids
+
+
+def test_the_welcome_page_offers_four_sample_boxes_and_nothing_else(c):
+    import re
+    page = TestClient(create_app(c), base_url="http://127.0.0.1").get("/").text
+    forms = re.findall(r'<form method="post" action="(/sample/[^"]+)"', page)
+    assert forms == ["/sample/mohab-2026", "/sample/amr", "/sample/menna", "/sample/fatma"]
+    assert 'action="/demo"' not in page and "Just looking?" not in page and "abdelrahman" not in page
+    assert "/samples/mohab-2026/" not in page  # no CSV download links
+    assert "Samples fill this profile" in page or "--demo" in page

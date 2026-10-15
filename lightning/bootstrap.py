@@ -102,6 +102,12 @@ class Container:
         return CurrencyRegistry(self.db)
 
     @property
+    def institutions(self):
+        """Egypt's institutions plus the ones this profile added."""
+        from lightning.accounts.institutions import InstitutionService
+        return InstitutionService(self.db)
+
+    @property
     def profile_currencies(self) -> list[tuple[str, str]]:
         """Currencies a profile may start in, as (code, name)."""
         return CASH_ASSETS

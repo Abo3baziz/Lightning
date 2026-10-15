@@ -14,6 +14,7 @@ from lightning.categories.domain import Movement
 from lightning.core.dates import now_iso, parse_date, today
 from lightning.core.errors import ConflictError, LightningError, NotFoundError, ValidationError
 from lightning.core.limits import MAX_CSV_IMPORT_BYTES
+from lightning.core.money import from_e6
 from lightning.core.refs import DocType
 from lightning.transactions.domain import TxnSource
 from lightning.transactions.tags import tags_in
@@ -577,14 +578,44 @@ class BankImportService:
         _, rows = self.preview(batch_id)
         row_by_id = {r["_import_row_id"]: r for r in rows}
         accounts = self.accounts.list(active_only=True)
-        def posting_order(item):
+        def parsed(item):
             row_id, decision = item
             row = row_by_id.get(int(row_id), {})
             try:
                 day = _date(str(decision.get("date", row.get("Date", ""))))
             except ValueError:
                 day = "9999-12-31"
-            return day, int(row.get("_line", 0))
+            try:
+                amount = Decimal(_amount(str(decision.get("amount", row.get("Amount", "0")))))
+            except (ValueError, ArithmeticError):
+                amount = Decimal(0)
+            match = str(decision.get("match") or "")
+            posts = not (decision.get("skip") or match == "skip" or match.startswith("link:"))
+            return day, int(row.get("_line", 0)), amount if posts else Decimal(0), posts
+
+        # Same-day order: a day whose account balance ends at or above zero posts its inflows first (a newest-first
+        # statement lists the day's spending before the salary); a day ending below zero keeps the statement's order.
+        items = {int(k): parsed((k, v)) for k, v in decisions.items()}
+        day_total: dict[str, Decimal] = {}
+        for day, _line, amount, posts in items.values():
+            if posts:
+                day_total[day] = day_total.get(day, Decimal(0)) + amount
+        inflows_first: set[str] = set()
+        running = None
+        for day in sorted(day_total):
+            if running is None:
+                running = from_e6(self.db.scalar(
+                    "SELECT COALESCE(SUM(le.quantity_e6),0) FROM ledger_entries le JOIN transactions t ON t.id=le.transaction_id "
+                    "WHERE le.account_id=? AND le.date<? AND t.status='POSTED' "
+                    "AND le.asset_id IN (SELECT id FROM financial_assets WHERE is_cash=1)",
+                    (batch["account_id"], day)) or 0)
+            running += day_total[day]
+            if running >= 0:
+                inflows_first.add(day)
+
+        def posting_order(item):
+            day, line, amount, _ = items[int(item[0])]
+            return day, int(day in inflows_first and amount <= 0), line
 
         errors = {}
         ambiguous_reserves = 0
@@ -619,13 +650,12 @@ class BankImportService:
                     if checked and effective_date and effective_date <= checked:
                         self.db.execute("UPDATE bank_import_rows SET status='SKIPPED' WHERE id=?", (row_id,))
                         continue
-                    self._pending_created = None
+                    self._pending_created = {}
                     try:
                         with self.db.transaction():
                             matched = self._post_import_row(batch, row_id, decision, row, accounts)
                             ambiguous_reserves += int(matched < 0)
-                        if self._pending_created:
-                            self._created_in_batch.update([self._pending_created])
+                        self._created_in_batch.update(self._pending_created)
                     except LightningError as exc:
                         errors[int(row_id)] = exc.message
                 if errors:
@@ -640,6 +670,59 @@ class BankImportService:
         except _ImportReviewRequired as exc:
             errors = exc.errors
         return self.summary(batch_id) | {"errors": errors, "ambiguous_reserves": ambiguous_reserves}
+
+    def _create_once(self, name: str, alias: str | None = None) -> int:
+        """A counterparty typed as new on several rows is created once per batch; a name that already exists is used."""
+        name = " ".join(str(name).split())
+        key = name.casefold()
+        created = getattr(self, "_created_in_batch", {})
+        pending = getattr(self, "_pending_created", {})
+        if key in created:
+            return created[key]
+        if key in pending:
+            return pending[key]
+        existing = self.counterparties.resolve(name)
+        if existing:
+            return existing["id"]
+        use_alias = alias if alias and not self.counterparties.resolve(alias) else None
+        new_id = self.counterparties.create(name, alias=use_alias)
+        pending[key] = new_id
+        self._pending_created = pending
+        return new_id
+
+    def _held_for(self, row, decision, category, canonical, cp_text, similar, is_transfer):
+        """Whose money this row moves: (owner name or None for your own money, id of a counterparty made for it).
+        Held for works on any row, the way the register's does: an inflow is money you hold for them, an outflow is
+        paid out of their money, a transfer moves their custody with it. The custody category with no Held for
+        keeps its old fallbacks (the counterparty on the row owns it)."""
+        selfish = {"self", "me", "my money", "my own money"}
+        choice = str(decision.get("owner_choice", ""))
+        typed = str(decision.get("whom", "")).strip()
+        line = row["_line"]
+        if choice == "self" or (not choice and typed.casefold() in selfish):
+            return None, None
+        if choice.startswith("existing:"):
+            party = self.counterparties.get(int(choice.split(":", 1)[1]))
+            if not party or not party["active"]:
+                raise ValidationError(f"CSV row {line}: choose an active owner.", "whom")
+            return party["name"], None
+        if choice.startswith("new:") and choice[4:].strip():
+            new_id = self._create_once(choice[4:])
+            return self.counterparties.get(new_id)["name"], new_id
+        if typed:
+            party = self.counterparties.resolve(typed)
+            if not party or not party["active"]:
+                raise ValidationError(f"CSV row {line}: choose a saved active Counterparty in Whom.", "whom")
+            return party["name"], None
+        if not (category and category.code == "EXP.SYSTEM.CUSTODY"):
+            return None, None
+        if canonical and canonical["active"]:
+            return canonical["name"], None
+        if not is_transfer and cp_text and not similar:
+            # The person named on the row owns it; a name that is new and like no other is saved.
+            new_id = self._create_once(cp_text)
+            return self.counterparties.get(new_id)["name"], new_id
+        raise ValidationError(f"CSV row {line}: choose who owns this money.", "whom")
 
     def _link_import_row(self, row_id, row, match: str) -> None:
         """Stand this statement row behind a transaction already recorded. No money moves and the
@@ -690,23 +773,26 @@ class BankImportService:
             counterparty_id = exact["id"] if exact else None
         similar = self.counterparties.suggestions(cp_text) if cp_text and not counterparty_id else []
         choice = str(decision.get("counterparty_choice", ""))
+        alias_text = str(decision.get("alias_text") or "").strip()  # the statement's own spelling, when the name was picked
         if choice.startswith("existing:"):
             counterparty_id = int(choice.split(":", 1)[1])
         elif choice == "unlinked":
             counterparty_id = None
+        elif choice == "typed":
+            pass  # the typed text is kept as written: linked only when it is exactly a saved name
         elif choice == "new":
             name = str(decision.get("new_counterparty", cp_text)).strip()
-            created = getattr(self, "_created_in_batch", {})
-            if name and name.casefold() in created:
-                counterparty_id = created[name.casefold()]
-            elif name:
-                counterparty_id = self.counterparties.create(name, alias=cp_text or None)
-                self._pending_created = (name.casefold(), counterparty_id)
+            if name:
+                counterparty_id = self._create_once(name, alias_text or cp_text)
         elif row.get("_suggestions") and not row.get("_counterparty_id") and not choice:
             raise ValidationError(f"CSV row {row['_line']}: choose a Counterparty match or leave it unlinked.",
                                   "counterparty")
-        if counterparty_id and cp_text and not target:
-            self.counterparties.add_alias(int(counterparty_id), cp_text)
+        if counterparty_id and not target:
+            if alias_text:
+                if not self.counterparties.resolve(alias_text):
+                    self.counterparties.add_alias(int(counterparty_id), alias_text)
+            elif cp_text:
+                self.counterparties.add_alias(int(counterparty_id), cp_text)
         category_id = None if decision.get("force_uncategorized") else (decision.get("category_id") or row["_category_id"])
         if category_id:
             category_id = int(category_id)
@@ -723,68 +809,27 @@ class BankImportService:
                 notes=notes, source=TxnSource.IMPORT,
             )
             category = self.categories.get(int(category_id)) if category_id else None
-            if category and category.code == "EXP.SYSTEM.CUSTODY" and self.money_from_others:
-                owner_choice = str(decision.get("owner_choice", ""))
-                if owner_choice == "self":
-                    whom = "self"
-                elif owner_choice.startswith("existing:"):
-                    whom = self.counterparties.get(int(owner_choice.split(":", 1)[1]))["name"]
-                elif str(decision.get("whom", "")).strip():
-                    whom = str(decision.get("whom", "")).strip()
-                elif canonical and canonical["active"]:
-                    whom = canonical["name"]
-                else:
-                    raise ValidationError(f"CSV row {row['_line']}: choose who owns this money.", "whom")
-                whom = whom or (
-                    canonical["name"] if canonical and canonical["active"] else "")
-                party = None if whom.casefold() in {"self", "me", "my money", "my own money"} else (
-                    self.counterparties.resolve(whom) if whom else None)
-                if whom and whom.casefold() not in {"self", "me", "my money", "my own money"} \
-                        and (not party or not party["active"]):
-                    raise ValidationError(f"CSV row {row['_line']}: choose a saved active Counterparty in Whom.",
-                                          "whom")
-                owner = party["name"] if party else None
-                source_id, target_id = ((batch["account_id"], target.id) if amount < 0
-                                        else (target.id, batch["account_id"]))
-                self.money_from_others.sync_transfer(txn.id, day, owner, source_id, target_id,
-                                                    abs(amount), notes)
+            if self.money_from_others:
+                owner, _ = self._held_for(row, decision, category, canonical, cp_text, similar, True)
+                if owner:
+                    source_id, target_id = ((batch["account_id"], target.id) if amount < 0
+                                            else (target.id, batch["account_id"]))
+                    self.money_from_others.sync_transfer(txn.id, day, owner, source_id, target_id,
+                                                        abs(amount), notes)
         else:
             movement = Movement.OUTFLOW if amount < 0 else Movement.INFLOW
             self.categories.require(int(category_id), movement, allow_system=True)
             category = self.categories.get(int(category_id))
-            owner = None
-            if category.code == "EXP.SYSTEM.CUSTODY":
-                owner_choice = str(decision.get("owner_choice", ""))
-                if owner_choice == "self":
-                    whom = "self"
-                elif owner_choice.startswith("existing:"):
-                    party = self.counterparties.get(int(owner_choice.split(":", 1)[1]))
-                    if not party["active"]:
-                        raise ValidationError(f"CSV row {row['_line']}: choose an active owner.", "whom")
-                    whom = party["name"]
-                elif str(decision.get("whom", "")).strip():
-                    whom = str(decision.get("whom", "")).strip()
-                elif canonical and canonical["active"]:
-                    whom = canonical["name"]
-                elif cp_text and not similar:
-                    # The person named on the row owns it; a name that is new and like no other is saved.
-                    created = getattr(self, "_created_in_batch", {})
-                    owner_id = created.get(cp_text.casefold()) or self.counterparties.create(cp_text)
-                    self._pending_created = (cp_text.casefold(), owner_id)
-                    counterparty_id = counterparty_id or owner_id
-                    whom = cp_text
-                else:
-                    raise ValidationError(f"CSV row {row['_line']}: choose who owns this money.", "whom")
-                if whom.casefold() in {"self", "me", "my money", "my own money"}:
-                    party = None
-                else:
-                    party = self.counterparties.resolve(whom)
-                if not party or not party["active"]:
-                    if whom.casefold() not in {"self", "me", "my money", "my own money"}:
-                        raise ValidationError(f"CSV row {row['_line']}: choose a saved active Counterparty in Whom.", "whom")
-                else:
-                    owner = party["name"]
-            linked_name = canonical["name"] if canonical else ("" if similar or choice == "unlinked" else cp_text)
+            owner, owner_id = self._held_for(row, decision, category, canonical, cp_text, similar, False)
+            if owner_id:
+                counterparty_id = counterparty_id or owner_id
+            if owner and amount > 0 and category.code != "EXP.SYSTEM.CUSTODY":
+                # Money in that you hold for someone is custody, whatever category the row had.
+                category = self.categories.repo.get_by_code("EXP.SYSTEM.CUSTODY")
+                category_id = category.id
+                self.categories.require(int(category_id), movement, allow_system=True)
+            linked_name = canonical["name"] if canonical else (
+                "" if (similar and choice != "typed") or choice == "unlinked" else cp_text)
             kwargs = {"source": TxnSource.IMPORT, "counterparty": linked_name, "notes": notes}
             if amount < 0:
                 txn = self.transactions.record_outflow(day, batch["account_id"], abs(amount), int(category_id),

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import amount, held with context %}
+{% from "partials/macros.html" import amount, held, inst_tile, page_header with context %}
 {% block title %}Accounts{% endblock %}
-{% block heading %}<h1>{{ 'Accounts'|tr(locale) }}</h1><div class="muted">{{ 'Where is your money held?'|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header('Accounts'|tr(locale), 'Where is your money held?'|tr(locale)) }}{% endblock %}
 {% block top_actions %}<a class="btn primary" href="/accounts/new">{{ 'Add account'|tr(locale) }}</a> <a class="btn" href="/accounts/currencies">{{ 'Other currencies'|tr(locale) }}</a> <a class="btn" href="/sms">{{ "From SMS"|tr(locale) }}</a>{% endblock %}
 {% block content %}
 {% if rows %}<section class="card account-list-summary"><div class="budget-summary-grid"><div><span>{{ "Total balance"|tr(locale) }}</span><b>{% if gross_total is none %}<span class="muted">{{ 'Unavailable'|tr(locale) }}</span>{% else %}{{ held(gross_total, base, 0) }}{% endif %}</b></div><div><span>{{ fig.what_you_own.label }}</span><b>{% if net_worth.unvalued %}<span class="muted">{{ 'Unavailable'|tr(locale) }}</span>{% else %}{{ held(net_worth.what_you_own, base, 0) }}{% endif %}</b></div></div></section>{% endif %}
@@ -11,7 +11,7 @@
     <tbody>
     {% for acc, balance, owned, count in rows %}
       <tr class="{{ 'void' if not acc.active }}">
-        <td><a href="/accounts/{{ acc.id }}">{{ acc.name }}</a>{% if not acc.active %} <span class="pill">{{ "inactive"|tr(locale) }}</span>{% endif %}</td>
+        <td>{{ inst_tile(acc.institution or acc.name) }} <a href="/accounts/{{ acc.id }}">{{ acc.name }}</a>{% if not acc.active %} <span class="pill">{{ "inactive"|tr(locale) }}</span>{% endif %}</td>
         <td class="small">{{ acc.type_label }}{% if acc.account_type.value == 'DEPOSIT' %}<br><a href="/deposits/{{ acc.id }}">{{ "View CDs"|tr(locale) }}</a>{% elif acc.account_type.value == 'GAMEYA' %}<br><a href="/gameya/{{ acc.id }}">{{ "Open gam’eya"|tr(locale) }}</a>{% endif %}</td>
         <td class="num small">{{ count }}</td>
         <td class="num">{% if balance is none %}<span class="muted">{{ 'Unavailable'|tr(locale) }}</span>{% else %}{{ held(balance, base) }}{% endif %}</td>

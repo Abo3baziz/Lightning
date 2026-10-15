@@ -161,10 +161,10 @@ class TestCategories:
             c.categories.set_direction(c.categories.get_by_code("EXP.SYSTEM.CUSTODY").id, "OUT")
 
     def test_archived_categories_leave_the_table(self, c):
-        travel = c.categories.get_by_code("EXP.PERSONAL.TRAVEL")
+        travel = c.categories.get_by_code("EXP.PERSONAL.ENTERTAINMENT")
         c.categories.update(travel.id, travel.name, active=False)
         names = {row["category"].name for _, rows in c.categories.table() for row in rows}
-        assert "Travel" not in {row["category"].name for l1, rows in c.categories.table() if l1.name == "Personal" for row in rows}
+        assert "Entertainment" not in {row["category"].name for l1, rows in c.categories.table() if l1.name == "Personal" for row in rows}
         assert travel.id in {category.id for category in c.categories.archived()}
 
     def test_category_suggestions_flag_near_duplicates(self, c):
@@ -234,13 +234,13 @@ def test_categories_table_edits_in_place_and_keeps_flags_with_the_budget(c):
     assert r.status_code == 200 and "Added Groceries under Food &amp; Groceries" in r.text
     groceries = c.categories.get_by_code("EXP.PERSONAL.FOOD.GROCERIES")
     assert 'class="cat-item level-3' in client.get("/categories").text
-    travel = c.categories.get_by_code("EXP.PERSONAL.TRAVEL")
-    client.post(f"/categories/{travel.id}/row", data={"name": "Travel", "direction": "OUT", "one_off": "1"})
+    travel = c.categories.get_by_code("EXP.PERSONAL.ENTERTAINMENT")
+    client.post(f"/categories/{travel.id}/row", data={"name": "Entertainment", "direction": "OUT", "one_off": "1"})
     assert travel.id in c.budgets.one_off_ids()
-    saved = client.post(f"/categories/{travel.id}/row", data={"name": "Travel", "direction": "OUT", "one_off": ""},
+    saved = client.post(f"/categories/{travel.id}/row", data={"name": "Entertainment", "direction": "OUT", "one_off": ""},
                         headers={"X-Requested-With": "fetch"})
     assert saved.status_code == 204 and travel.id not in c.budgets.one_off_ids()  # saved in place, toggled off
-    client.post(f"/categories/{travel.id}/row", data={"name": "Travel", "direction": "OUT", "one_off": "1"})
+    client.post(f"/categories/{travel.id}/row", data={"name": "Entertainment", "direction": "OUT", "one_off": "1"})
     bonus = c.categories.get_by_code("EXP.WORK.BONUS")
     salary = c.categories.get_by_code("EXP.WORK.SALARY")
     assert salary.id in c.budgets.recurring_income_ids() and bonus.id not in c.budgets.recurring_income_ids()
@@ -253,7 +253,7 @@ def test_categories_table_edits_in_place_and_keeps_flags_with_the_budget(c):
 
 def test_one_off_spending_stays_in_cash_flow_but_out_of_the_budget(c, setup):
     accounts, cats = setup
-    travel = c.categories.get_by_code("EXP.PERSONAL.TRAVEL")
+    travel = c.categories.get_by_code("EXP.PERSONAL.ENTERTAINMENT")
     c.transactions.record_outflow("2026-09-12", accounts["cib"].id, "5000", travel.id)
     c.transactions.record_outflow("2026-09-13", accounts["cib"].id, "200", cats["EXP.PERSONAL.FOOD"].id)
     before = c.budgets.month_view("2026-09")
@@ -277,3 +277,31 @@ def test_category_pickers_group_under_l1_and_never_show_breadcrumbs(c):
     assert names[at + 1] == ("Groceries", 3, False)  # the detail sits under its L2
     page = TestClient(create_app(c)).get("/counterparties").text
     assert '<optgroup label="Personal">' in page and "Personal › " not in page
+
+
+def test_a_fresh_profile_has_no_travel_category(c):
+    names = {row["category"].name for l1, rows in c.categories.table() if l1.name in ("Personal", "Work") for row in rows}
+    assert "Travel" not in names
+    for code in ("EXP.PERSONAL.TRAVEL", "EXP.WORK.TRAVEL"):
+        with pytest.raises(NotFoundError):
+            c.categories.get_by_code(code)
+
+
+def test_account_form_says_cash_not_cash_at_hand_and_has_no_more_details(c):
+    from fastapi.testclient import TestClient
+    from lightning.ui.web import create_app
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    page = client.get("/accounts/new").text
+    assert ">Cash<" in page and "Cash at hand" not in page
+    assert "More details" not in page and 'name="last4"' not in page and 'name="notes"' in page
+
+
+def test_editing_an_account_keeps_its_last4(c):
+    from fastapi.testclient import TestClient
+    from lightning.ui.web import create_app
+    a = c.account_flows.open_account("CIB Current", "BANK", "2026-09-01", "100", institution="CIB", last4="1234")
+    client = TestClient(create_app(c), base_url="http://127.0.0.1")
+    r = client.post(f"/accounts/{a.id}/edit", data={"name": "CIB Main", "account_type": "BANK", "institution": "CIB",
+                    "opening_balance_date": "2026-09-01", "notes": ""}, follow_redirects=False)
+    assert r.status_code == 303
+    assert c.accounts.get(a.id).last4 == "1234" and c.accounts.get(a.id).name == "CIB Main"

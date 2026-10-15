@@ -23,7 +23,7 @@
   --wide:linear-gradient(100deg,#E0F5E9 0%,#E3F4EF 26%,#F7FCF9 52%,#FFF 72%);
   --vivid:linear-gradient(135deg,#00995C 0%,#0B6DD6 100%);
   --paper:#F8FCFA;--white:#FFFFFF;--rowfield:#F2F8F6;
-  --line:#DDE9E6;--line-ctl:#7E96A0;--track:#E6EFEC;--neutral:#C5D3D0;--field:#EEF6F3;--field-focus:#E6F2EC;
+  --line:#DDE9E6;--line-ctl:#7E96A0;--track:#E6EFEC;--neutral:#C5D3D0;--field:#E8F1FA;--field-focus:#E3EEF9;
   --shadow:0 14px 34px -24px rgba(10,36,66,.42);
   --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --body:Manrope,"Segoe UI",system-ui,sans-serif;
@@ -664,6 +664,11 @@ nav.side .grp{margin:14px 10px 6px;font:800 12px/1 var(--body);color:var(--muted
         <div class="phx-end"><span class="period" role="group" aria-label="Period"><span>All time</span><span>YTD</span><span class="on step"><i>‹</i><b>2026-09</b><i>›</i></span><span>Custom</span></span><span class="btn secondary sm">Fill this month</span></div></div>
       <p class="spec">Title 28px · under it, the exact dates the numbers use · right: one period control, then one page action · hairline under</p>
     </div></div>
+    <div class="hs"><b>Account header</b><div>
+      <div class="phx"><div style="display:flex;gap:14px;align-items:center"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--track);color:var(--ink2);font:700 15px var(--display)">CI</span><div><h3>CIB Payroll</h3><p class="phx-range">Bank account · CIB · EGP</p></div></div>
+        <div class="phx-end"><span style="display:flex;gap:28px"><span style="display:flex;flex-direction:column;align-items:flex-end"><small style="font:600 13px var(--body);color:var(--muted)">Balance</small><b class="tab" style="font:800 28px var(--display);color:var(--ink)">138,500</b></span><span style="display:flex;flex-direction:column;align-items:flex-end"><small style="font:600 13px var(--body);color:var(--muted)">What you own</small><b class="tab" style="font:800 28px var(--display);color:var(--ink)">120,000</b></span></span><span class="btn secondary sm">Import statement</span><span class="btn secondary sm" aria-label="More actions">⋯</span></div></div>
+      <p class="spec">40px tile (the bank's logo, else its monogram) · title 28px with the type, bank and currency under it · right: the figure strip (a 13px Muted label over a 28px Ink figure in whole currency; What you own only when it differs), one Secondary, then ⋯</p>
+    </div></div>
     <div class="hs"><b>Section header</b><div><div class="sec-line" style="margin:0"><h4>Your position</h4><span>As of 2026-09-30</span></div><p class="spec">Title 20px left · date right · hairline under</p></div></div>
     <div class="hs"><b>Card header</b><div><div class="chead" style="margin:0"><div><h4>Where did it go?</h4><p>By category · 2026-09</p></div><button class="quiet">See all</button></div><p class="spec">Title 17px · one 13px line · quiet action right · hairline under</p></div></div>
     <div class="hs"><b>Tab bar</b><div><div class="demo-row"><span class="seg"><span class="on">Summary</span><span>Spending</span><span>Health</span></span> <span class="ico2" title="Financial health limits" aria-label="Financial health limits"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg></span></div><p class="spec">One pill bar under the page header · the tab's settings behind a gear at its end · no line describing the tab</p></div></div>
@@ -835,6 +840,7 @@ nav.side .grp{margin:14px 10px 6px;font:800 12px/1 var(--body);color:var(--muted
   <ul class="short">
     <li>Soft tinted well, no border, never white. Focus: deeper well, green edge. Error: rose well, one line on what to type.</li>
     <li>Your own data is type-and-pick, never a dropdown. Register rows use 30px wells; only Save shows, the rest is on right-click.</li>
+    <li>Short fields sit side by side, up to four in a row; a field takes the whole row only for long text (notes). On a phone, one column. The date picker's month opens the months, its year opens the years.</li>
   </ul>
   <h3 class="sub"><span class="subnum">A10.4</span>Sub-tabs</h3>
   <div class="demo-row"><span class="seg"><span class="on">Plan</span><span>Recurring</span><span>Loans</span><span>Reserves</span></span></div>

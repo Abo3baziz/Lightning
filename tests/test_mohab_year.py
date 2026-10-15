@@ -295,6 +295,7 @@ def _first_evening(o: Mohab) -> None:
     o.on("2026-09-30")
     o.ask("start", "I have nothing in here yet. Where do I start?")
 
+    b.submit({"currency": "EGP"}, button="Save currencies")  # step 1: his currencies, then the accounts
     b.go("Bank")
     # CIB holds the 100,000 he puts into the NBE certificate on 1 July (a CD portfolio holds no cash).
     b.submit({"name": "CIB Payroll", "opening_balance": "138,500", "opening_balance_date": "1/7"}, button="Add account")
@@ -313,40 +314,39 @@ def _first_evening(o: Mohab) -> None:
     o.ask("setup", "My accounts are in. What should I do next?")
 
     # Three months of CIB from the bank's CSV.
-    b.go("Accounts", "CIB Payroll", "Import CSV")
+    b.go("Accounts", "CIB Payroll", "Import statement")
     b.submit({}, button="Review statement", files={"file": ("cib-jul-sep.csv", _statement(), "text/csv")})
     b.submit({"map_Date": Choose("Date"), "map_Amount": Choose("Amount"), "map_Counterparty": Choose("Description")},
              button="Preview rows")
     o.notes["review"] = b.page
     # Halfway through he leaves to check something, then comes back to the review from the Overview.
     o.ask("import_waiting", "I left the import half done. Does Lightning remember it?")
-    o.notes["import_again"] = b.go("Accounts", "CIB Payroll", "Import CSV")
+    o.notes["import_again"] = b.go("Accounts", "CIB Payroll", "Import statement")
     b.go("Imported activity needs a decision")
     review = b.page.form("Post ready rows")
-    # One decision per name: he answers each imported name once, and every row with that name follows it.
+    # Rows like the register: he answers each row's own wells. Rows share an imported name, so he answers the
+    # same way for each; a new counterparty is "+ New counterparty" in the well, a transfer is picking his account.
+    accounts = {a.name: a.id for a in o.c.accounts.list()}
     names = {k.rsplit("_", 1)[1]: v for k, v in review.fields.items()
-             if k.startswith("group_counterparty_") and not k.startswith("group_counterparty_choice_")}
-    rows_of: dict[str, list[str]] = {}
-    for k, group in review.fields.items():
-        if k.startswith("group_of_"):
-            rows_of.setdefault(group, []).append(k.rsplit("_", 1)[1])
+             if k.startswith("counterparty_") and k.count("_") == 1}
     answers = {}
-    for group, raw in names.items():
+    for row, raw in names.items():
         decision = IMPORT_DECISIONS[raw]
         if decision is None:
-            answers.update({f"skip_{row}": TICK for row in rows_of[group]})
+            answers[f"skip_{row}"] = TICK
             continue
         party, category, transfer_to, held_for = decision
-        answers[f"group_counterparty_{group}"] = party
         if party:
-            answers[f"group_counterparty_choice_{group}"] = "new"
+            answers[f"counterparty_{row}"] = party
+            answers[f"counterparty_pick_{row}"] = f"new:{party}"
         if transfer_to:
-            answers[f"group_transfer_account_id_{group}"] = Choose(transfer_to)
+            answers[f"counterparty_pick_{row}"] = f"account:{accounts[transfer_to]}"
         if category:
-            answers[f"group_category_{group}"] = Choose(category)
+            answers[f"category_{row}"] = Choose(category)
         if held_for:
-            answers[f"group_whom_{group}"] = held_for
-    o.notes["import_decisions"] = len(names)
+            answers[f"whom_{row}"] = held_for
+            answers[f"whom_pick_{row}"] = f"new:{held_for}"
+    o.notes["import_decisions"] = len({raw for raw in names.values()})
     o.notes["import"] = b.submit(answers, button="Post ready rows")
 
     # THNDR: two shares with their fees, then a money market fund he adds himself.
@@ -547,7 +547,7 @@ def _live_the_year(o: Mohab) -> None:
              button="Add reserve")
     o.on("2027-08-31")
     o.month("2027-08", salary="50,000", rent="13,200")
-    o.enter("CIB Payroll", "2027-08-12", "Hacienda Bay", "Personal › Travel", "-14,200")
+    o.enter("CIB Payroll", "2027-08-12", "Hacienda Bay", "Personal › Entertainment", "-14,200")
     o.to_reserve("CIB Payroll", "Hacienda Bay", "Sahel trip")
     o.ask("trip", "How much is left from the Sahel money?", "Cash planning", "Reserves")
     o.enter("CIB Payroll", "2027-08-31", "ACME Egypt", "Bonus", "30,000", notes="End of service")
@@ -739,7 +739,7 @@ def _the_feedback_round(o: Mohab) -> None:
     o.notes["cib_check"] = b.submit({"date": "2027-09-30", "balance": str(cib - 5000)}, button="Check")
 
     # A year of Vodafone Cash in one big file, with a mistake in one row.
-    b.go("Vodafone Cash", "Import CSV")
+    b.go("Vodafone Cash", "Import statement")
     o.notes["upload_form"] = b.page
     b.submit({}, button="Review statement", files={"file": ("vodafone-year.csv", _year_statement(), "text/csv")})
     o.notes["big_review"] = b.submit({"amount_model": "SEPARATE", "map_Date": Choose("Date"), "map_Inflow": Choose("Credit"),
@@ -1200,8 +1200,10 @@ def test_cash_ownership_and_external_expense_keep_the_account_total(mohab):
 # Fixed points are checked like any other answer; each named gap has a direct screen assertion.
 
 def _review_choices(screen: Screen, prefix: str) -> list[str]:
-    """The choices one name's picker offers (every name offers the same)."""
-    return [label for _, label in screen.form("Post ready rows").options[f"group_{prefix}0"]]
+    """The choices one row's category picker offers (every row offers the same)."""
+    form = screen.form("Post ready rows")
+    first = next(name for name in form.fields if name.startswith(prefix))
+    return [label for _, label in form.options[first]]
 
 
 def test_leaving_an_import_keeps_it_waiting_on_the_overview(mohab):
@@ -1219,13 +1221,13 @@ def test_one_decision_per_name_in_the_import(mohab):
 
 
 def test_thndr_can_be_where_a_transfer_went(mohab):
-    assert "THNDR" in _review_choices(mohab.notes["review"], "transfer_account_id_")
+    assert re.search(r'<option value="THNDR" data-pick="account:\d+"', mohab.notes["review"].html)
 
 
 def test_an_unanswered_category_starts_empty(mohab):
     # Nothing to delete before choosing: an empty "Choose a category"; "Uncategorized" is still a choice.
     form = mohab.notes["review"].form("Post ready rows")
-    categories = {name: value for name, value in form.fields.items() if name.startswith("group_category_")}
+    categories = {name: value for name, value in form.fields.items() if re.fullmatch(r"category_\d+", name)}
     assert categories and all(value == "" for value in categories.values())
     assert "Uncategorized" in _review_choices(mohab.notes["review"], "category_")
 
@@ -1233,7 +1235,7 @@ def test_an_unanswered_category_starts_empty(mohab):
 def test_category_choices_sit_under_their_group(mohab):
     # Guideline 3.6: the L1 as a header with its categories under it, never "L1 › L2".
     html = mohab.notes["review"].html
-    select = html[html.index('name="group_category_'):]
+    select = html[html.index('name="category_'):]
     select = select[:select.index("</select>")]
     groups = dict(re.findall(r'<optgroup label="([^"]+)">(.*?)</optgroup>', select, re.S))
     assert ">Transportation<" in groups["Personal"] and ">Transportation<" in groups["Work"]

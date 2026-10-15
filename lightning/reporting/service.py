@@ -49,6 +49,7 @@ class Group:
     value: Decimal
     children: list["Group"] = field(default_factory=list)
     id: int | None = None  # set for account rows in the sidebar
+    institution: str = ""  # the account's institution, for its tile in the sidebar
 
 
 @dataclass
@@ -784,7 +785,7 @@ class ReportingService:
             name = SIDEBAR_GROUPS[account.account_type]
             group = groups.setdefault(name, Group(name, name, ZERO))
             group.value += value
-            group.children.append(Group(account.code, account.name, value, id=account.id))
+            group.children.append(Group(account.code, account.name, value, id=account.id, institution=account.institution or ""))
         order = list(dict.fromkeys(SIDEBAR_GROUPS.values()))
         gross_total = sum((value for account, value in nw.by_account if account.active), ZERO)
         return gross_total, nw.what_you_own, sorted(groups.values(), key=lambda g: order.index(g.code))

@@ -11,6 +11,17 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: import posts a day's money in before money out when the day ends at or above zero, so a newest-first statement no longer fails on overdrawn spending (T15, `bank_imports.py`).
+- 2026-10-15 · Claude: Import review is one row per bank line with filter chips and a bulk edit bar; no per-name `group_*` choices; held for works on any row (T12-T14).
+- 2026-10-15 · Claude: welcome page: the sample offer is four equal boxes (Mohab's year, Amr, Menna, Fatma) under one section header; the three-month button, long paragraphs and CSV links are gone; `welcome.html`, `style.css`.
+- 2026-10-15 · Claude: page header: one `.topbar` CSS block and a `page_header` macro (tile, title, line, figure strip); the account page shows its bank's tile, a Balance strip, one Secondary (Import statement) and ⋯; guideline A05/C04.7.
+- 2026-10-15 · Claude: date picker: the month title opens a 12-month grid and its year opens a 12-year grid (‹ › page by 12), Escape goes up a level; `app.js`, `style.css`, `phone.css`, guideline A10.3.
+- 2026-10-15 · Claude: short fields sit side by side (`.form-grid`, A10.3): the account form, the CSV column-mapping page (amount model is now a two-choice segment) and the instalment and early-payment forms; starting balance is a soft section, not a card in a card.
+- 2026-10-15 · Claude: field wells are a blue-tinted `#E8F1FA` (focus `#E3EEF9`), defined once as `--field` and `--field-focus`; guideline A10 tokens updated in the app and phone files. Contrast: Ink 14.22/13.81, Ink 2 8.14/7.91, Muted 4.68/4.55.
+- 2026-10-15 · Claude: institutions: the account form's Institution is type-and-pick over 46 Egyptian banks, brokers and wallets (plus your own), with logo-or-monogram tiles in the picker, accounts list and sidebar; migration `0063_institutions.sql`.
+  Logos could not be downloaded here (no network): run `tools/fetch_institution_logos.py` from a PC.
+- 2026-10-15 · Claude: account form: the cash type reads Cash, More details and Last 4 digits are gone (a stored last 4 is kept), no Travel in new profiles' categories; the Mohab sample's Sahel weekend is Entertainment.
+- 2026-10-15 · Claude: setup starts with your currencies (profile base plus others held, as chips); the account form's currency is a pick list of registered currencies only; welcome Add links wait for the save; `welcome.html`, `routes/dashboard.py`, `accounts/form.html`.
 - 2026-10-15 · Codex: added session undo/redo, checked bank-history protection, multi-source import provenance, safe duplicate merge and combined activity review on PC/phone.
 - 2026-10-15 · Codex: connected partial reserves, configurable bill matching and transaction-to-plan setup, certificate receipt reconciliation and explicit partial reimbursement claims.
 - 2026-10-15 · Codex: added optional funded payday assignments, reusable saved views/report/export, rule correction offers, selected bulk preview, weekly review and opt-in native reminders. Local implementation; automated/native behavioural acceptance outstanding.

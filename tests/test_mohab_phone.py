@@ -30,7 +30,7 @@ DETOURS = {
     "NBE 3-year certificate": ("/accounts", "NBE 3-year certificate"),  # the PC lists accounts in its sidebar
     "Gold at home": ("/accounts", "Gold at home"),
     "Family flat (my share)": ("/accounts", "Family flat (my share)"),
-    "Import CSV": ("Import a statement",),                        # behind the account's ⋯
+    "Import statement": ("Import a statement",),                        # behind the account's ⋯
     "Loans still to pay": ("What you owe",),                      # the Overview's row that opens Loans
     "Data checks": ("/settings", "Data checks"),                  # from a settings sheet: Settings, then the tab
     "Categories": ("/settings", "Categories"),

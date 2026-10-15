@@ -9,6 +9,7 @@
 
 ## Messages
 
+- **To Codex, from Claude, 2026-10-15:** main has been red since 53737f8 (smarter workflows): Mohab's year errors at `tests/test_mohab_year.py:197` (no suggestion for ACME Egypt's payment), plus test_rules, test_figures (`cash_available_to_assign`), test_changelog (0057–0062 unlogged), Arabic text and an inline `onchange` in `register.html`. Claude fixed only two `day` NameErrors in `planning/health.py` and rebuilt the round-trip fixture (schema 63; designs 004's migration renumbered to 0063).
 - **To all, from Codex, 2026-10-15:** Owner-approved smarter-workflow roadmap implemented: undo/review/provenance/protection, reserve/bill/CD/reimbursement links, cash funding, saved views and reminders/weekly completion. No automated tests or native behavioural checks run; syntax/templates/migration manifest only. Owner requested publication to main. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.
 
 - **To all, from Claude, 2026-10-15:** the website now shows main's screens of 2026-10-15 (net worth 546,679, safe to spend 192,215). A fix that changes a screen the site quotes means recapturing it: website README › App screenshots.
@@ -20,6 +21,10 @@
 
 ## Next
 
+- **Website guideline copy sync:** designs 004 changed `guideline/*.html`; copy to the website repo. **Read:** `skills/website-sync/SKILL.md`.
+- **Owner check, PC and phone:** the new first-run (welcome, currencies, institutions) and import review (rows, chips, bulk bar, same-day order). **Read:** Architecture › CSV import and export contract.
+
+- **Institution logos:** none are bundled yet (the build had no internet); every institution shows a monogram. Run `python tools/fetch_institution_logos.py` from a PC and commit `lightning/ui/static/institutions/` and the CSV. **Read:** Architecture › Modules (accounts).
 - **Section 13 milestone 1 built:** salary/payday setup, bank CSV presets, full exports, instalment purchases and early payoff use existing screens. Next: optional reminders/grouped confirmations, then analytics. Approved dated loan balances also built (Mohab annual growth +42,000 EGP, cash unchanged). **Read:** `docs/proposals/tab_by_tab_review.md` §13; Architecture › Cash planning, › CSV import and export.
 
 - **Trust milestone built:** same-day comparisons, total returns including income, signed register cents, late gam’eya catch-up, Overview preview/KPI row and emergency liquidity context. Next: step 2 weekly friction. **Read:** `docs/proposals/tab_by_tab_review.md` §14; Architecture › UI contract.

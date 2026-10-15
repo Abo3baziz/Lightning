@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}{{ 'Export all data'|tr(locale) }}{% endblock %}
-{% block heading %}<h1>{{ 'Export all data'|tr(locale) }}</h1>{% endblock %}
+{% block heading %}{{ page_header('Export all data'|tr(locale)) }}{% endblock %}
 {% block content %}<form method="get" action="/exports/all" class="card stack">
   <label>{{ 'File format'|tr(locale) }}<select name="format"><option value="xlsx" {{ 'selected' if chosen == 'xlsx' }}>{{ 'Excel workbook'|tr(locale) }}</option><option value="csv" {{ 'selected' if chosen == 'csv' }}>{{ 'CSV files in a ZIP'|tr(locale) }}</option></select></label>
   <p class="muted small">{{ 'Every financial record, including archived and voided entries, plans and unfinished imports. Files are unencrypted. To restore a profile, use a backup.'|tr(locale) }}</p>

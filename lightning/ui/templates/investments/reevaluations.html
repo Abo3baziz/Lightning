@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}Reevaluation ledger{% endblock %}
-{% block heading %}<h1>{{ "Reevaluation ledger"|tr(locale) }}</h1><div class="muted">{{ "Monthly investment returns and sale-day adjustments. Each account checkpoint links to one aggregated entry in the main ledger."|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header("Reevaluation ledger"|tr(locale), "Monthly investment returns and sale-day adjustments. Each account checkpoint links to one aggregated entry in the main ledger."|tr(locale)) }}{% endblock %}
 {% block top_actions %}<a class="btn small" href="/investments">{{ 'Investments'|tr(locale) }}</a><a class="btn small" href="/investments/prices">{{ "Prices needed"|tr(locale) }}</a>{% endblock %}
 {% block content %}
 {% if pending %}<div class="card" style="margin-bottom:14px"><b>{{ pending|length }} price input(s) needed.</b> <a href="/investments/prices">{{ "Review missing prices"|tr(locale) }}</a></div>{% endif %}

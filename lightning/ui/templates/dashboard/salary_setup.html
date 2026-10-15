@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}{{ 'Add your salary'|tr(locale) }}{% endblock %}
-{% block heading %}<h1>{{ 'Add your salary'|tr(locale) }}</h1>{% endblock %}
+{% block heading %}{{ page_header('Add your salary'|tr(locale)) }}{% endblock %}
 {% block content %}
 {% if accounts %}<form method="post" action="/setup/salary" class="card stack" data-popup-return="response">
   <label>{{ 'Salary each month'|tr(locale) }} ({{ base }})<input name="amount" {{ 'aria-invalid=true' if error_field == 'amount' }} value="{{ values.amount }}" inputmode="decimal" class="money-input {{ 'bad' if error_field == 'amount' }}" required></label>

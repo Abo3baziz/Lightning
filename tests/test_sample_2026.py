@@ -41,13 +41,12 @@ def test_every_bank_csv_imports_every_row_with_nothing_to_review(c, on_2_october
     _open_accounts(b)
     for name in BANK_FILES:   # CIB Payroll first: its transfers fill the others
         account = next(r["Name"] for r in rows("accounts.csv") if r["File"] == name)
-        b.go(account, "Import CSV")
+        b.go(account, "Import statement")
         page = b.submit({}, button="Review statement",
                         files={"file": (name, (MOHAB_2026 / name).read_bytes(), "text/csv")})
         if page.shows("Match your columns"):   # the headers are Lightning's own, so this should not happen
             pytest.fail(f"{name} asked for its columns to be matched")
-        assert page.shows("Needs a decision None."), f"{name}: {page.text[:600]}"
-        assert page.shows("Possible duplicates None."), name
+        assert page.shows("To fix 0", "Needs you 0", "Possible duplicates 0"), f"{name}: {page.text[:600]}"
         done = b.submit({}, button="Post ready rows")
         assert done.shows(f"{_lines(name)} posted · 0 skipped · 0 duplicates"), f"{name}: {done.text[:400]}"
     cib = next(a for a in c.accounts.list() if a.name == "CIB Payroll")
@@ -66,15 +65,16 @@ def test_an_internal_row_whose_account_is_unknown_asks_which_account(c, on_2_oct
     data = ("Date,Amount,Counterparty,Category,Notes\n"
             "2026-09-10,-500.00,Savings pot,Internal transfer,Moved to savings\n"
             "2026-09-11,-300.00,Wallet,Internal transfer,ATM\n").encode()
-    b.go("CIB Current", "Import CSV")
+    b.go("CIB Current", "Import statement")
     page = b.submit({}, button="Review statement", files={"file": ("moves.csv", data, "text/csv")})
-    assert page.shows("Internal transfer · pick the account it moved to or from")
-    assert page.shows("Ready · transfer to Wallet")
-    # One decision per name: the "Savings pot" name gets its account once.
-    unknown = next(k.rsplit("_", 1)[1] for k, v in page.form("Post ready rows").fields.items()
-                   if k.startswith("group_counterparty_") and not k.startswith("group_counterparty_choice_")
-                   and v == "Savings pot")
-    page = b.submit({f"group_transfer_account_id_{unknown}": Choose("Savings")}, button="Post ready rows")
+    assert page.shows("The category says internal, but no account matches")
+    fields = page.form("Post ready rows").fields
+    # "Wallet" is one of his accounts, so it comes already picked as the account (a transfer to it).
+    wallet = next(k.rsplit("_", 1)[1] for k, v in fields.items() if k.startswith("counterparty_") and v == "Wallet")
+    assert fields[f"counterparty_pick_{wallet}"].startswith("account:")
+    # The "Savings pot" row gets its account from the counterparty well, like picking it in the list.
+    unknown = next(k.rsplit("_", 1)[1] for k, v in fields.items() if k.startswith("counterparty_") and v == "Savings pot")
+    page = b.submit({f"counterparty_pick_{unknown}": f"account:{savings.id}"}, button="Post ready rows")
     assert page.shows("2 posted · 0 skipped · 0 duplicates")
     assert c.reporting.account_balance(savings.id) == D("500")
     assert c.reporting.account_balance(cib.id) == D("49200")
@@ -105,13 +105,13 @@ def test_the_whole_sample_loads_and_adds_up(c, on_2_october):
     assert b.open("/checks").shows("Needs attention 0")
 
 
-def test_the_welcome_page_loads_the_sample_and_offers_the_files(c, on_2_october):
+def test_the_welcome_page_loads_the_sample_and_the_files_stay_downloadable(c, on_2_october):
     b = Browser(create_app(c))
     welcome = b.open("/")
-    assert welcome.shows("Mohab's 2026")
+    assert welcome.shows("Mohab · A full year")
     for name in ("accounts.csv", *BANK_FILES, "thndr.csv", "usd-brokerage.csv", "gold-at-home.csv", "prices.csv",
                  "fx.csv"):
         assert b.client.get(f"/samples/mohab-2026/{name}").status_code == 200
-    done = b.submit({}, button="Load Mohab's 2026")
+    done = b.submit({}, action="/sample/mohab-2026")
     assert done.shows("Mohab's 2026 added")
     assert len(c.accounts.list()) == 7

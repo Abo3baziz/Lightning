@@ -81,7 +81,8 @@ Review every output row against the source before confirming the import. Do not 
 
 
 def _review_form_max_fields(row_count: int) -> int:
-    # Each row has fewer than 12 submitted fields; leave room for form metadata.
+    # Each row submits about twelve fields (date, counterparty and its pick, category, held for and its pick,
+    # notes, amount, skip, match, remember); leave room for form metadata.
     return max(1_000, row_count * 12 + 100)
 
 
@@ -236,47 +237,84 @@ def _amount(row) -> Decimal:
         return ZERO
 
 
-def _review_groups(rows: list[dict], form=None) -> list[dict]:
-    """One decision per name (guideline 3.6, UX plan item 2): rows with the same imported name form a
-    group with one Counterparty, Category, Transfer and Held-for choice; each row keeps its own date,
-    amount, note and skip. Presentation only: the service still receives one decision per row."""
+def _row_status(row: dict) -> str:
+    """The row's own state, worst first: to fix, needs you, possible duplicate, ready."""
+    if row.get("_row_error") or row.get("_errors"):
+        return "err"
+    if row.get("_possible_duplicate"):
+        return "dup"
+    return "ready" if row.get("_ready") else "needs"
+
+
+_STATUS_ORDER = {"err": 0, "needs": 1, "dup": 2, "ready": 3}
+
+
+def _row_ui(row: dict, form=None) -> dict:
+    """What each well of a row shows: the user's own choices after a failed post, else the suggestions."""
+    rid = row["_import_row_id"]
+    if form is not None and f"counterparty_{rid}" in form:
+        own = lambda name, default="": str(form.get(f"{name}_{rid}", default))
+        return {"cp": own("counterparty"), "cp_pick": own("counterparty_pick"), "cat": own("category"),
+                "whom": own("whom"), "whom_pick": own("whom_pick"),
+                "remember": form.get(f"remember_{rid}") == "on", "skip": form.get(f"skip_{rid}") == "on",
+                "match": own("match")}
+    cp_pick = (f"account:{row['_transfer_account_id']}" if row.get("_transfer_account_id")
+               else f"counterparty:{row['_counterparty_id']}" if row.get("_counterparty_id") else "")
+    custody = row.get("_is_custody") and row.get("_whom") and row.get("_counterparty_id")
+    return {"cp": row.get("Counterparty") or "", "cp_pick": cp_pick,
+            "cat": str(row.get("_category_id") or "") if not row.get("_transfer_account_id") else "",
+            "whom": row["_whom"] if custody else "",
+            "whom_pick": f"counterparty:{row['_counterparty_id']}" if custody else "",
+            "remember": bool(row.get("_remember_category")), "skip": bool(row.get("_skip")),
+            "match": str(row.get("_match") or row.get("_default_match") or "")}
+
+
+def _suggestions_json(c, row: dict, account_ids: dict[str, int], party_ids: dict[str, int]) -> str:
+    """The row's suggested counterparty spellings and transfer account, shown first in its picker."""
+    picks = []
+    target = row.get("_transfer_target_suggestion")
+    if target and target in account_ids and not row.get("_transfer_account_id"):
+        picks.append({"v": target, "p": f"account:{account_ids[target]}"})
+    for name, _score in row.get("_suggestions") or []:
+        if name in party_ids:
+            picks.append({"v": name, "p": f"counterparty:{party_ids[name]}"})
+    return json.dumps(picks, ensure_ascii=False) if picks else ""
+
+
+def _review_groups(c, rows: list[dict], form=None) -> list[dict]:
+    """Rows grouped by imported name (a header with its total and state, the rows under it). Every row keeps its
+    own counterparty, category, held-for, notes and amount; a group is only a place to fold and to tick."""
+    accounts = {a.name: a.id for a in c.accounts.list(active_only=True)}
+    parties = {p["name"]: p["id"] for p in c.counterparties.list_active()}
     by_key: dict[str, list[dict]] = {}
     for row in rows:
         key = " ".join(str(row.get("Counterparty") or "").casefold().split())
         by_key.setdefault(key or f"__line_{row['_line']}", []).append(row)
     groups = []
     for index, (key, members) in enumerate(by_key.items()):
-        lead = members[0]
-        duplicates = [r for r in members if r.get("_possible_duplicate")]
-        categories = {r.get("_category_id") for r in members}
-        value = (lambda name, default: str(form.get(f"group_{name}_{index}", default)) if form is not None else default)
-        group = {
-            "i": index, "key": key, "rows": members, "lead": lead, "count": len(members),
-            "name": lead.get("Counterparty") or "No counterparty",
+        for row in members:
+            row["_ui"] = _row_ui(row, form)
+            row["_state"] = _row_status(row)
+            row["_suggest"] = _suggestions_json(c, row, accounts, parties)
+        status = min((r["_state"] for r in members), key=_STATUS_ORDER.get)
+        groups.append({
+            "i": index, "key": key, "rows": members, "count": len(members), "status": status,
+            "name": members[0].get("Counterparty") or "No counterparty",
             "total": sum((_amount(r) for r in members), ZERO),
-            "errors": [r for r in members if r.get("_row_error") or r.get("_errors")],
-            "duplicates": len(duplicates),
-            "needs": any(not r.get("_ready") for r in members if r not in duplicates),
-            "category": value("category", str(lead.get("_category_id") or "") if len(categories) == 1 else ""),
-            "counterparty": value("counterparty", lead.get("Counterparty") or ""),
-            "counterparty_choice": value("counterparty_choice", lead.get("_counterparty_choice") or ""),
-            "transfer": value("transfer_account_id", str(lead.get("_transfer_account_id") or "")),
-            "owner_choice": value("owner_choice", lead.get("_owner_choice") or ""),
-            "remember": (form.get(f"group_remember_{index}") == "on") if form is not None else False,
-        }
-        groups.append(group)
-    order = lambda g: (0 if g["errors"] else 1 if g["needs"] else 2 if g["duplicates"] else 3, int(g["lead"]["_line"]))
-    return sorted(groups, key=order)
+            "errors": sum(1 for r in members if r["_state"] == "err"),
+            "duplicates": sum(1 for r in members if r["_state"] == "dup"),
+        })
+    return sorted(groups, key=lambda g: (_STATUS_ORDER[g["status"]], int(g["rows"][0]["_line"])))
 
 
 def _render_review(request, c, account_id: int, batch, rows, *, summary, form=None, msg="", error="", status_code=200):
     account = c.accounts.get(account_id)
+    groups = _review_groups(c, rows, form)
+    counts = {"all": len(groups)} | {key: sum(1 for g in groups if g["status"] == key) for key in _STATUS_ORDER}
+    accounts_here = [a for a in c.accounts.list(active_only=True) if a.id != account_id and a.currency == account.currency]
     return render(request, "bank_import_preview.html", account=account, batch=batch, rows=rows,
-                  groups=_review_groups(rows, form), categories=_categories(c),
-                  counterparties=c.counterparties.list_active(),
-                  account_choices=[a for a in c.accounts.list(active_only=True)
-                                   if a.id != account_id and a.currency == account.currency],
-                  counterparty_search_names=c.counterparties.search_names(),
+                  groups=groups, counts=counts, categories=_categories(c),
+                  counterparties=c.counterparties.list_active(), account_choices=accounts_here,
                   summary=summary, msg=msg, error=error, status_code=status_code)
 
 
@@ -304,49 +342,61 @@ async def discard(request: Request, account_id: int, batch_id: int):
 
 
 def _decision(form, row) -> dict:
-    """One row's decision. Rows sent with group_of_<row> take the group's choices (one decision per
-    name) unless the row sends its own category; rows without it keep their own fields."""
+    """One row's decision, from that row's own wells: counterparty (text, and what it was picked as), category,
+    held for (text and pick), notes, amount, skip, the duplicate choice, and remember. Older posts that send
+    counterparty_choice_<row>, owner_choice_<row> or transfer_account_id_<row> keep working."""
     row_id = row["_import_row_id"]
-    group = form.get(f"group_of_{row_id}")
     own = lambda name, default="": str(form.get(f"{name}_{row_id}", default))
-    shared = (lambda name, default="": str(form.get(f"group_{name}_{group}", default))) if group is not None else own
-    category_choice = own("category") or (shared("category") if group is not None else "")
+    category_choice = own("category")
+    typed = own("counterparty", row["Counterparty"])
     decision = {"category_id": category_choice if category_choice and category_choice != "__uncategorized__" else None,
                 "force_uncategorized": category_choice == "__uncategorized__",
                 "skip": form.get(f"skip_{row_id}") == "on",
-                "match": str(form.get(f"match_{row_id}", "")),
+                "match": own("match"),
                 "date": form.get(f"date_{row_id}", row["Date"]),
-                "counterparty": shared("counterparty", row["Counterparty"]),
+                "counterparty": typed,
+                "alias_text": row["Counterparty"],
                 "amount": form.get(f"amount_{row_id}", row["Amount"]),
                 "notes": form.get(f"notes_{row_id}", row["Notes"]),
-                "whom": own("whom") or (shared("whom") if group is not None else ""),
-                "owner_choice": shared("owner_choice"),
-                "counterparty_choice": shared("counterparty_choice"),
-                "remember_category": (form.get(f"group_remember_{group}") if group is not None
-                                      else form.get(f"remember_category_{row_id}")) == "on",
-                "transfer_account_id": shared("transfer_account_id")}
+                "whom": own("whom"),
+                "owner_choice": own("owner_choice"),
+                "counterparty_choice": own("counterparty_choice"),
+                "remember_category": (form.get(f"remember_{row_id}") or form.get(f"remember_category_{row_id}")) == "on",
+                "transfer_account_id": own("transfer_account_id")}
+    pick = own("counterparty_pick")
+    if pick.startswith("account:"):          # one of your accounts: a transfer to or from it
+        decision["transfer_account_id"] = pick.split(":", 1)[1]
+        decision["counterparty_choice"] = "unlinked"
+    elif pick.startswith("counterparty:"):   # a saved counterparty
+        decision["counterparty_choice"] = "existing:" + pick.split(":", 1)[1]
+    elif pick.startswith("new:"):            # made on posting, once for the batch, with the statement's text as alias
+        decision["counterparty_choice"] = "new"
+        decision["new_counterparty"] = pick[4:]
+    elif not decision["counterparty_choice"]:  # typed and not picked: kept as written, unlinked
+        decision["counterparty_choice"] = "typed"
     selected = decision["counterparty_choice"]
     if selected.startswith("existing:"):
         decision["counterparty_id"] = int(selected.split(":", 1)[1])
-    elif selected == "new":
-        decision["new_counterparty"] = decision["counterparty"]
+    elif selected == "new" and "new_counterparty" not in decision:
+        decision["new_counterparty"] = typed
+    whom_pick = own("whom_pick")
+    if whom_pick == "self" or decision["whom"].strip().casefold() in {"you", "self"}:
+        decision["owner_choice"], decision["whom"] = "self", ""
+    elif whom_pick.startswith("counterparty:"):
+        decision["owner_choice"] = "existing:" + whom_pick.split(":", 1)[1]
+    elif whom_pick.startswith("new:"):
+        decision["owner_choice"] = "new:" + whom_pick[4:]
     return decision
 
 
 def _keep_typed(form, rows) -> None:
     """After a failed post, show each row with what the user typed."""
     for row in rows:
-        row_id = row["_import_row_id"]
         decision = _decision(form, row)
         row["Date"], row["Amount"], row["Notes"] = str(decision["date"]), str(decision["amount"]), str(decision["notes"])
-        row["Counterparty"] = str(decision["counterparty"])
-        row["_owner_choice"] = decision["owner_choice"]
-        row["_counterparty_choice"] = decision["counterparty_choice"]
-        row["_category_id"] = int(decision["category_id"]) if str(decision["category_id"] or "").isdigit() else None
+        row["Counterparty"] = str(row["Counterparty"])
         row["_skip"] = decision["skip"]
         row["_match"] = decision["match"]
-        row["_transfer_account_id"] = decision["transfer_account_id"]
-        row["_remember_category"] = decision["remember_category"]
 
 
 @router.post("/{account_id:int}/import/{batch_id:int}/confirm")

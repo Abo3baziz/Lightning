@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}Counterparties{% endblock %}
-{% block heading %}<h1>{{ 'Settings'|tr(locale) }}</h1><div class="muted small">{{ "Counterparties · saved names, aliases, and suggested categories"|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header('Settings'|tr(locale), "Counterparties · saved names, aliases, and suggested categories"|tr(locale)) }}{% endblock %}
 {% block content %}
 
 {% if error %}<p class="flash error" role="alert">{{ error|tr(locale) }}</p>{% endif %}

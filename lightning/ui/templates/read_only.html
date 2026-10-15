@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}Nothing was saved{% endblock %}
-{% block heading %}<h1>{{ "Nothing was saved"|tr(locale) }}</h1>{% endblock %}
+{% block heading %}{{ page_header("Nothing was saved"|tr(locale)) }}{% endblock %}
 {% block content %}
 {# A save refused because this device only reads the ledger now (lightning.runtime.app, read_only_page). The line
    under the header already says who has it; this card says what to do. #}

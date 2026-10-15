@@ -24,7 +24,7 @@ class AccountType(StrEnum):
 
 TYPE_LABELS: dict[AccountType, str] = {
     AccountType.CASH: "Cash wallet",
-    AccountType.CASH_AT_HAND: "Cash at hand",
+    AccountType.CASH_AT_HAND: "Cash",
     AccountType.BANK: "Bank account (current or savings)",
     AccountType.DEPOSIT: "Certificates of deposit (CD portfolio)",
     AccountType.BROKERAGE: "Brokerage (stocks and funds)",
@@ -36,7 +36,7 @@ TYPE_LABELS: dict[AccountType, str] = {
 # For lists, where the picker's hints would only repeat (review, 2026-10-06).
 TYPE_SHORT: dict[AccountType, str] = {
     AccountType.CASH: "Cash",
-    AccountType.CASH_AT_HAND: "Cash at hand",
+    AccountType.CASH_AT_HAND: "Cash",
     AccountType.BANK: "Bank account",
     AccountType.DEPOSIT: "Certificates",
     AccountType.BROKERAGE: "Brokerage",

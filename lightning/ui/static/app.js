@@ -168,6 +168,7 @@ const initOwnDataPickers = (root = document) => {
     list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
   };
   input.value = shown();
+  input.disabled = select.disabled;
   input.addEventListener("input", () => { select.value = ""; input.setCustomValidity(wasRequired ? "Choose an option from the list." : ""); render(); });
   // Focus shows every choice and selects the current text, so typing replaces it instead of filtering by it.
   input.addEventListener("focus", () => { render(true); input.select(); });
@@ -215,22 +216,76 @@ find("input[data-own-suggestions][list]").forEach((input) => {
   input.setAttribute("aria-haspopup", "listbox"); input.setAttribute("aria-controls", list.id); input.setAttribute("aria-expanded", "false");
   let active = -1;
   const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; };
+  // An option may carry a tile (data-mono / data-logo), a group heading (data-group) and search words
+  // (data-label, data-search). data-allow-add on the input offers `+ Add "typed"` for a value not listed.
+  const allowAdd = input.hasAttribute("data-allow-add");
+  const monogram = (text) => {
+    const words = String(text || "").trim().split(/[\s\-_/]+/).filter((word) => /^[\p{L}\p{N}]/u.test(word));
+    if (!words.length) return "?";
+    return (words.length === 1 ? words[0].slice(0, 2) : words[0][0] + words[1][0]).toLocaleUpperCase();
+  };
+  const makeTile = (mono, logo, extra = "") => {
+    const tile = document.createElement("span"); tile.className = `inst-tile ${extra}`.trim(); tile.setAttribute("aria-hidden", "true");
+    if (logo) { const img = document.createElement("img"); img.src = logo; img.alt = ""; tile.append(img); } else tile.textContent = mono;
+    return tile;
+  };
+  const rowsOf = () => Array.from(source.querySelectorAll("option")).map((option) => ({
+    value: option.value, label: option.dataset.label || "", group: option.dataset.group || "", mono: option.dataset.mono || "", logo: option.dataset.logo || "", pick: option.dataset.pick || "",
+    hay: `${option.value} ${option.dataset.label || ""} ${option.dataset.search || ""}`.toLocaleLowerCase(),
+  }));
+  // data-pick-target names a hidden field that records what the text was picked as (an account, a saved
+  // counterparty, a new one); typing again clears it. data-suggest lists [{v, p}] shown first as "Suggested".
+  const pickField = () => (input.dataset.pickTarget ? document.getElementById(input.dataset.pickTarget) : null);
+  const setPick = (value) => { const field = pickField(); if (field) field.value = value; };
+  const suggested = () => {
+    try { return JSON.parse(input.dataset.suggest || "[]").map((item) => ({ value: item.v, pick: item.p, group: "Suggested", label: "", mono: "", logo: "", hay: item.v.toLocaleLowerCase() })); }
+    catch (error) { return []; }
+  };
+  let wellTile = null;
+  if (input.hasAttribute("data-tile-well")) {
+    wellTile = makeTile("", "", "inst-well"); wrapper.classList.add("has-tile"); wrapper.prepend(wellTile);
+  }
+  const syncTile = () => {
+    if (!wellTile) return;
+    const typed = input.value.trim();
+    const found = rowsOf().find((row) => row.value.toLocaleLowerCase() === typed.toLocaleLowerCase() || (row.label && row.label.toLocaleLowerCase() === typed.toLocaleLowerCase()));
+    const fresh = makeTile(found ? found.mono : (typed ? monogram(typed) : ""), found ? found.logo : "", "inst-well");
+    wellTile.replaceWith(fresh); wellTile = fresh; wellTile.hidden = !typed;
+  };
   const render = () => {
     const query = input.value.trim().toLocaleLowerCase();
-    const matches = Array.from(source.querySelectorAll("option")).map((option) => option.value).filter((value) => value && (!query || value.toLocaleLowerCase().includes(query))).slice(0, query ? 50 : 5);
+    const hints = suggested().filter((row) => !query || row.hay.includes(query));
+    const listed = rowsOf().filter((row) => row.value && (!query || row.hay.includes(query)) && !hints.some((hint) => hint.value === row.value));
+    const matches = [...hints, ...listed].slice(0, query ? 50 : (allowAdd ? 8 : 5));
     list.replaceChildren();
-    matches.forEach((value, i) => {
+    let lastGroup = "";
+    matches.forEach((row, i) => {
+      if (row.group && row.group !== lastGroup) {
+        const heading = document.createElement("div"); heading.className = "picker-group"; heading.setAttribute("role", "presentation"); heading.textContent = t(row.group); list.append(heading);
+      }
+      lastGroup = row.group;
       const option = document.createElement("button"); option.type = "button"; option.className = "counterparty-option";
-      option.setAttribute("role", "option"); option.id = `${list.id}-${i}`; option.textContent = value;
+      option.setAttribute("role", "option"); option.id = `${list.id}-${i}`;
+      if (row.mono || row.logo) option.append(makeTile(row.mono, row.logo));
+      option.append(row.value);
+      if (row.label && row.label !== row.value) { const hint = document.createElement("span"); hint.className = "counterparty-kind"; hint.textContent = row.label; option.append(hint); }
       option.addEventListener("mousedown", (event) => event.preventDefault());
-      option.addEventListener("click", () => { input.value = value; input.dispatchEvent(new Event("change", { bubbles: true })); close(); });
+      option.addEventListener("click", () => { input.value = row.value; input.dispatchEvent(new Event("change", { bubbles: true })); setPick(row.pick); close(); });
       list.append(option);
     });
-    if (!matches.length) { close(); return; }
+    const typed = input.value.trim();
+    if (allowAdd && typed && !rowsOf().some((row) => row.value.toLocaleLowerCase() === typed.toLocaleLowerCase())) {
+      const add = document.createElement("button"); add.type = "button"; add.className = "counterparty-option picker-add";
+      add.setAttribute("role", "option"); add.id = `${list.id}-add`; add.textContent = t(input.dataset.addLabel || '+ Add "{name}"', { name: typed });
+      add.addEventListener("mousedown", (event) => event.preventDefault());
+      add.addEventListener("click", () => { input.value = typed; input.dispatchEvent(new Event("change", { bubbles: true })); setPick(`new:${typed}`); close(); });
+      list.append(add);
+    } else if (!matches.length) { close(); return; }
     const rect = input.getBoundingClientRect();
     list.style.left = `${Math.max(8, rect.left)}px`; list.style.top = `${rect.bottom + 4}px`; list.style.width = `${Math.max(230, rect.width)}px`;
     list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
   };
+  input.addEventListener("input", () => { setPick(""); syncTile(); }); input.addEventListener("change", syncTile); syncTile();
   input.addEventListener("input", render); input.addEventListener("focus", render);
   input.addEventListener("keydown", (event) => {
     const options = list.querySelectorAll('[role="option"]');
@@ -386,6 +441,7 @@ const CALENDAR_LOCALE = document.documentElement.lang || "en";
 const MONTH_NAMES = Array.from({length: 12}, (_, month) => new Intl.DateTimeFormat(CALENDAR_LOCALE, {month: "long"}).format(new Date(2024, month, 1)));
 const WEEKDAY_NAMES = Array.from({length: 7}, (_, day) => new Intl.DateTimeFormat(CALENDAR_LOCALE, {weekday: "short"}).format(new Date(2024, 0, 1 + day)));
 const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const MONTH_SHORT = Array.from({length: 12}, (_, month) => new Intl.DateTimeFormat(CALENDAR_LOCALE, {month: "short"}).format(new Date(2024, month, 1)));
 let openCal = null;
 const closeCalendar = () => { if (!openCal) return; openCal.panel.remove(); openCal.button?.setAttribute("aria-expanded", "false"); openCal = null; };
 const openCalendar = (text, button) => {
@@ -396,6 +452,8 @@ const openCalendar = (text, button) => {
   const start = picked || today;
   let view = new Date(Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1, 1);
   let focus = start;
+  // The head's title climbs: days -> months (12, with the year and its ‹ ›) -> years (12 at a time).
+  let level = "days", monthFocus = view.getMonth(), yearFocus = view.getFullYear();
   const panel = document.createElement("div");
   panel.className = "date-popup"; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", t("Choose a date"));
   const set = (value) => {
@@ -404,7 +462,30 @@ const openCalendar = (text, button) => {
     text.dispatchEvent(new Event("change", { bubbles: true }));
     closeCalendar(); text.focus();
   };
+  const foot = () => `<div class="date-popup-foot"><button type="button" data-today>${t("Today")}</button>${picked ? `<button type="button" data-clear>${t("Clear")}</button>` : ""}</div>`;
+  const drawMonths = () => {
+    const year = view.getFullYear(), nowYear = Number(today.slice(0, 4)), nowMonth = Number(today.slice(5, 7)) - 1;
+    const pickedYear = picked ? Number(picked.slice(0, 4)) : null, pickedMonth = picked ? Number(picked.slice(5, 7)) - 1 : null;
+    panel.innerHTML = `<div class="date-popup-head"><button type="button" data-year-step="-1" aria-label="${t("Previous year")}">‹</button>
+      <button type="button" class="date-popup-title" data-level="years" aria-label="${t("Choose a year")}">${year}</button>
+      <button type="button" data-year-step="1" aria-label="${t("Next year")}">›</button></div>
+      <div class="date-popup-cells" role="grid">${MONTH_SHORT.map((name, m) => {
+        const cls = ["date-popup-cell", year === nowYear && m === nowMonth ? "is-today" : "", year === pickedYear && m === pickedMonth ? "is-picked" : ""].join(" ");
+        return `<button type="button" class="${cls}" data-month="${m}" tabindex="${m === monthFocus ? 0 : -1}" aria-label="${MONTH_NAMES[m]} ${year}"${year === pickedYear && m === pickedMonth ? ' aria-pressed="true"' : ""}>${name}</button>`;
+      }).join("")}</div>${foot()}`;
+  };
+  const drawYears = () => {
+    const first = Math.floor(yearFocus / 12) * 12, nowYear = Number(today.slice(0, 4)), pickedYear = picked ? Number(picked.slice(0, 4)) : null;
+    panel.innerHTML = `<div class="date-popup-head"><button type="button" data-page-step="-1" aria-label="${t("Earlier years")}">‹</button>
+      <b>${first}–${first + 11}</b><button type="button" data-page-step="1" aria-label="${t("Later years")}">›</button></div>
+      <div class="date-popup-cells" role="grid">${Array.from({length: 12}, (_, i) => first + i).map((y) => {
+        const cls = ["date-popup-cell", y === nowYear ? "is-today" : "", y === pickedYear ? "is-picked" : ""].join(" ");
+        return `<button type="button" class="${cls}" data-year="${y}" tabindex="${y === yearFocus ? 0 : -1}" aria-label="${y}"${y === pickedYear ? ' aria-pressed="true"' : ""}>${y}</button>`;
+      }).join("")}</div>${foot()}`;
+  };
   const draw = () => {
+    if (level === "months") { drawMonths(); return; }
+    if (level === "years") { drawYears(); return; }
     const year = view.getFullYear(), month = view.getMonth();
     const first = new Date(year, month, 1);
     const lead = (first.getDay() + 6) % 7;  // Monday first
@@ -412,15 +493,16 @@ const openCalendar = (text, button) => {
     for (let i = 0; i < 42; i += 1) cells.push(new Date(year, month, 1 - lead + i));
     const rows = cells[35].getMonth() !== month ? 5 : 6;
     panel.innerHTML = `<div class="date-popup-head"><button type="button" data-step="-1" aria-label="${t("Previous month")}">‹</button>
-      <b>${MONTH_NAMES[month]} ${year}</b><button type="button" data-step="1" aria-label="${t("Next month")}">›</button></div>
+      <button type="button" class="date-popup-title" data-level="months" aria-label="${t("Choose a month")}">${MONTH_NAMES[month]} ${year}</button><button type="button" data-step="1" aria-label="${t("Next month")}">›</button></div>
       <div class="date-popup-grid" role="grid">${WEEKDAY_NAMES.map((d) => `<span class="date-popup-dow">${d}</span>`).join("")}
       ${cells.slice(0, rows * 7).map((d) => {
         const iso = isoOf(d);
         const cls = ["date-popup-day", d.getMonth() !== month ? "is-other" : "", iso === today ? "is-today" : "", iso === picked ? "is-picked" : ""].join(" ");
         return `<button type="button" class="${cls}" data-day="${iso}" tabindex="${iso === focus ? 0 : -1}" aria-label="${iso}"${iso === picked ? ' aria-pressed="true"' : ""}>${d.getDate()}</button>`;
-      }).join("")}</div>
-      <div class="date-popup-foot"><button type="button" data-today>${t("Today")}</button>${picked ? `<button type="button" data-clear>${t("Clear")}</button>` : ""}</div>`;
+      }).join("")}</div>${foot()}`;
   };
+  const refocus = () => panel.querySelector('[tabindex="0"]')?.focus();
+  const go = (next) => { level = next; if (next === "days") focus = isoOf(view); if (next === "months") monthFocus = view.getMonth(); if (next === "years") yearFocus = view.getFullYear(); draw(); refocus(); };
   const move = (days) => {
     const d = new Date(Number(focus.slice(0, 4)), Number(focus.slice(5, 7)) - 1, Number(focus.slice(8, 10)) + days);
     focus = isoOf(d);
@@ -432,19 +514,41 @@ const openCalendar = (text, button) => {
     const b = e.target.closest("button");
     if (!b) return;
     e.stopPropagation();
-    if (b.dataset.step) { view = new Date(view.getFullYear(), view.getMonth() + Number(b.dataset.step), 1); focus = isoOf(view); draw(); }
+    if (b.dataset.level) go(b.dataset.level);
+    else if (b.dataset.yearStep) { view = new Date(view.getFullYear() + Number(b.dataset.yearStep), view.getMonth(), 1); focus = isoOf(view); draw(); }
+    else if (b.dataset.pageStep) { yearFocus += 12 * Number(b.dataset.pageStep); draw(); }
+    else if (b.dataset.month) { view = new Date(view.getFullYear(), Number(b.dataset.month), 1); focus = isoOf(view); go("days"); }
+    else if (b.dataset.year) { view = new Date(Number(b.dataset.year), view.getMonth(), 1); focus = isoOf(view); go("months"); }
+    else if (b.dataset.step) { view = new Date(view.getFullYear(), view.getMonth() + Number(b.dataset.step), 1); focus = isoOf(view); draw(); }
     else if (b.dataset.day) set(b.dataset.day);
     else if ("today" in b.dataset) set(today);
     else if ("clear" in b.dataset) set("");
   });
   panel.addEventListener("keydown", (e) => {
     const keys = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+    if (e.key === "Escape") {
+      e.preventDefault(); e.stopPropagation();
+      if (level !== "days") go("days"); else { closeCalendar(); text.focus(); }
+      return;
+    }
+    if (level === "months" || level === "years") {
+      const grid = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 };
+      const page = e.key === "PageUp" ? -1 : e.key === "PageDown" ? 1 : 0;
+      if (!grid[e.key] && !page) return;
+      e.preventDefault();
+      if (level === "months") {
+        const at = monthFocus + (grid[e.key] || 12 * page);
+        view = new Date(view.getFullYear() + Math.floor(at / 12), view.getMonth(), 1); monthFocus = ((at % 12) + 12) % 12;
+      } else yearFocus += grid[e.key] || 12 * page;
+      draw(); refocus();
+      return;
+    }
     if (keys[e.key]) { e.preventDefault(); move(keys[e.key]); }
     else if (e.key === "PageUp" || e.key === "PageDown") {
       e.preventDefault();
       const d = new Date(Number(focus.slice(0, 4)), Number(focus.slice(5, 7)) - 1 + (e.key === "PageUp" ? -1 : 1), 1);
       view = d; focus = isoOf(d); draw(); panel.querySelector(`[data-day="${focus}"]`)?.focus();
-    } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeCalendar(); text.focus(); }
+    }
   });
   draw();
   (text.closest("dialog[open]") || document.body).append(panel);
@@ -2392,3 +2496,35 @@ document.querySelectorAll("form.phone-as-of input[data-native-date]").forEach((i
   input.addEventListener("change", () => { if (input.value) input.form.requestSubmit(); });
   input.addEventListener("click", () => { try { input.showPicker?.(); } catch (error) { /* the tap itself opens it */ } });
 });
+
+// Setup, "Other currencies you hold": a type-and-pick that adds removable chips; each chip submits its code.
+(() => {
+  document.querySelectorAll("select[data-chip-add]").forEach((select) => {
+    const box = document.querySelector(select.dataset.chipAdd);
+    if (!box) return;
+    const name = select.dataset.chipName || "extra";
+    box.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-chip-remove]");
+      if (button) button.closest(".chip")?.remove();
+    });
+    select.addEventListener("change", () => {
+      const code = select.value;
+      window.setTimeout(() => {
+        select.value = "";
+        const typed = select.parentElement.querySelector('input[type="text"]');
+        if (typed) typed.value = "";
+      }, 0);
+      if (!code || Array.from(box.querySelectorAll("input")).some((input) => input.value === code)) return;
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.append(`${code} `);
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.className = "chip-x"; remove.dataset.chipRemove = "";
+      remove.setAttribute("aria-label", t("Remove")); remove.textContent = "×";
+      const hidden = document.createElement("input");
+      hidden.type = "hidden"; hidden.name = name; hidden.value = code;
+      chip.append(remove, hidden);
+      box.append(chip);
+    });
+  });
+})();
