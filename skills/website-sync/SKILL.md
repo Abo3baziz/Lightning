@@ -26,15 +26,19 @@ Read a site page only around the line you change.
    (`versions.html`, `version-registry.json`). Keep at least the three newest app versions permanently and add a row per release. The README's "Current app release" line names the version, date and commit.
 3. **English and Arabic parity.** Every English page in the root has an Arabic counterpart in `ar/` with the same sections, links and forms. List the root `*.html` files and the `ar/*.html` files and diff the names; for
    each pair compare headings and link targets. Arabic pages use the Egyptian voice (skill `arabic-check`) and do not use English UX test release IDs.
-4. **Links.** Serve the site (`python -m http.server 8000` in `Lightning_website`) and check every `href` and `src` that starts with `/` or is relative: the target file exists; anchors exist; `sitemap.xml` and `llms.txt`
-   list the real pages; `CNAME` and `robots.txt` are intact. Report broken ones with page and link. Do not fetch third-party links.
+4. **Links.** In `Lightning_website`, `python tools/site_check.py` checks every relative `href`, `src` and `data-zoom`, that each JSON-LD block parses, that every `archive/` snapshot carries noindex and `<base href="../">`,
+   that each row on `versions.html` says what `version-registry.json` says, and English titles (60) and descriptions (160). Then check by hand that anchors exist, `sitemap.xml` and `llms.txt`
+   list the real pages and `CNAME` and `robots.txt` are intact. Report broken ones with page and link. Do not fetch third-party links.
 5. **Version IDs.** Every testable web experience carries one immutable ID, `UX-YYYY.MM.DD.NN`, shown in the Testing panel and on the Version Archive. A change to a live page means a new ID and an archived copy first
-   (the README's *Version identity and archive* section gives the exact rule). Check that the `data-ux-version` on the pages you changed matches `version-registry.json` and the archive folder has the previous copy.
+   (the README's *Version identity and archive* section gives the exact rule). `python tools/release.py <spec.json>` in the site does it before you edit: snapshot, registry, new ID, version list.
+   Check that the `data-ux-version` on the pages you changed matches `version-registry.json` and the archive folder has the previous copy.
 6. **Forms and receivers.** The signup, survey and feedback forms post to the Apps Script receiver URL, which is public by necessity. All pages must use the **same** URL; when it changes, change it everywhere
    (`grep -rn "script.google.com/macros" . | cut -d: -f1 | sort -u` shows every file) and confirm a test submission reaches the sheet (ask the owner to check the sheet).
 7. **Nothing private published.** The site is public: no analytics data, visitor lists, dashboard keys, owner emails or tokens in any file (README *Analytics and consent*: "Nothing analytical is committed").
    Scan with `git grep -n -I -E "ghp_|github_pat_|api[_-]?key|@gmail\.com"`; only the receiver URL and public contact lines may appear.
 8. **Licence and voice.** `LICENSE` (PolyForm Noncommercial 1.0.0) and the README licence section exist; copy follows `brand-voice.md` and B10 (no comparisons with named apps; describe only what the app does today).
+   "Today" means the released build on Downloads: a feature only on `main` (or built but blocked, like Gulf and European price files) is not claimed; check `CHANGELOG.md` against the release section before writing it up.
+   If the app changed a screen or figure the site quotes, run the site-recapture skill.
 9. **Merge.** One branch per kind of fix (`claude/<feature>`), changelog line in the app repo (the site has no changelog), push the branch, merge to `main`, push both repos.
 
 ## Report
