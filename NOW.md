@@ -18,6 +18,7 @@
 
 ## Next
 
+- **Institution logos:** none are bundled yet (the build had no internet); every institution shows a monogram. Run `python tools/fetch_institution_logos.py` from a PC and commit `lightning/ui/static/institutions/` and the CSV. **Read:** Architecture › Modules (accounts).
 - **Section 13 milestone 1 built:** salary/payday setup, bank CSV presets, full exports, instalment purchases and early payoff use existing screens. Next: optional reminders/grouped confirmations, then analytics. Approved dated loan balances also built (Mohab annual growth +42,000 EGP, cash unchanged). **Read:** `docs/proposals/tab_by_tab_review.md` §13; Architecture › Cash planning, › CSV import and export.
 
 - **Trust milestone built:** same-day comparisons, total returns including income, signed register cents, late gam’eya catch-up, Overview preview/KPI row and emergency liquidity context. Next: step 2 weekly friction. **Read:** `docs/proposals/tab_by_tab_review.md` §14; Architecture › UI contract.

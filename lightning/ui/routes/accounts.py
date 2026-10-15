@@ -18,6 +18,12 @@ router = APIRouter(prefix="/accounts")
 FIELDS = ("name", "account_type", "institution", "last4", "notes", "opening_balance", "opening_balance_date", "owner_id", "currency")
 
 
+def _remember_institution(c, text: str) -> None:
+    """An institution typed on the form that the list lacks joins the profile's own institutions."""
+    if text.strip():
+        c.institutions.add(text)
+
+
 def _form_context(request: Request, values: dict, account=None, error: LightningError | None = None):
     c = container(request)
     groups = {t.value: c.assets.get_class_by_code(DEFAULT_CASH_CLASS[t]).name for t in OFFERED_TYPES}
@@ -26,6 +32,7 @@ def _form_context(request: Request, values: dict, account=None, error: Lightning
         values=values,
         account=account,
         currencies=c.currencies.list(),
+        institution_options=c.institutions.options(),
         base=c.base_currency,
         types=sorted(((t.value, TYPE_LABELS[t]) for t in OFFERED_TYPES), key=lambda row: row[1].casefold()),
         # where each type shows up in "What your wealth is made of", in plain words
@@ -182,6 +189,7 @@ async def create_account(request: Request):
         )
     except LightningError as exc:
         return render(request, "accounts/form.html", status_code=400, **_form_context(request, values, error=exc))
+    _remember_institution(c, values["institution"])
     if account.account_type.value == "GAMEYA":  # its terms are the next step (lightning/ui/routes/gameya.py)
         return redirect(f"/gameya/{account.id}", f"Account {account.label} is ready. Enter the circle's terms.")
     return redirect(f"/accounts/{account.id}?welcome=1", f"Account {account.label} is ready.")
@@ -485,6 +493,7 @@ async def update_account(request: Request, account_id: int):
     except LightningError as exc:
         return render(request, "accounts/form.html", status_code=400,
                       **_form_context(request, values, account=account, error=exc))
+    _remember_institution(c, values["institution"])
     return redirect(f"/accounts/{account.id}", "Account saved.")
 
 

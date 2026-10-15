@@ -1,7 +1,7 @@
 {
- "fingerprint": "de57dbf0a359804b",
+ "fingerprint": "4d11a402d6882afc",
  "lines": [
-  "schema: 55",
+  "schema: 56",
   "before net worth: 250565.290000",
   "before unvalued: 0",
   "before account CIB Payroll: 68892.790000",
@@ -39,7 +39,7 @@
   "rows budget_carryover_resets: 0",
   "rows budgets: 9",
   "rows cash_reserves: 1",
-  "rows categories: 43",
+  "rows categories: 41",
   "rows cd_certificates: 1",
   "rows cd_redemptions: 0",
   "rows cd_terms: 0",
@@ -50,6 +50,7 @@
   "rows fx_rates: 0",
   "rows gameya_terms: 0",
   "rows installment_purchases: 0",
+  "rows institutions: 0",
   "rows investment_custody_events: 0",
   "rows investment_dividend_assets: 0",
   "rows investment_liquidation_factors: 0",
@@ -76,7 +77,7 @@
   "rows rule_actions: 0",
   "rows rule_conditions: 0",
   "rows rules: 0",
-  "rows schema_migrations: 55",
+  "rows schema_migrations: 56",
   "rows settings: 2",
   "rows transactions: 69",
   "rows zakat_settings: 1"

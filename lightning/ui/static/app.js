@@ -216,22 +216,66 @@ find("input[data-own-suggestions][list]").forEach((input) => {
   input.setAttribute("aria-haspopup", "listbox"); input.setAttribute("aria-controls", list.id); input.setAttribute("aria-expanded", "false");
   let active = -1;
   const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; };
+  // An option may carry a tile (data-mono / data-logo), a group heading (data-group) and search words
+  // (data-label, data-search). data-allow-add on the input offers `+ Add "typed"` for a value not listed.
+  const allowAdd = input.hasAttribute("data-allow-add");
+  const monogram = (text) => {
+    const words = String(text || "").trim().split(/[\s\-_/]+/).filter((word) => /^[\p{L}\p{N}]/u.test(word));
+    if (!words.length) return "?";
+    return (words.length === 1 ? words[0].slice(0, 2) : words[0][0] + words[1][0]).toLocaleUpperCase();
+  };
+  const makeTile = (mono, logo, extra = "") => {
+    const tile = document.createElement("span"); tile.className = `inst-tile ${extra}`.trim(); tile.setAttribute("aria-hidden", "true");
+    if (logo) { const img = document.createElement("img"); img.src = logo; img.alt = ""; tile.append(img); } else tile.textContent = mono;
+    return tile;
+  };
+  const rowsOf = () => Array.from(source.querySelectorAll("option")).map((option) => ({
+    value: option.value, label: option.dataset.label || "", group: option.dataset.group || "", mono: option.dataset.mono || "", logo: option.dataset.logo || "",
+    hay: `${option.value} ${option.dataset.label || ""} ${option.dataset.search || ""}`.toLocaleLowerCase(),
+  }));
+  let wellTile = null;
+  if (input.hasAttribute("data-tile-well")) {
+    wellTile = makeTile("", "", "inst-well"); wrapper.classList.add("has-tile"); wrapper.prepend(wellTile);
+  }
+  const syncTile = () => {
+    if (!wellTile) return;
+    const typed = input.value.trim();
+    const found = rowsOf().find((row) => row.value.toLocaleLowerCase() === typed.toLocaleLowerCase() || (row.label && row.label.toLocaleLowerCase() === typed.toLocaleLowerCase()));
+    const fresh = makeTile(found ? found.mono : (typed ? monogram(typed) : ""), found ? found.logo : "", "inst-well");
+    wellTile.replaceWith(fresh); wellTile = fresh; wellTile.hidden = !typed;
+  };
   const render = () => {
     const query = input.value.trim().toLocaleLowerCase();
-    const matches = Array.from(source.querySelectorAll("option")).map((option) => option.value).filter((value) => value && (!query || value.toLocaleLowerCase().includes(query))).slice(0, query ? 50 : 5);
+    const matches = rowsOf().filter((row) => row.value && (!query || row.hay.includes(query))).slice(0, query ? 50 : (allowAdd ? 8 : 5));
     list.replaceChildren();
-    matches.forEach((value, i) => {
+    let lastGroup = "";
+    matches.forEach((row, i) => {
+      if (row.group && row.group !== lastGroup) {
+        const heading = document.createElement("div"); heading.className = "picker-group"; heading.setAttribute("role", "presentation"); heading.textContent = t(row.group); list.append(heading);
+      }
+      lastGroup = row.group;
       const option = document.createElement("button"); option.type = "button"; option.className = "counterparty-option";
-      option.setAttribute("role", "option"); option.id = `${list.id}-${i}`; option.textContent = value;
+      option.setAttribute("role", "option"); option.id = `${list.id}-${i}`;
+      if (row.mono || row.logo) option.append(makeTile(row.mono, row.logo));
+      option.append(row.value);
+      if (row.label && row.label !== row.value) { const hint = document.createElement("span"); hint.className = "counterparty-kind"; hint.textContent = row.label; option.append(hint); }
       option.addEventListener("mousedown", (event) => event.preventDefault());
-      option.addEventListener("click", () => { input.value = value; input.dispatchEvent(new Event("change", { bubbles: true })); close(); });
+      option.addEventListener("click", () => { input.value = row.value; input.dispatchEvent(new Event("change", { bubbles: true })); close(); });
       list.append(option);
     });
-    if (!matches.length) { close(); return; }
+    const typed = input.value.trim();
+    if (allowAdd && typed && !rowsOf().some((row) => row.value.toLocaleLowerCase() === typed.toLocaleLowerCase())) {
+      const add = document.createElement("button"); add.type = "button"; add.className = "counterparty-option picker-add";
+      add.setAttribute("role", "option"); add.id = `${list.id}-add`; add.textContent = t('+ Add "{name}"', { name: typed });
+      add.addEventListener("mousedown", (event) => event.preventDefault());
+      add.addEventListener("click", () => { input.value = typed; input.dispatchEvent(new Event("change", { bubbles: true })); close(); });
+      list.append(add);
+    } else if (!matches.length) { close(); return; }
     const rect = input.getBoundingClientRect();
     list.style.left = `${Math.max(8, rect.left)}px`; list.style.top = `${rect.bottom + 4}px`; list.style.width = `${Math.max(230, rect.width)}px`;
     list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
   };
+  input.addEventListener("input", syncTile); input.addEventListener("change", syncTile); syncTile();
   input.addEventListener("input", render); input.addEventListener("focus", render);
   input.addEventListener("keydown", (event) => {
     const options = list.querySelectorAll('[role="option"]');

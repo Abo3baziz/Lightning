@@ -187,6 +187,8 @@ def _compact(value) -> str:
 
 templates.env.filters["compact"] = _compact
 templates.env.globals["abs"] = abs
+from lightning.accounts.institutions import tile as _institution_tile  # noqa: E402
+templates.env.globals["institution_tile"] = _institution_tile
 
 
 # Pages reached from many places with no Back of their own; the main tabs are left out on purpose.

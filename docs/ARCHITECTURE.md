@@ -76,7 +76,7 @@ core/                 dates, money, identifiers, posting rules; no app dependenc
 |---|---|
 | `lightning/core` | Money/date parsing, refs, errors, posting rules, `figures.py`, `memo.py` (request cache) |
 | `lightning/database` | Connection, migrations, seed, backups, audit, settings, `promotion*.py` (restore promotion) |
-| `lightning/accounts` + `workflows/accounts.py` | Account rules; atomic account and opening-balance workflows |
+| `lightning/accounts` + `workflows/accounts.py` | Account rules; atomic account and opening-balance workflows. `institutions.py` + `institutions.csv`: Egypt's banks, brokers and wallets (bundled, read once) plus the profile's own (`institutions` table, migration 0056); `accounts.institution` stays text, written as the institution's name; `match()` maps free text ("cib") to the built-in; `tile()` gives a bundled logo (`ui/static/institutions/<code>.png`, filled by `tools/fetch_institution_logos.py`, never fetched at run time) else a monogram |
 | `lightning/assets` | Asset classes, financial assets, picker catalogue (`egx_instruments.csv`, `us_instruments.csv`, rebuilt by `tools/market/us_catalogue.py`), prices, quote adapters. An investment's currency follows its exchange (`market/iso.py` `VENUE_CURRENCY`); `InvestmentService` refuses a trade whose account is in another currency |
 | `lightning/market`, `workflows/market_prices.py`, `workflows/live_prices.py`, `tools/market` | Prices from shared packs and live fetches; see below |
 | `lightning/fx.py` | The one exchange-rate lookup (see Persistence) |

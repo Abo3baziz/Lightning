@@ -73,3 +73,8 @@
 {% macro category_options(groups, selected='') -%}
 {% for g in groups %}<optgroup label="{{ g.label }}">{% for o in g.options %}{% if o.id is none %}<option disabled>{{ o.name }}</option>{% else %}<option value="{{ o.id }}" data-movement="{{ o.movement }}" {{ 'selected' if selected|string == o.id|string }}{% if o.header %} class="option-head"{% endif %}>{{ '  ' if o.level == 3 }}{{ o.name }}</option>{% endif %}{% endfor %}</optgroup>{% endfor %}
 {%- endmacro %}
+
+{% macro inst_tile(name, size='') -%}
+{%- set tl = institution_tile(name) -%}
+<span class="inst-tile{{ ' inst-' ~ size if size }}" aria-hidden="true">{% if tl.logo %}<img src="{{ tl.logo }}" alt="" loading="lazy">{% else %}{{ tl.mono }}{% endif %}</span>
+{%- endmacro %}

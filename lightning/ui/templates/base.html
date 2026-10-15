@@ -50,7 +50,7 @@
         <div class="side-row side-group"><span>{{ g.label }}</span></div>
         {% for a in g.children %}
         <a class="side-row side-account {{ 'active' if path == '/accounts/' ~ a.id or path.startswith('/accounts/' ~ a.id ~ '/') }}" href="/accounts/{{ a.id }}" title="{{ a.label }}">
-          <span class="side-name">{{ a.label }}</span>
+          {% set tl = institution_tile(a.institution or a.label) %}<span class="inst-tile" aria-hidden="true">{% if tl.logo %}<img src="{{ tl.logo }}" alt="" loading="lazy">{% else %}{{ tl.mono }}{% endif %}</span><span class="side-name">{{ a.label }}</span>
           <span class="num {{ 'neg' if a.value < 0 }}">{{ a.value|amount_role('total') }}</span></a>
         {% endfor %}
       {% endfor %}

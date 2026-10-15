@@ -1853,6 +1853,9 @@ ARABIC_UI = {
     'Save your currencies first.': 'احفظ عملاتك الأول.',
     'Only your currencies are listed.': 'بتظهر عملاتك بس.',
     'Add one in Settings, under Currencies.': 'أضف واحدة من الإعدادات، تحت العملات.',
+    'Institutions': 'المؤسسات',
+    'Used before': 'استخدمتها قبل كده',
+    '+ Add "{name}"': '+ أضف "{name}"',
 }
 
 
