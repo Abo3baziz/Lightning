@@ -25,10 +25,32 @@ from lightning.core.refs import DocType
 from lightning.transactions.tags import normalize as normal_tag
 
 from ..web import container, render
+from ..charts import class_tone
 from ..i18n import translate
 
 ENTRY_FIELDS = ("date", "account_id", "counterparty", "counterparty_choice", "counterparty_typed", "category", "category_choice", "whom", "notes", "amount")
 FAR_PAST, FAR_FUTURE = "1900-01-01", "9999-12-31"
+
+
+
+def account_composition(breakdown, value, owned, held):
+    """U4: the account's classes as one 100% bar (four, then Other) and, when held for others, an owned/held bar."""
+    parts = [row for row in breakdown if row["total"] > 0]
+    total = sum((row["total"] for row in parts), ZERO)
+    held_bar = None
+    if held and held > 0 and value and value > 0:
+        yours = max(owned, ZERO)
+        held_bar = {"owned": yours, "held": held, "owned_pct": float(yours / value * 100), "held_pct": float(held / value * 100)}
+    if (len(parts) < 2 and not held_bar) or not total:
+        return None
+    segments = [{"name": row["name"], "tone": class_tone(row["code"]), "amount": row["total"]} for row in parts[:4]]
+    rest = parts[4:]
+    if rest:
+        segments.append({"name": "Other", "tone": "other", "amount": sum((row["total"] for row in rest), ZERO)})
+    for seg in segments:
+        seg["pct"] = float(seg["amount"] / total * 100)
+        seg["share"] = int((seg["amount"] / total * 100).quantize(Decimal(1), ROUND_HALF_UP))
+    return {"segments": segments if len(parts) >= 2 else [], "held_bar": held_bar}
 
 
 def _int(value) -> int | None:
@@ -134,12 +156,29 @@ def _budget_feedback(c, txn) -> str:
     return "Budget · " + "; ".join(impacts[:2]) if impacts else ""
 
 
+
+def _catalog_asset(assets, item):
+    """The held asset behind a catalogue row: same ticker on the same exchange (U9)."""
+    prefix = "STK" if item["class_code"] == "STOCK" else "FND"
+    symbol, mic = slug(item["ticker"], 20), (item.get("mic") or "").upper()
+    for asset in assets:
+        if asset.code in (f"{prefix}:{symbol}", f"{prefix}:{symbol}-{mic}" if mic else ""):
+            if not mic or not asset.mic or asset.mic.upper() == mic:
+                return asset
+    return None
+
+
+def _catalog_key(item, duplicated):
+    """catalog:TICKER, or catalog:TICKER@MIC when the same ticker is listed on more than one exchange."""
+    mic = (item.get("mic") or "").upper()
+    return f"catalog:{item['ticker']}@{mic}" if mic and item["ticker"].casefold() in duplicated else f"catalog:{item['ticker']}"
+
+
 def _trade_choices(c, account, positions) -> list[dict]:
     """Typeahead choices: bundled stocks/funds plus any custom assets already in this account."""
     if not account or account.account_type not in INVESTMENT_ACCOUNT_TYPES:
         return []
     assets = c.assets.investments(active_only=True)
-    by_code = {asset.code: asset for asset in assets}
     held = {position.asset_id: position.quantity for position in positions}
     choices, included_ids = [], set()
     accounts_in = {a.currency for a in c.accounts.list(active_only=True)}
@@ -157,14 +196,17 @@ def _trade_choices(c, account, positions) -> list[dict]:
             return translate(f"Priced in {currency}: buy it from a {currency} account.", c.settings.get("locale") or "en")
         return ""
 
-    for item in catalog_instruments():
-        prefix = "STK" if item["class_code"] == "STOCK" else "FND"
-        code = f"{prefix}:{slug(item['ticker'], 20)}"
-        asset = by_code.get(code)
+    catalogue = catalog_instruments()
+    seen, duplicated = set(), set()
+    for item in catalogue:
+        name = item["ticker"].casefold()
+        (duplicated if name in seen else seen).add(name)
+    for item in catalogue:
+        asset = _catalog_asset(assets, item)
         if asset:
             included_ids.add(asset.id)
         choices.append({
-            "key": f"asset:{asset.id}" if asset else f"catalog:{item['ticker']}",
+            "key": f"asset:{asset.id}" if asset else _catalog_key(item, duplicated),
             "name": asset.name if asset else item["name"],
             "ticker": item["ticker"],
             "kind": "Stock" if item["class_code"] == "STOCK" else "Fund",
@@ -278,10 +320,11 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
                    for row in rows if row.type == DocType.CNV}
     edit_id = edit_id or _int(qp.get("edit"))
     edit_acct = edit_acct or _int(qp.get("acct")) or account_id
-    if edit_id and edit_values is None:
+    edit_original = {}
+    if edit_id:
         row = next((r for r in rows if r.txn_id == edit_id and r.account_id == edit_acct), None)
         if row is not None:
-            edit_values = {
+            edit_original = {
                 "date": row.date, "account_id": str(row.account_id), "notes": row.notes,
                 "counterparty": row.other_account_label if row.type == DocType.TRF else (row.counterparty or ""),
                 "category": c.categories.get(row.category_id).name if row.category_id else "",
@@ -289,6 +332,8 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
                 "amount": str(row.amount),
                 "whom": custody_owners.get(row.txn_id, ""),
             }
+            if edit_values is None:
+                edit_values = dict(edit_original)
     holdings, account_value, account_owned_value, account_held_value = [], None, None, None
     account_asset_breakdown = []
     if account:
@@ -306,7 +351,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
     if investment_entry.get("instrument_key") and not investment_entry.get("instrument_label"):
         picked = next((item for item in trade_choices if item["key"] == investment_entry["instrument_key"]), None)
         if picked:
-            investment_entry["instrument_label"] = f"{picked['name']} · {picked['ticker']}"
+            investment_entry["instrument_label"] = f"{picked['name']} · {picked['ticker']}" + (f" · {picked['exchange']}" if picked.get("exchange") else "")
     keep = {k: v for k, v in (("q", q), ("tag", "" if q.startswith("#") else filter_tag), ("month", month),
                               ("preset", preset), ("date_from", from_query), ("date_to", to_query),
                               ("category_id", str(raw_category_id) if raw_category_id else "")) if v}
@@ -326,6 +371,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         account_value=account_value, account_owned_value=account_owned_value,
         account_held_value=account_held_value, account_asset_breakdown=account_asset_breakdown,
         holdings=holdings,
+        composition=account_composition(account_asset_breakdown, account_value, account_owned_value, account_held_value) if account_asset_breakdown else None,
         can_invest=can_invest, trade_choices=trade_choices,
         investment_entry=investment_entry, investment_error_field=investment_error_field,
         cash_accounts=[a for a in c.accounts.list(active_only=True) if account and a.id != account.id]
@@ -336,7 +382,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         conversions=conversions,
         custody_present=any(custody_owners.values()),
         entry=entry or {"date": qp.get("date") or fmt_date(today()), "account_id": qp.get("new_acct", "")},
-        edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {},
+        edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {}, edit_original=edit_original,
         q=q, month=month, preset=preset, active_view=active_view,
         saved_views=c.saved_views.list(account_id), view_account_id=account_id or "",
         filter_category=filter_category, filter_tag=filter_tag, tag_flows=tag_flows,
@@ -567,7 +613,7 @@ async def create_investment_entry(request: Request, account_id: int):
               ("date", "instrument_key", "trade_action", "units", "total", "dividend_basis", "unit_price", "price_basis", "fees",
                "fees_included", "cash_account_id", "notes", "whom")}
     values["instrument_label"] = str(form.get("instrument_label", ""))
-    values["is_others"] = "1" if form.get("is_others") else ""
+    values["is_others"] = "1" if (form.get("is_others") or values.get("whom")) else ""
     try:
         if account.account_type not in INVESTMENT_ACCOUNT_TYPES:
             raise ValidationError("Investment entries can only be added to an investment account.")
@@ -598,14 +644,14 @@ async def create_investment_entry(request: Request, account_id: int):
                 if asset.is_cash or not asset.active:
                     raise ValidationError("Choose an active investment.", "instrument")
             elif key.startswith("catalog:"):
-                ticker = key[8:]
-                ticker_row = next((row for row in catalog_instruments() if row["ticker"].casefold() == ticker.casefold()), None)
+                ticker, _, wanted_mic = key[8:].partition("@")
+                ticker_row = next((row for row in catalog_instruments() if row["ticker"].casefold() == ticker.casefold()
+                                   and (not wanted_mic or (row.get("mic") or "").upper() == wanted_mic.upper())), None)
                 if ticker_row is None:
                     raise ValidationError("That instrument is not in the local catalogue. Search and choose a result.",
                                           "instrument")
                 prefix = "STK" if ticker_row["class_code"] == "STOCK" else "FND"
-                code = f"{prefix}:{slug(ticker_row['ticker'], 20)}"
-                asset = next((item for item in c.assets.investments() if item.code == code), None)
+                asset = _catalog_asset(c.assets.investments(), ticker_row)
                 if asset is None:
                     if units is not None and units < ZERO:
                         raise ValidationError(f"You do not hold {ticker_row['name']} in this account yet.", "units")

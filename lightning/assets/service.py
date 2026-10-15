@@ -187,9 +187,14 @@ class AssetService:
         if not symbol:
             raise ValidationError("Enter a short symbol in Latin letters, e.g. COMI.", "symbol")
         code = validate_asset_code(f"{kind.prefix}:{symbol}")
-        if self.repo.get_asset_by_code(code):
-            raise ConflictError(f"{code} already exists.", "symbol")
         venue, country, isin = _venue(class_code, mic, isin) if class_code != "GOLD" else (None, None, None)
+        existing = self.repo.get_asset_by_code(code)
+        if existing and venue and existing.mic and existing.mic != venue:
+            # The same ticker on another exchange is another holding: its code carries the exchange (U9).
+            code = validate_asset_code(f"{kind.prefix}:{symbol}-{venue}")
+            existing = self.repo.get_asset_by_code(code)
+        if existing:
+            raise ConflictError(f"{code} already exists.", "symbol")
         # A listing is priced in its exchange's currency (US shares in USD); the currency is registered if new.
         from lightning.market.iso import venue_currency
         currency = venue_currency(venue) or self.base_currency

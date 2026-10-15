@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Check {{ account.name }}{% endblock %}
-{% block heading %}<div class="acct-title"><h1>Check {{ account.name }}</h1></div><div class="muted small">{{ "What does your bank say? Type the balance it shows."|tr(locale) }}</div>{% endblock %}
+{% block title %}{{ "Adjust balance"|tr(locale) }} · {{ account.name }}{% endblock %}
+{% block heading %}<div class="acct-title"><h1>{{ "Adjust balance"|tr(locale) }}</h1></div><div class="muted small">{{ account.name }} · {{ through }}</div>{% endblock %}
 {% block top_actions %}<a class="btn small" href="/accounts/{{ account.id }}">{{ "Back to account"|tr(locale) }}</a>{% endblock %}
 {% block content %}
 {% if checked_through %}<section class="card phone-card"><h2>{{ 'Checked history'|tr(locale) }}</h2><p>{{ 'Protected through {date}'|tr(locale, date=checked_through) }}</p>
@@ -9,7 +9,7 @@
   <form method="get" action="/accounts/{{ account.id }}/reconcile" class="reconcile-controls">
     <label>On <small class="muted">{{ "the date it shows"|tr(locale) }}</small><input type="text" placeholder="yyyy-mm-dd" inputmode="numeric" autocomplete="off" data-smart-date name="date" value="{{ through }}" required></label>
     <label>{{ "Your bank shows"|tr(locale) }}<small class="muted">{{ "ending balance"|tr(locale) }}</small><input type="text" name="balance" value="{{ balance_input }}" placeholder="e.g. 12,500.00" inputmode="decimal" required></label>
-    <button class="btn primary">{{ "Check"|tr(locale) }}</button>
+    <button class="btn primary">{{ "Adjust balance"|tr(locale) }}</button>
   </form>
   {% if error %}<p class="flash error">{{ error|tr(locale) }}</p>{% endif %}
   <div class="reconcile-figures">

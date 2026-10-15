@@ -51,12 +51,14 @@
 {% endblock %}
 
 {% block top_actions %}
-{% if account and account.account_type.value == 'DEPOSIT' %}<a class="btn primary" href="/deposits/{{ account.id }}">{{ 'View CDs'|tr(locale) }}</a>{% endif %}
-{% if account and account.account_type.value == 'GAMEYA' %}<a class="btn primary" href="/gameya/{{ account.id }}">{{ 'Open gam’eya'|tr(locale) }}</a>{% endif %}
-{% if account %}<a class="btn" href="/accounts/{{ account.id }}/import">{{ 'Import statement'|tr(locale) }}</a>
-{% else %}<a class="btn primary" href="/accounts">{{ 'Choose an account'|tr(locale) }}</a>
-{% endif %}
-<details class="action-menu"><summary aria-label="{{ 'More actions'|tr(locale) }}" title="{{ 'More actions'|tr(locale) }}">⋯</summary><div>{% if account and account.active and account.account_type.value in ('CASH','BANK','BROKERAGE') %}<a href="/accounts/{{ account.id }}/convert">{{ 'Convert'|tr(locale) }}</a><a data-popup-open href="/accounts/{{ account.id }}/ownership/new">{{ 'Change ownership'|tr(locale) }}</a>{% endif %}{% if account %}<a data-popup-open href="/accounts/{{ account.id }}/edit">{{ 'Edit account'|tr(locale) }}</a><a href="/accounts/{{ account.id }}/reconcile">{{ 'Check against bank'|tr(locale) }}</a>{% endif %}<a href="/plan/purchases/new" data-popup-open>{{ 'Bought in instalments'|tr(locale) }}</a><a href="/transactions/deleted">{{ 'Deleted transactions'|tr(locale) }}</a>{% if account %}{% if account.active %}<form method="post" action="/accounts/{{ account.id }}/deactivate"><button class="danger-text">{{ 'Deactivate'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% else %}<form method="post" action="/accounts/{{ account.id }}/reactivate"><button>{{ 'Reactivate'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% endif %}{% endif %}</div></details>
+{% set kind = account.account_type.value if account else '' %}
+{% set cashy = account and account.active and kind in ('CASH','BANK') %}
+{% if kind == 'DEPOSIT' %}<a class="btn primary" href="/deposits/{{ account.id }}">{{ 'View CDs'|tr(locale) }}</a>{% endif %}
+{% if kind == 'GAMEYA' %}<a class="btn primary" href="/gameya/{{ account.id }}">{{ 'Open gam’eya'|tr(locale) }}</a>{% endif %}
+{% if not account %}<a class="btn primary" href="/accounts">{{ 'Choose an account'|tr(locale) }}</a>
+{% elif cashy %}<details class="action-menu money-actions"><summary class="btn">{{ 'Money actions'|tr(locale) }}</summary><div><a href="/accounts/{{ account.id }}/convert">{{ 'Convert currency'|tr(locale) }}</a><a data-popup-open href="/accounts/{{ account.id }}/ownership/new">{{ 'Change ownership'|tr(locale) }}</a><a href="/plan/purchases/new" data-popup-open>{{ 'Bought in instalments'|tr(locale) }}</a></div></details>
+{% else %}<a class="btn" href="/accounts/{{ account.id }}/import">{{ 'Import statement'|tr(locale) }}</a>{% endif %}
+<details class="action-menu"><summary aria-label="{{ 'More actions'|tr(locale) }}" title="{{ 'More actions'|tr(locale) }}">⋯</summary><div>{% if cashy %}<a href="/accounts/{{ account.id }}/import">{{ 'Import statement'|tr(locale) }}</a>{% endif %}{% if account and account.active and kind == 'BROKERAGE' %}<a data-popup-open href="/accounts/{{ account.id }}/ownership/new">{{ 'Change ownership'|tr(locale) }}</a>{% endif %}{% if account %}{% if kind in ('CASH','BANK','BROKERAGE','GAMEYA') %}<a href="/accounts/{{ account.id }}/reconcile">{{ 'Adjust balance'|tr(locale) }}</a>{% elif kind == 'DEPOSIT' %}<a href="/deposits/{{ account.id }}">{{ 'Update value'|tr(locale) }}</a>{% endif %}<a data-popup-open href="/accounts/{{ account.id }}/edit">{{ 'Edit account'|tr(locale) }}</a>{% else %}<a href="/plan/purchases/new" data-popup-open>{{ 'Bought in instalments'|tr(locale) }}</a>{% endif %}<a href="/transactions/deleted">{{ 'Deleted transactions'|tr(locale) }}</a>{% if account %}{% if account.active %}<form method="post" action="/accounts/{{ account.id }}/deactivate"><button class="danger-text">{{ 'Deactivate'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% else %}<form method="post" action="/accounts/{{ account.id }}/reactivate"><button>{{ 'Reactivate'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% endif %}{% endif %}</div></details>
 {% endblock %}
 
 {% block content %}
@@ -79,20 +81,7 @@
 {% if edit_id is not none %}<form id="f-edit" method="post" action="{{ post_url }}/{{ edit_id }}" autocomplete="off"><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% endif %}
 {% set review_form_id = 'f-edit' if edit_id is not none else 'f-new' %}
 {% if entry.get('counterparty_choice') and review_mode != 'counterparty' %}<input form="{{ review_form_id }}" type="hidden" name="counterparty_choice" value="{{ entry.counterparty_choice }}">{% endif %}
-{% if account and account.account_type.value == 'BROKERAGE' %}
-<section class="card account-asset-breakdown">
-  <div class="strip-head"><b>{{ 'By asset class'|tr(locale) }}</b><span class="muted small">{{ 'Level 2 · largest share first'|tr(locale) }}</span></div>
-  {% if account_asset_breakdown %}<div class="table-scroll"><table>
-    <thead><tr><th>{{ 'Asset class'|tr(locale) }}</th><th class="num">{{ 'In this account'|tr(locale) }}</th><th class="num">{{ fig.what_you_own.label }}</th><th class="num">{{ fig.held_for_others.label }}</th></tr></thead>
-    <tbody>{% for row in account_asset_breakdown %}<tr>
-      <td>{{ row.name }}</td>
-      <td class="num"><span>{{ row.total|money }}</span><small class="weight-note">{{ row.weight_total|money }}% of total</small></td>
-      <td class="num"><span>{{ row.yours|money }}</span><small class="weight-note">{{ row.weight_yours|money }}% of yours</small></td>
-      <td class="num"><span>{{ row.held|money }}</span><small class="weight-note">{{ row.weight_held|money }}% of held</small></td>
-    </tr>{% endfor %}</tbody>
-  </table></div>{% else %}<p class="muted small">{{ 'No valued assets in this account yet.'|tr(locale) }}</p>{% endif %}
-</section>
-{% endif %}
+{% include "partials/account_composition.html" %}
 {% if review_mode %}
 <div class="review-backdrop">
   <section class="review-dialog" role="dialog" aria-modal="true" aria-labelledby="register-review-title">
@@ -185,7 +174,7 @@
       {% set kind = 'in' if r.amount > 0 else 'out' %}
       {% if r.type in ('TRF', 'CNV') %}{% set kind = 'transfer' %}{% elif r.type in ('BUY', 'SEL', 'DIV') %}{% set kind = 'invest' %}{% elif r.type == 'OPN' %}{% set kind = 'opening' %}{% endif %}
       {% if edit_id == r.txn_id and edit_acct == r.account_id %}
-      <tr class="add-row editing" data-txn="{{ r.txn_id }}" data-cancel-href="{{ base_url }}{{ '?' ~ keep_qs if keep_qs }}" title="{{ r.ref }} · Enter to save · Esc to cancel · right-click for more">
+      <tr class="add-row editing" data-txn="{{ r.txn_id }}" data-original='{{ edit_original|tojson }}' data-cancel-href="{{ base_url }}{{ '?' ~ keep_qs if keep_qs }}" title="{{ r.ref }} · Enter to save · Esc to cancel · right-click for more">
         <td><a class="sr-only" href="{{ base_url }}{{ '?' ~ keep_qs if keep_qs }}" data-cancel>{{ 'Cancel'|tr(locale) }}</a></td>
         {{ inputs('f-edit', edit, True, r.balance if with_balance else none) }}
       </tr>

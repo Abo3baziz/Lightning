@@ -438,10 +438,10 @@ def _live_the_year(o: Mohab) -> None:
     o.ask("refund", "Amazon refunded me. Did my spending go down?", "Spending")
     o.ask("emergency", "After the repair, how much is left in my emergency fund?", "Cash planning", "Reserves")
     o.ask("fixed", "Is the Carrefour mistake fixed, and the double Talabat gone?", "CIB Payroll")
-    o.ask("reconcile", "Does Lightning match my bank statement?", "CIB Payroll", "Check against bank")
+    o.ask("reconcile", "Does Lightning match my bank statement?", "CIB Payroll", "Adjust balance")
     # The register header is intentionally whole EGP (A16). Reconciliation shows the exact cents.
     statement_balance = money(o.answers["reconcile"].screen.after("Lightning shows"))
-    o.answers["reconcile"].screen = b.submit({"date": "2026-10-31", "balance": str(statement_balance)}, button="Check")
+    o.answers["reconcile"].screen = b.submit({"date": "2026-10-31", "balance": str(statement_balance)}, button="Adjust balance")
 
     # ============================================================== November: a dividend
     o.on("2026-11-30")
@@ -733,13 +733,13 @@ def _the_feedback_round(o: Mohab) -> None:
     o.notes["flat_page"] = b.go("Family flat (my share)")
 
     # What does the bank say? He counts his wallet 30 short; CIB's app shows 5,000 less than Lightning.
-    wallet = money(b.go("Cash wallet", "Check against bank").after("Lightning shows"))
-    o.notes["wallet_check"] = b.submit({"date": "2027-09-30", "balance": str(wallet - 30)}, button="Check")
+    wallet = money(b.go("Cash wallet", "Adjust balance").after("Lightning shows"))
+    o.notes["wallet_check"] = b.submit({"date": "2027-09-30", "balance": str(wallet - 30)}, button="Adjust balance")
     o.notes["wallet_adjusted"] = b.submit({}, button="Post adjustment")
-    b.go("Cash wallet", "Check against bank")
-    o.notes["wallet_rechecked"] = b.submit({"date": "2027-09-30", "balance": str(wallet - 30)}, button="Check")
-    cib = money(b.go("CIB Payroll", "Check against bank").after("Lightning shows"))
-    o.notes["cib_check"] = b.submit({"date": "2027-09-30", "balance": str(cib - 5000)}, button="Check")
+    b.go("Cash wallet", "Adjust balance")
+    o.notes["wallet_rechecked"] = b.submit({"date": "2027-09-30", "balance": str(wallet - 30)}, button="Adjust balance")
+    cib = money(b.go("CIB Payroll", "Adjust balance").after("Lightning shows"))
+    o.notes["cib_check"] = b.submit({"date": "2027-09-30", "balance": str(cib - 5000)}, button="Adjust balance")
 
     # A year of Vodafone Cash in one big file, with a mistake in one row.
     b.go("Vodafone Cash", "Import statement")
@@ -1030,7 +1030,7 @@ def test_an_early_paid_january_is_not_a_month_that_saved_too_little(mohab):
 def test_financial_health_says_the_early_paid_january_in_words(mohab):
     # As the Overview does: a rate of −1,177% says nothing when the pay landed in December.
     answer = mohab.answers["raise_target"]
-    assert answer.shows("Savings rate — Below your limit 21,582 more went out than the 1,833 that came in 2027-01")
+    assert answer.shows("Savings rate — Needs you 21,582 more went out than the 1,833 that came in 2027-01")
     assert not answer.shows("1177")
 
 
@@ -1045,7 +1045,7 @@ def test_needs_you_offers_the_raise_to_the_plan(mohab):
     # 20% of 45,000 is 9,000; with the 5,000 raise he keeps 14,000 of 50,000.
     assert mohab.notes["raise_saved"].shows("Savings target raised to 28.0%: the plan stays and saves the difference. "
                                             "Most you can plan this month is now 31,313; this month's plan fits.")
-    assert mohab.answers["raise_target"].shows("Your limit At least 28.0%")
+    assert mohab.answers["raise_target"].shows("Good from At least 28.0%")
 
 
 def test_a_plan_below_both_loans_is_named_and_fixed(mohab):

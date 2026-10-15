@@ -115,7 +115,7 @@ def matches(c, query: str, privacy: bool = False, per_group: int = 6) -> list[di
         add(score, account.label, f"/accounts/{account.id}", "Account", account.account_type.label
             if hasattr(account.account_type, "label") else account.account_type.value.replace("_", " ").capitalize())
         if account.account_type.value in ("BANK", "CASH", "BROKERAGE"):
-            for verb, path in (("Import CSV", "import"), ("Check against bank", "reconcile")):
+            for verb, path in (("Import CSV", "import"), ("Adjust balance", "reconcile")):
                 add(max(_score(needle, f"{verb} {account.label}", fuzzy), _score(needle, verb, False) * 0.85 if score
                         or len(needle) > 2 else 0), f"{verb} · {account.label}", f"/accounts/{account.id}/{path}", "Action")
     for party in c.counterparties.list_active():

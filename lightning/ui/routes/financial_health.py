@@ -27,8 +27,12 @@ GROUPS = (("Cushion", ("emergency_fund",)),
                                             "loan_payments_to_income")))
 
 
+BAND_WORDS = {"good": "Good", "watch": "Watch", "alert": "Needs you"}
+_BAND_CHIP = {"good": "up", "watch": "", "alert": "over"}  # green tint, quiet, rose (A08)
+
+
 def _tone(item) -> str:
-    return "over" if item.status == "outside your limit" else _TONE.get(item.key, "hold")
+    return "over" if item.band == "alert" else _TONE.get(item.key, "hold")
 
 
 def _meter(item) -> dict | None:
@@ -42,8 +46,10 @@ def _meter(item) -> dict | None:
         top = max(Decimal(100), value * Decimal("1.1"), (limit or 0) * Decimal("1.1"))
     else:
         top = max((limit or 0) * Decimal("1.25"), value * Decimal("1.1"), Decimal(1))
+    alert = Decimal(item.alert) if item.alert is not None else None
     return {"fill": float(min(value / top * 100, Decimal(100))),
             "tick": float(limit / top * 100) if limit is not None else None,
+            "ticks": [float(min(bound / top * 100, Decimal(100))) for bound in (limit, alert) if bound is not None],
             "tone": {"out": "spend"}.get(_tone(item), _tone(item))}  # the chart tone names (style.css)
 
 
@@ -52,12 +58,14 @@ def _limit_words(item) -> str:
         return "No limit set"
     side = "at least" if item.direction == "minimum" else "at most"
     amount = f"{item.limit:.1f}%" if item.unit == "%" else f"{item.limit:.0f} months"
-    if item.status == "within your limit":
-        return f"Within your limit of {side} {amount}"
-    if item.status == "outside your limit":
-        word = "Below" if item.direction == "minimum" else "Above"
-        return f"{word} your limit of {side} {amount}"
-    return f"Your limit is {side} {amount}"
+    if item.band == "alert" and item.alert is not None:
+        past = f"{item.alert:.1f}%" if item.unit == "%" else f"{item.alert:.0f} months"
+        return f"{'Below' if item.direction == 'minimum' else 'Above'} {past}: needs you"
+    if item.band == "watch":
+        return f"Good is {side} {amount}"
+    if item.band == "good":
+        return f"Good: {side} {amount}"
+    return f"Good is {side} {amount}"
 
 
 def _chip(period: str) -> str:
@@ -71,14 +79,14 @@ def _chip(period: str) -> str:
 def _kpi(item, label: str) -> dict:
     """One headline card (stat_tile): coloured by what the figure means, its chip says good or bad."""
     tone = _tone(item)
-    chip_tone = {"within your limit": "up", "outside your limit": "over"}.get(item.status or "", "")
+    chip_tone = _BAND_CHIP.get(item.band or "", "")
     meter = _meter(item)
     return {"key": item.key, "label": label, "href": item.href, "surface": tone,
             "value": None if item.gap else item.value, "empty": "—",
             "kind": "months" if item.unit == "months" else "rate",
-            "badge": {"text": _chip(item.period), "tone": chip_tone, "arrow": ""},
-            "sub": item.gap or _limit_words(item),
-            "meter": {"tone": meter["tone"], "width": meter["fill"]} if meter else None}
+            "badge": {"text": BAND_WORDS.get(item.band or "") or _chip(item.period), "tone": chip_tone, "arrow": ""},
+            "sub": item.gap or _limit_words(item), "band": item.band,
+            "meter": {"tone": meter["tone"], "width": meter["fill"], "ticks": meter["ticks"]} if meter else None}
 
 
 def _trend_summary(trends, attr: str) -> dict:

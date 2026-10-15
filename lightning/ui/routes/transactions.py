@@ -472,6 +472,55 @@ async def categorize_transactions(request: Request):
     return redirect(destination, message)
 
 
+@router.post("/transactions/bulk-edit")
+async def bulk_edit_transactions(request: Request):
+    """Edit many rows at once with only the fields the user changed on the edited row (U2)."""
+    c = container(request)
+    form = await request.form()
+    ids = [int(value) for value in form.getlist("txn_ids") if str(value).isdigit()]
+    back = str(form.get("back", ""))
+    destination = back if back.startswith("/") and not back.startswith("//") else "/transactions"
+    if not ids:
+        return redirect(destination, "Choose at least one transaction.")
+    changes: dict = {}
+    try:
+        for key in ("date", "notes"):
+            if key in form:
+                changes[key] = str(form.get(key, "")).strip()
+        if "counterparty" in form:
+            name = str(form.get("counterparty", "")).strip()
+            if name.casefold() in {a.label.casefold() for a in c.accounts.list(active_only=True)}:
+                raise ValidationError("Turn a row into a transfer one row at a time.", "counterparty")
+            changes["counterparty"] = name
+        if "category" in form or "category_choice" in form:
+            choice = str(form.get("category_choice", "")).strip()
+            category = c.categories.get(int(choice)) if choice.isdigit() else c.categories.find_by_text(str(form.get("category", "")))
+            changes["category_id"] = category.id
+        if "whom" in form:
+            party = c.counterparties.resolve(str(form.get("whom", "")).strip())
+            if not party or not party["active"]:
+                raise ValidationError("Choose a saved Counterparty in Held for.", "whom")
+            changes["owner_id"] = party["id"]
+        if not changes:
+            return redirect(destination, "Nothing changed on the selected rows.")
+        with c.db.transaction():
+            changed, skipped = c.transactions.bulk_update(ids, changes)
+            if "owner_id" in changes:
+                for txn_id in changed:
+                    txn = c.transactions.get(txn_id)
+                    cash = next((ln for ln in txn.lines if c.assets.get_asset(ln.asset_id).is_cash), None)
+                    if cash:
+                        c.money_from_others.sync_transaction(txn.id, txn.date, str(form.get("whom")).strip(),
+                                                             cash.account_id, cash.quantity, txn.notes)
+    except LightningError as exc:
+        return redirect(destination, exc.message)
+    message = f"Changed {len(changed)} row{'s' if len(changed) != 1 else ''}."
+    if skipped:
+        message += (f" {len(skipped)} left as {'they were' if len(skipped) != 1 else 'it was'}: transfers, investment rows, "
+                    "split expenses and rows going the other way keep their own values.")
+    return redirect(destination, message)
+
+
 @router.post("/transactions/{txn_id:int}/restore")
 async def restore_transaction(request: Request, txn_id: int):
     try:

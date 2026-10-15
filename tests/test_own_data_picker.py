@@ -38,7 +38,7 @@ def test_fixed_enum_selects_are_not_marked_as_own_data():
     reserves = (ROOT / "lightning/ui/templates/reserves.html").read_text()
 
     assert 'id="account_type" name="account_type" data-groups' in account_form
-    assert 'id="kind" name="kind"' in planning_form
+    assert 'type="radio" name="kind"' in planning_form  # a segment now (U13)
     assert 'id="frequency" name="frequency"' in planning_form
     assert 'name="recurrence"' in reserves
     # Match by is a segment now (one choice, one field; owner, 2026-10-06), and never an own-data picker.

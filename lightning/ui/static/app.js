@@ -319,11 +319,19 @@ find("input[data-own-suggestions][list]").forEach((input) => {
 };
 initOwnDataPickers();
 
-// A small page jump replaces a sticky header while reading a long register.
+// A small page jump replaces a sticky header while reading a long register. It stays out of the way: hidden
+// until the pointer nears the bottom-right corner (bottom-left in Arabic) or the page is being scrolled, and gone
+// 1.5 s after. Keyboard focus shows it. Reduced motion: no fade (the CSS), the same show and hide.
 (() => {
   const jump = document.getElementById("page-jump");
   if (!jump) return;
   const atEnd = () => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 32;
+  let hideTimer = 0;
+  const wake = () => {
+    jump.classList.add("is-visible");
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => { if (!jump.matches(":focus-visible, :hover")) jump.classList.remove("is-visible"); }, 1500);
+  };
   const update = () => {
     const canMove = document.documentElement.scrollHeight > window.innerHeight + 180;
     const nearTop = window.scrollY < 180;
@@ -335,8 +343,17 @@ initOwnDataPickers();
     jump.classList.toggle("is-top", toTop);
   };
   jump.addEventListener("click", () => window.scrollTo({ top: jump.dataset.target === "top" ? 0 : document.documentElement.scrollHeight, behavior: "smooth" }));
-  window.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update); update();
+  window.addEventListener("scroll", () => { update(); wake(); }, { passive: true });
+  window.addEventListener("resize", update);
+  // The proximity handler: the pointer within 140px of the corner wakes it.
+  document.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") return;
+    const rtl = document.documentElement.dir === "rtl";
+    const dx = rtl ? event.clientX : window.innerWidth - event.clientX;
+    if (dx < 140 && window.innerHeight - event.clientY < 140) wake();
+  }, { passive: true });
+  jump.addEventListener("focus", wake);
+  update();
 })();
 
 // The app's own question dialog, in place of the browser's confirm and alert boxes.
@@ -384,6 +401,29 @@ window.askFrom = (text, extra = {}) => {
   const danger = /\b(delete|remove)\b/i.test(title);
   return window.ask({ title, message: rest.join(" "), ok: danger ? "Delete" : "OK", tone: danger ? "danger" : "info", ...extra });
 };
+// askChoice({title, message, choices: [{label, value, primary}]}) resolves the chosen value, or null on Escape.
+window.askChoice = ({ title, message = "", choices }) => new Promise((resolve) => {
+  const dialog = document.createElement("dialog");
+  dialog.className = "ask-dialog tone-info";
+  dialog.setAttribute("aria-labelledby", "ask-title");
+  dialog.innerHTML = '<form method="dialog" class="ask-frame"><div class="ask-text"><h2 id="ask-title"></h2><p id="ask-message"></p></div><div class="ask-actions"></div></form>';
+  dialog.querySelector("h2").textContent = title;
+  dialog.querySelector("p").textContent = message;
+  if (!message) dialog.querySelector("p").remove();
+  let answer = null;
+  const actions = dialog.querySelector(".ask-actions");
+  choices.forEach((choice) => {
+    const button = document.createElement("button");
+    button.type = "button"; button.className = choice.primary ? "btn primary" : "btn"; button.textContent = choice.label;
+    button.addEventListener("click", () => { answer = choice.value; dialog.close(); });
+    actions.append(button);
+  });
+  const back = document.activeElement;
+  dialog.addEventListener("close", () => { dialog.remove(); if (back?.isConnected) back.focus?.(); resolve(answer); }, { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  actions.querySelector(".primary")?.focus();
+});
 // For a submit handler: stop this submit, ask, and send the same form (and button) again on yes.
 window.confirmSubmit = (() => {
   const passed = new WeakSet();
@@ -706,9 +746,21 @@ if (ledger) {
   const count = document.getElementById("selection-count");
   const selectAll = document.getElementById("select-visible");
   const visibleChecks = () => [...ledger.querySelectorAll(".transaction-select:not(:disabled)")];
-  const selectedIds = () => [...new Set(visibleChecks().filter((box) => box.checked).map((box) => box.value))];
+  // U2: the ticked rows survive the page load that opens a row for editing (sessionStorage, keyed by the page).
+  const editRow = document.querySelector("tr.editing[data-txn]");
+  const selKey = (() => { const q = new URLSearchParams(location.search); ["edit", "acct", "pick"].forEach((k) => q.delete(k)); return `lightning-selection:${location.pathname}?${q}`; })();
+  const readSel = () => { try { return JSON.parse(sessionStorage.getItem(selKey) || "[]"); } catch (e) { return []; } };
+  const writeSel = (ids) => { try { ids.length ? sessionStorage.setItem(selKey, JSON.stringify(ids)) : sessionStorage.removeItem(selKey); } catch (e) {} };
+  const kept = editRow ? readSel() : [];
+  if (!editRow) writeSel([]);
+  const selectedIds = () => {
+    const ticked = visibleChecks().filter((box) => box.checked).map((box) => box.value);
+    const all = new Set(visibleChecks().map((box) => box.value));
+    return [...new Set([...ticked, ...kept.filter((id) => !all.has(id))])];
+  };
   const syncSelection = () => {
     const selected = selectedIds();
+    writeSel(selected);
     if (tools) tools.hidden = selected.length === 0;
     const merge = document.getElementById("merge-selected");
     if (merge) merge.hidden = selected.length !== 2;
@@ -738,7 +790,46 @@ if (ledger) {
     ids.forEach((id) => { const input = document.createElement("input"); input.type = "hidden"; input.name = "txn_ids"; input.value = id; form.append(input); });
     document.body.append(form); form.submit();
   };
-  visibleChecks().forEach((box) => box.addEventListener("change", syncSelection));
+  visibleChecks().forEach((box) => { box.checked = kept.includes(box.value) || box.checked; box.addEventListener("change", syncSelection); });
+  if (kept.length) syncSelection();
+  // Saving an edited row while others are ticked: ask whether the change is for this row or all of them.
+  const editForm = document.getElementById("f-edit");
+  if (editForm && editRow) {
+    let decided = false;
+    editForm.addEventListener("submit", (event) => {
+      if (decided) { writeSel([]); return; }
+      const ticked = selectedIds();
+      const ids = [...new Set([...ticked, editRow.dataset.txn])];
+      if (!ticked.length || ids.length < 2) return;
+      let original = {};
+      try { original = JSON.parse(editRow.dataset.original || "{}"); } catch (e) {}
+      const value = (name) => (editForm.elements[name]?.value ?? "").trim();
+      const changed = ["date", "counterparty", "category", "notes", "whom"].filter((name) => value(name) !== String(original[name] ?? "").trim());
+      if (!changed.length) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      const submitter = event.submitter;
+      const amountChanged = value("amount") !== String(original.amount ?? "").trim();
+      window.askChoice({
+        title: t("Change {count} selected rows?", {count: ids.length}),
+        message: amountChanged ? t("The amount changes on this row only.") : "",
+        choices: [{ label: t("Only this row"), value: "one" }, { label: t("All {count} rows", {count: ids.length}), value: "all", primary: true }],
+      }).then((choice) => {
+        if (choice === "one") { decided = true; writeSel([]); editForm.requestSubmit(submitter); return; }
+        if (choice !== "all") return;
+        const form = document.createElement("form"); form.method = "post"; form.action = "/transactions/bulk-edit";
+        const add = (name, val) => { const input = document.createElement("input"); input.type = "hidden"; input.name = name; input.value = val; form.append(input); };
+        const q = new URLSearchParams(location.search); ["edit", "acct"].forEach((k) => q.delete(k));
+        add("back", location.pathname + (q.toString() ? `?${q}` : ""));
+        const token = document.querySelector('meta[name="lightning-session"]')?.content;
+        if (token) add("__session", token);
+        ids.forEach((id) => add("txn_ids", id));
+        changed.forEach((name) => add(name, value(name)));
+        if (changed.includes("category")) add("category_choice", value("category_choice"));
+        writeSel([]);
+        document.body.append(form); form.submit();
+      });
+    }, true);
+  }
   selectAll?.addEventListener("change", () => { visibleChecks().forEach((box) => { box.checked = selectAll.checked; }); syncSelection(); });
   document.getElementById("select-visible-header")?.addEventListener("click", (event) => {
     if (event.target.closest("input")) return;
@@ -912,7 +1003,10 @@ document.querySelectorAll(".import-transfer-suggestion").forEach((button) => {
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   const cancel = document.querySelector("[data-cancel]");
-  if (cancel && e.target.closest("tr.editing")) location.href = cancel.href;
+  if (cancel && e.target.closest("tr.editing")) {
+    try { const q = new URLSearchParams(location.search); ["edit", "acct", "pick"].forEach((k) => q.delete(k)); sessionStorage.removeItem(`lightning-selection:${location.pathname}?${q}`); } catch (err) {}
+    location.href = cancel.href;
+  }
 });
 // Sums in amount fields: 120+35*2 becomes 190 when you leave the field or press Enter, so the
 // saved amount is always one you saw. The server works the sum out (lightning/core/money.py:
@@ -1067,7 +1161,7 @@ if (tradeCatalogueNode) {
   const basis = form.querySelector('[name="price_basis"]');
   const amountLabel = document.getElementById("investment-total-label");
   const positionHint = document.getElementById("trade-position-hint");
-  const entryHint = document.getElementById("investment-entry-hint");
+  const payLine = document.getElementById("investment-pay-line");
   const addButton = form.querySelector(".investment-entry-submit");
   let selected = instruments.find((item) => item.key === selectedKey.value) || null;
   let activeResult = 0;
@@ -1105,8 +1199,6 @@ if (tradeCatalogueNode) {
     if (feesField) feesField.hidden = isDividend;
     if (feesToggleField) feesToggleField.hidden = isDividend;
     if (fees) fees.disabled = isDividend;
-    const feesLabel = feesField?.querySelector("label");
-    if (feesLabel) feesLabel.textContent = t(feesExcluded?.checked ? "Fees (on top of the amount)" : "Fees (inside the amount)");
     if (feesExcluded) feesExcluded.disabled = isDividend;
     if (unitPrice) unitPrice.disabled = isDividend;
     if (isDividend) {
@@ -1138,19 +1230,31 @@ if (tradeCatalogueNode) {
       positionHint.textContent = t("You hold {quantity} {unit}(s) here.", {quantity: formatted(Number(selected.holding || 0), selected.decimals), unit: selected.unit});
     }
     if (selected && selected.note) positionHint.textContent += ` ${t(selected.note)}`;
-    if (isDividend) entryHint.textContent = dividendBasis?.value === "per_share"
-      ? t("The total dividend uses this rate × shares held by the selected owner on the transaction date.")
-      : t("Enter the total dividend received. The selected owner must hold shares on the transaction date.");
-    else entryHint.textContent = actionKind === "sell"
-      ? t("Enter the number of units sold. Choose whether the sale total includes fees below.")
-      : t("Enter the number of units bought. Fees are included in your cost basis.");
+    // The live "You pay …" line (display only; the posted amounts are recomputed in Python).
+    if (payLine) {
+      const cur = form.dataset.currency || "";
+      const money = (value) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(value);
+      let text = "";
+      if (isDividend) {
+        if (cashTotal !== null && dividendBasis?.value !== "per_share") text = t("You receive {cash} {currency}", {cash: money(cashTotal), currency: cur});
+      } else if (qty !== null && Math.abs(qty) > 0 && cashTotal !== null) {
+        const buying = qty > 0;
+        const gross = cashTotal + (included ? (buying ? -fee : fee) : 0);
+        const cash = buying ? gross + fee : gross - fee;
+        text = t(buying ? "You pay {cash} {currency} · {gross} for {units} units at {price} + {fees} fees"
+                        : "You receive {cash} {currency} · {gross} for {units} units at {price} − {fees} fees",
+                 {cash: money(cash), currency: cur, gross: money(gross), units: formatted(Math.abs(qty), selected ? selected.decimals : 6) || money(Math.abs(qty)),
+                  price: money(gross / Math.abs(qty)), fees: money(fee)});
+      }
+      payLine.textContent = text;
+    }
     addButton.disabled = exceeds;
   };
   const renderResults = () => {
     const query = search.value.trim().toLocaleLowerCase();
     results.replaceChildren();
     if (!query) { results.hidden = true; search.setAttribute("aria-expanded", "false"); return; }
-    const matches = instruments.filter((item) => `${item.name} ${item.ticker} ${item.kind} ${item.exchange || ""}`
+    const matches = instruments.filter((item) => `${item.name} ${item.ticker} ${item.exchange || ""}`
       .toLocaleLowerCase().includes(query)).slice(0, 12);
     activeResult = 0;
     if (!matches.length) {
@@ -1164,12 +1268,13 @@ if (tradeCatalogueNode) {
       button.type = "button"; button.className = "instrument-result"; button.setAttribute("role", "option");
       button.setAttribute("aria-selected", index === activeResult ? "true" : "false");
       if (index === activeResult) button.classList.add("is-active");
-      const name = document.createElement("span"); name.textContent = item.name;
-      const ticker = document.createElement("small"); ticker.textContent = `${item.kind} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
+      const name = document.createElement("span"); name.className = "instrument-name"; name.textContent = item.name;
+      const ticker = document.createElement("small"); ticker.textContent = `${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
+      button.title = `${item.name} · ${ticker.textContent}`;
       button.append(name, ticker);
       const choose = () => {
         selected = item; selectedKey.value = item.key;
-        selectedLabel.value = `${item.name} · ${item.ticker}`;
+        selectedLabel.value = `${item.name} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`;
         search.value = selectedLabel.value;
         results.hidden = true; search.setAttribute("aria-expanded", "false"); sync();
       };
@@ -1203,7 +1308,7 @@ if (tradeCatalogueNode) {
   });
   search.addEventListener("input", () => {
     selected = null; selectedKey.value = ""; selectedLabel.value = "";
-    positionHint.textContent = t("Choose an instrument from the results."); renderResults(); sync();
+    positionHint.textContent = ""; renderResults(); sync();
   });
   search.addEventListener("focus", renderResults);
   units.addEventListener("input", sync);
@@ -1224,7 +1329,7 @@ if (tradeCatalogueNode) {
       results.hidden = true; search.setAttribute("aria-expanded", "false");
     }
   });
-  if (selected) { search.value = selectedLabel.value || `${selected.name} · ${selected.ticker}`; }
+  if (selected) { search.value = selectedLabel.value || `${selected.name} · ${selected.ticker}${selected.exchange ? ` · ${selected.exchange}` : ""}`; }
   sync();
 }
 
@@ -1256,7 +1361,7 @@ if (catalogueNode) {
     if (!matches.length) { const empty=document.createElement("div"); empty.className="instrument-result"; empty.textContent=t("No match. You can enter the investment details below."); results.append(empty); }
     matches.forEach((item) => {
       const button=document.createElement("button"); button.type="button"; button.className="instrument-result"; button.setAttribute("role","option");
-      const label=document.createElement("span"); label.textContent=item.name; const ticker=document.createElement("small"); ticker.textContent=`${item.kind} · ${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`; button.append(label,ticker);
+      const label=document.createElement("span"); label.textContent=item.name; const ticker=document.createElement("small"); ticker.textContent=`${item.ticker}${item.exchange ? ` · ${item.exchange}` : ""}`; button.append(label,ticker);
       button.addEventListener("click", () => { name.value=item.name; kind.value=item.class_code; if(symbol) symbol.value=item.ticker; if(venue) venue.value=item.mic||""; search.value=`${item.name} · ${item.ticker}`; results.hidden=true; search.setAttribute("aria-expanded","false"); selection.textContent=t("Selected {name} ({ticker}). Review the details, then save.", {name: item.name, ticker: item.ticker}); }); results.append(button);
     }); results.hidden=false; search.setAttribute("aria-expanded","true");
   };
@@ -2463,7 +2568,7 @@ window.lightningPrivacy = (() => {
     if (!leaves(url) || (url.pathname === location.pathname && url.search === location.search)) return;
     window.setTimeout(() => {
       if (event.defaultPrevented) return;
-      slow = window.setTimeout(() => show("Opening…"), 500);
+      slow = window.setTimeout(() => show("Opening…"), 300);
       safety = window.setTimeout(reset, 20000);
     }, 0);
   });

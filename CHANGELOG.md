@@ -12,6 +12,14 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 ## [Unreleased]
 - 2026-10-15 · Claude: two owner-requested reports, nothing fixed: an outside review of every tab (figures, wording, links, wiring, next steps) and a design for brokerages across exchanges and currencies (pockets, listings, workflows, analysis); `report/`.
 
+- 2026-10-15 · Claude: Page jump stays bottom right and appears only near the corner or while scrolling; the PC loading note matches the phone (muted square, bottom right, 300 ms);
+  Financial health figures have three bands (Good / Watch / Needs you, editable; `HealthService.band`); Needs you tints the card soft rose (U1, U14, U15).
+- 2026-10-15 · Claude: Quiet forms: picker results are popovers, one line (name · ticker · exchange); investment entry is a segment + rows with a live "You pay" line (fee choice kept); fewer help lines (A14);
+  same ticker on two exchanges stays two holdings; salary "arrives on day N"; compact recurring-item form (U8, U9, U3 layout, U12, U13).
+- 2026-10-15 · Claude: Register: ticked rows survive opening a row to edit; saving with several ticked asks "Only this row / All N rows" and `POST /transactions/bulk-edit` applies only the changed fields
+  (`TransactionService.bulk_update`; amounts never; unfit rows skipped and counted). U2, designs 005.
+- 2026-10-15 · Claude: Account page: **Money actions** menu only for Cash and Bank (Convert currency, Change ownership, Bought in instalments); "Check against bank" is now **Adjust balance** on every cash-holding account (CDs and physical items say Update value);
+  the brokerage asset-class table became a **What's in it** bar (U4-U6, designs 005).
 - 2026-10-15 · Claude: import posts a day's money in before money out when the day ends at or above zero, so a newest-first statement no longer fails on overdrawn spending (T15, `bank_imports.py`).
 - 2026-10-15 · Claude: Import review is one row per bank line with filter chips and a bulk edit bar; no per-name `group_*` choices; held for works on any row (T12-T14).
 - 2026-10-15 · Claude: welcome page: the sample offer is four equal boxes (Mohab's year, Amr, Menna, Fatma) under one section header; the three-month button, long paragraphs and CSV links are gone; `welcome.html`, `style.css`.
