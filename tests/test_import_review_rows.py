@@ -152,3 +152,42 @@ def test_bulk_bar_writes_into_the_ticked_rows_and_posts(c, setup):
         host.stop()
     assert len([p for p in c.counterparties.list_active() if p["name"] == "Mega Shop"]) == 1
     assert c.bank_imports.summary(batch)["posted"] == 2
+
+
+def _income_code(c):
+    return c.db.scalar("SELECT id FROM categories WHERE code LIKE 'INC.%' ORDER BY id LIMIT 1")
+
+
+def test_same_day_money_in_posts_first_when_the_day_ends_above_zero(c, setup):
+    accounts, cats = setup
+    fresh = c.account_flows.open_account("Fresh", "BANK", "2026-09-01", "0").id
+    batch, rows = _stage(c, fresh, "Date,Counterparty,Amount\n2026-09-10,Carrefour,-2000\n2026-09-10,Zara,-500\n"
+                                   "2026-09-10,Employer,10000\n")
+    ids = _ids(rows)
+    food = str(cats["EXP.PERSONAL.FOOD"].id)
+    response = _post(c, fresh, batch, {
+        f"counterparty_{ids[2]}": "Carrefour", f"category_{ids[2]}": food,
+        f"counterparty_{ids[3]}": "Zara", f"category_{ids[3]}": food,
+        f"counterparty_{ids[4]}": "Employer", f"category_{ids[4]}": str(_income_code(c))})
+    assert "Import complete" in response.text
+    assert c.bank_imports.summary(batch)["posted"] == 3
+    assert c.reconciliation.balance(fresh, "2026-09-10") == D("7500")
+    posted = c.db.all("SELECT t.id, le.quantity_e6 q FROM ledger_entries le JOIN transactions t ON t.id=le.transaction_id "
+                      "WHERE le.account_id=? AND t.status='POSTED' AND le.quantity_e6<>0 ORDER BY t.id", (fresh,))
+    running = D(0)
+    for row in posted:                                     # money in first: never below zero while posting
+        running += D(row["q"]) / D(1_000_000)
+        assert running >= 0
+
+
+def test_a_day_ending_below_zero_keeps_statement_order(c, setup):
+    accounts, cats = setup
+    fresh = c.account_flows.open_account("Fresh", "BANK", "2026-09-01", "0").id
+    batch, rows = _stage(c, fresh, "Date,Counterparty,Amount\n2026-09-10,Carrefour,-2000\n2026-09-10,Employer,10\n")
+    ids = _ids(rows)
+    order = []
+    orig = c.bank_imports._post_import_row
+    c.bank_imports._post_import_row = lambda b, rid, *a, **k: (order.append(rid), orig(b, rid, *a, **k))[1]
+    c.bank_imports.confirm(batch, {ids[2]: {"counterparty": "Carrefour", "category": str(cats["EXP.PERSONAL.FOOD"].id)},
+                                   ids[3]: {"counterparty": "Employer", "category": str(_income_code(c))}})
+    assert order[:2] == [ids[2], ids[3]]

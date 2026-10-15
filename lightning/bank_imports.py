@@ -14,6 +14,7 @@ from lightning.categories.domain import Movement
 from lightning.core.dates import now_iso, parse_date, today
 from lightning.core.errors import ConflictError, LightningError, NotFoundError, ValidationError
 from lightning.core.limits import MAX_CSV_IMPORT_BYTES
+from lightning.core.money import from_e6
 from lightning.core.refs import DocType
 from lightning.transactions.domain import TxnSource
 from lightning.transactions.tags import tags_in
@@ -560,14 +561,44 @@ class BankImportService:
         _, rows = self.preview(batch_id)
         row_by_id = {r["_import_row_id"]: r for r in rows}
         accounts = self.accounts.list(active_only=True)
-        def posting_order(item):
+        def parsed(item):
             row_id, decision = item
             row = row_by_id.get(int(row_id), {})
             try:
                 day = _date(str(decision.get("date", row.get("Date", ""))))
             except ValueError:
                 day = "9999-12-31"
-            return day, int(row.get("_line", 0))
+            try:
+                amount = Decimal(_amount(str(decision.get("amount", row.get("Amount", "0")))))
+            except (ValueError, ArithmeticError):
+                amount = Decimal(0)
+            match = str(decision.get("match") or "")
+            posts = not (decision.get("skip") or match == "skip" or match.startswith("link:"))
+            return day, int(row.get("_line", 0)), amount if posts else Decimal(0), posts
+
+        # Same-day order: a day whose account balance ends at or above zero posts its inflows first (a newest-first
+        # statement lists the day's spending before the salary); a day ending below zero keeps the statement's order.
+        items = {int(k): parsed((k, v)) for k, v in decisions.items()}
+        day_total: dict[str, Decimal] = {}
+        for day, _line, amount, posts in items.values():
+            if posts:
+                day_total[day] = day_total.get(day, Decimal(0)) + amount
+        inflows_first: set[str] = set()
+        running = None
+        for day in sorted(day_total):
+            if running is None:
+                running = from_e6(self.db.scalar(
+                    "SELECT COALESCE(SUM(le.quantity_e6),0) FROM ledger_entries le JOIN transactions t ON t.id=le.transaction_id "
+                    "WHERE le.account_id=? AND le.date<? AND t.status='POSTED' "
+                    "AND le.asset_id IN (SELECT id FROM financial_assets WHERE is_cash=1)",
+                    (batch["account_id"], day)) or 0)
+            running += day_total[day]
+            if running >= 0:
+                inflows_first.add(day)
+
+        def posting_order(item):
+            day, line, amount, _ = items[int(item[0])]
+            return day, int(day in inflows_first and amount <= 0), line
 
         errors = {}
         ambiguous_reserves = 0

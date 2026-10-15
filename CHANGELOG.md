@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: import posts a day's money in before money out when the day ends at or above zero, so a newest-first statement no longer fails on overdrawn spending (T15, `bank_imports.py`).
 - 2026-10-15 · Claude: Import review is one row per bank line with filter chips and a bulk edit bar; no per-name `group_*` choices; held for works on any row (T12-T14).
 - 2026-10-15 · Claude: welcome page: the sample offer is four equal boxes (Mohab's year, Amr, Menna, Fatma) under one section header; the three-month button, long paragraphs and CSV links are gone; `welcome.html`, `style.css`.
 - 2026-10-15 · Claude: page header: one `.topbar` CSS block and a `page_header` macro (tile, title, line, figure strip); the account page shows its bank's tile, a Balance strip, one Secondary (Import statement) and ⋯; guideline A05/C04.7.
