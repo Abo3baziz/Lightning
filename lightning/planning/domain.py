@@ -184,5 +184,10 @@ class CashForecast:
     payments_before_income: list[Payment] = field(default_factory=list)
 
     @property
+    def first_short_month(self) -> ForecastMonth | None:
+        """The first forecast month that ends below your reserves (free cash under zero), if any."""
+        return next((m for m in self.months if m.closing < 0), None)
+
+    @property
     def lowest(self) -> ForecastMonth | None:
         return min(self.months, key=lambda m: m.closing) if self.months else None

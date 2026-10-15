@@ -117,6 +117,7 @@ def _plan_stats(f, plan, day, has_income: bool = True) -> list[dict]:
     """Four cards: safe to spend, free cash, what is due before the next income, the lowest point ahead."""
     until = f.next_income_date
     low = f.lowest if has_income else None
+    short = f.first_short_month if has_income else None
     nxt = plan["before_income"][0] if plan["before_income"] else None
     return [
         {"key": "safe", "surface": "hold", "label": label("safe_to_spend"), "value": f.safe_to_spend, "kind": "money",
@@ -133,7 +134,8 @@ def _plan_stats(f, plan, day, has_income: bool = True) -> list[dict]:
          "href": "#plan-next"},
         {"key": "low", "surface": "over" if low and low.closing < 0 else "hold", "label": "Lowest point ahead", "value": low.closing if low else None, "kind": "money",
          "empty": "—", "badge": {"tone": "over" if low and low.closing < 0 else "flat", "text": low.month if low else "—"},
-         "sub": "Cash at its lowest month end in the forecast" if low else "Add your bills and income to see it",
+         "sub": (f"Runs short in {short.month}: the month ends below your reserves" if short
+                 else "Cash at its lowest month end in the forecast" if low else "Add your bills and income to see it"),
          "spark": plan["forecast_spark"], "spark_tone": "over" if low and low.closing < 0 else "hold", "href": "#plan-forecast"},
     ]
 

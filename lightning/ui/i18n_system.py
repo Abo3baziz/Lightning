@@ -494,6 +494,7 @@ SENTENCES = {
     "Budget actuals should reconcile to posted money-out categories.": "المفروض فعلي الميزانية يطابق فئات الفلوس الخارجة المسجلة.",
     "Budget limits are intentionally excluded; reserves assign real cash and bills due are owed now.": "حدود الميزانية مستبعدة قصدًا؛ المبالغ المحجوزة بتخصص نقدية فعلية، والفواتير المستحقة عليك دلوقتي.",
     "Cash at its lowest month end in the forecast": "النقدية في أقل آخر شهر في التوقع",
+    "Runs short in {month}: the month ends below your reserves": "هتقل عن المطلوب في {month}: الشهر هينتهي تحت احتياطياتك",
     "Cash in {name} increases by {amount}": "النقدية في {name} هتزيد بـ {amount}",
     "Cash you own after reserves and bills due · today": "النقدية اللي تملكها بعد المبالغ المحجوزة والفواتير المستحقة · النهارده",
     "Categorized expenses equal reported spending": "المصروفات المصنّفة تساوي المصروف المعروض",
