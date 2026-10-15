@@ -15,6 +15,7 @@ from lightning.core.errors import ValidationError
 from lightning.core.memo import request_cached
 from lightning.core.money import ZERO, check_places, fmt, from_e6, to_decimal
 from lightning.database.connection import Database
+from lightning.database.settings import raw_setting
 from lightning.reporting.service import ReportingService
 
 from .domain import (EMERGENCY_BASES, INCOME_FROM_RECURRING, BudgetFillProposal, BudgetFillRow, BudgetLine, BudgetMonth,
@@ -193,7 +194,7 @@ class BudgetService:
 
     # -- category flags kept with the budget settings (one list each, edited from Categories or Budget)
     def _id_list(self, key: str) -> set[int] | None:
-        raw = self.db.scalar("SELECT value FROM settings WHERE key=?", (key,))
+        raw = raw_setting(self.db, key)
         if raw is None:
             return None
         try:
@@ -251,10 +252,10 @@ class BudgetService:
         categories = self.categories.tree()
         by_id = {category.id: category for category in categories}
         lookback = self._average_months()
-        manual = self.db.scalar("SELECT value FROM settings WHERE key='budget_manual_monthly_income'")
+        manual = raw_setting(self.db, "budget_manual_monthly_income")
         if manual:
             return IncomeAverage(to_decimal(manual, "manual_income"), 0, lookback, "", "", True)
-        if self.db.scalar("SELECT value FROM settings WHERE key=?", (INCOME_FROM_RECURRING,)) == "1":
+        if raw_setting(self.db, INCOME_FROM_RECURRING) == "1":
             scheduled = self.scheduled_income()  # chosen after a raise: plan with what Recurring expects
             if scheduled is not None:
                 return IncomeAverage(scheduled, 0, lookback, "", "", False, scheduled=True)
@@ -297,7 +298,7 @@ class BudgetService:
 
     def _average_months(self) -> int:
         """3 or 6 completed months, from Settings › Budget; both averages use it."""
-        return 6 if str(self.db.scalar("SELECT value FROM settings WHERE key='budget_income_months'")) == "6" else 3
+        return 6 if str(raw_setting(self.db, "budget_income_months")) == "6" else 3
 
     def spending_average(self, month: str) -> SpendingAverage:
         """Average monthly spending: money out in budget categories (investments and one-off categories
@@ -318,7 +319,7 @@ class BudgetService:
 
     def emergency_basis(self) -> str:
         """What the emergency fund is counted in: "spending" (the default) or "income"."""
-        value = self.db.scalar("SELECT value FROM settings WHERE key='emergency_fund_basis'")
+        value = raw_setting(self.db, "emergency_fund_basis")
         return value if value in EMERGENCY_BASES else "spending"
 
     def set_emergency_basis(self, basis: str) -> None:

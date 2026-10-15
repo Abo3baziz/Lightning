@@ -22,7 +22,7 @@ from lightning.core.dates import fmt_date, now_iso, parse_date, today
 from lightning.core.errors import ValidationError
 from lightning.core.figures import label
 from lightning.core.memo import request_cached
-from lightning.database.settings import SettingsStore
+from lightning.database.settings import SettingsStore, raw_setting
 from lightning.core.money import ONE, ZERO, check_places, from_e6, to_decimal, to_e6
 
 ZAKAT_CATEGORY = "EXP.SYSTEM.ZAKAT"
@@ -111,7 +111,7 @@ class ZakatService:
     @request_cached
     def enabled(self) -> bool:
         """Zakat is off until the user turns it on in Settings (owner decision 2026-10-14)."""
-        return self.db.scalar("SELECT value FROM settings WHERE key=?", (ENABLED_KEY,)) == "1"
+        return raw_setting(self.db, ENABLED_KEY) == "1"
 
     def set_enabled(self, on: bool) -> None:
         SettingsStore(self.db).set(ENABLED_KEY, "1" if on else "0")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from lightning.core.dates import now_iso
+from lightning.core.memo import request_cached
 
 from .connection import Database
 
@@ -11,12 +12,18 @@ DEFAULTS = {
 }
 
 
+@request_cached  # a page reads dozens of settings; the memo lives for one request and any write clears it
+def raw_setting(db: Database, key: str):
+    """The stored value of a setting, or None when it was never saved."""
+    return db.scalar("SELECT value FROM settings WHERE key = ?", (key,))
+
+
 class SettingsStore:
     def __init__(self, db: Database):
         self.db = db
 
     def get(self, key: str) -> str:
-        value = self.db.scalar("SELECT value FROM settings WHERE key = ?", (key,))
+        value = raw_setting(self.db, key)
         return DEFAULTS.get(key, "") if value is None else value
 
     def set(self, key: str, value: str) -> None:
