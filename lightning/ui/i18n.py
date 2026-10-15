@@ -1864,6 +1864,12 @@ ARABIC_UI = {
     'Choose a year': 'اختار سنة',
     'Earlier years': 'سنين أقدم',
     'Later years': 'سنين أحدث',
+    'Or explore a sample': 'أو جرّب عينة',
+    'A full year': 'سنة كاملة',
+    'Salary, a raise, Ramadan, THNDR and gold, January to today': 'مرتب وعلاوة ورمضان وثندر والدهب، من يناير لحد النهارده',
+    'Load': 'حمّل',
+    'Samples fill this profile. Use a separate profile to keep them apart from your own money.': 'العينات بتملا البروفايل ده. استخدم بروفايل منفصل عشان تفضل بعيد عن فلوسك.',
+    'Samples fill this Lightning. To keep them apart from your own money, start Lightning with': 'العينات بتملا لايتنينج ده. عشان تفضل بعيد عن فلوسك، شغّل لايتنينج بـ',
 }
 
 

@@ -104,9 +104,12 @@ STORY_PROFILES = {
 }
 
 
-def sample_stories() -> list[dict[str, str]]:
-    return [{"key": key, "name": story["name"], "label": story["label"], "title": story["title"],
-             "question": story["question"]} for key, story in STORY_PROFILES.items()]
+def sample_stories(keys: tuple[str, ...] | None = None) -> list[dict[str, str]]:
+    """The stories to offer, in the order of `keys` (all of them when none is given)."""
+    chosen = keys if keys is not None else tuple(STORY_PROFILES)
+    return [{"key": key, "name": STORY_PROFILES[key]["name"], "label": STORY_PROFILES[key]["label"],
+             "title": STORY_PROFILES[key]["title"], "question": STORY_PROFILES[key]["question"]}
+            for key in chosen if key in STORY_PROFILES]
 
 
 def load_story(c, key: str, as_of: date | None = None) -> dict:

@@ -119,7 +119,7 @@ async def dashboard(request: Request):
                       extra_currencies=[code for code in held if code != base],
                       currencies_done=c.settings.get("setup_currencies_done") == "1",
                       editing_currencies=request.query_params.get("currencies") == "edit",
-                      sample_stories=sample_stories())
+                      sample_stories=sample_stories(WELCOME_SAMPLES))
     # Every position figure comes from one calculation; see lightning/planning/position.py.
     period_position = c.position.at(as_of)
     # Your position follows the period too, as of its end (never past today): the cards then agree with the
@@ -258,6 +258,10 @@ async def dashboard(request: Request):
         cash_flow=cash_flow, investment_flow=investment_flow,
         investment_share=investment_share, savings_rate=savings_rate,
     )
+
+
+# The welcome page offers Mohab's year and these three stories; Abdelrahman's stays loadable by route.
+WELCOME_SAMPLES = ("amr", "menna", "fatma")
 
 
 @router.post("/setup/currency")

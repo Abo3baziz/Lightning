@@ -105,13 +105,13 @@ def test_the_whole_sample_loads_and_adds_up(c, on_2_october):
     assert b.open("/checks").shows("Needs attention 0")
 
 
-def test_the_welcome_page_loads_the_sample_and_offers_the_files(c, on_2_october):
+def test_the_welcome_page_loads_the_sample_and_the_files_stay_downloadable(c, on_2_october):
     b = Browser(create_app(c))
     welcome = b.open("/")
-    assert welcome.shows("Mohab's 2026")
+    assert welcome.shows("Mohab · A full year")
     for name in ("accounts.csv", *BANK_FILES, "thndr.csv", "usd-brokerage.csv", "gold-at-home.csv", "prices.csv",
                  "fx.csv"):
         assert b.client.get(f"/samples/mohab-2026/{name}").status_code == 200
-    done = b.submit({}, button="Load Mohab's 2026")
+    done = b.submit({}, action="/sample/mohab-2026")
     assert done.shows("Mohab's 2026 added")
     assert len(c.accounts.list()) == 7
