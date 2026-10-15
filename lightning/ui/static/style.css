@@ -786,7 +786,7 @@ body { background: var(--surface-2); }
 .birdview-related { margin-top: 14px; }
 .ledger { padding: 0; overflow-x: auto; }
 .ledger table { margin: 0; }
-.main .register-table-scroll { max-width:100%; overflow-x:auto; }
+.main .register-table-scroll { max-width:100%; overflow-x:auto; position:relative; } /* relative: the screen-reader-only links inside must be clipped with the table, not widen the page */
 .main .register-table-scroll > table { width:100%; min-width:0; table-layout:fixed; }
 .main .register-rows th:first-child, .main .register-rows td:first-child { width:42px; }
 .main .register-rows th:last-child, .main .register-rows td:last-child { width:150px; }

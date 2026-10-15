@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: the account register and Transactions no longer scroll sideways in a narrow window: the table's scroll box now clips the screen-reader-only links that widened the page (498 px at a 390 px window): `style.css`; test `tests/test_register_fits_narrow_window.py`. Report `accounts-register-overflows-sideways-at-390px` closed.
+
 - 2026-10-15 · Claude: the CSV import review marks a future-dated row to fix at once, as typing it does, instead of failing at Post: `_date` in `lightning/bank_imports.py`; test in `tests/test_bank_imports.py`. Report `import-preview-does-not-flag-future-dates` closed.
 
 - 2026-10-15 · Claude: a budget above 100,000,000 is refused; a blank budget field now says it cleared the limit (it never saved 0; the report was wrong): `MAX_BUDGET` in `budgeting/service.py`, `inline_rule`; test `tests/test_budget_rule_limits.py`. Reports `budget-blank-rule-saves-zero` and `huge-budget-amounts-accepted` closed (150% of income stays allowed: percent rules go to 10,000%).
