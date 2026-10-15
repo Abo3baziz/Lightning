@@ -10,7 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="/static/lightning-mark.svg">
   <link rel="stylesheet" href="/static/fonts/fonts.css">
   <link rel="stylesheet" href="/static/style{{ '.rtl' if locale == 'ar' else '' }}.css?v=88">
-  <link rel="stylesheet" href="/static/phone{{ '.rtl' if locale == 'ar' else '' }}.css?v=27">
+  <link rel="stylesheet" href="/static/phone{{ '.rtl' if locale == 'ar' else '' }}.css?v=28">
 <script nonce="{{ request.state.csp_nonce|default('') }}">window.LIGHTNING_UI={{ arabic_translations|tojson }};window.lightningT=(text,values)=>{const raw=String(text);let out=window.LIGHTNING_UI[raw];if(!out){for(const [pattern,translated] of Object.entries(window.LIGHTNING_UI)){if(!pattern.includes('{'))continue;const names=[...pattern.matchAll(/\{([a-z_]+)\}/g)].map(m=>m[1]);const parts=pattern.split(/\{[a-z_]+\}/g).map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));const match=new RegExp('^'+parts.join('(.+?)')+'$').exec(raw);if(match){out=translated;names.forEach((name,i)=>out=out.replaceAll(`{${name}}`,match[i+1]));break;}}}out=out||raw;for(const [key,value] of Object.entries(values||{}))out=out.replaceAll(`{${key}}`,String(value));return out;};</script>
 </head>
 <body data-base-currency="{{ base }}" class="phone-body">
@@ -45,7 +45,7 @@
     ('plan', 'Cash', '/plan', 'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM6 12h.01M18 12h.01'),
     ('investments', 'Investments', '/investments', 'M3 20V4M3 20h18M6 16l5-5 4 3 5-8M16 6h4v4'),
     ('accounts', 'Accounts', '/accounts', 'M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18M12 3l9 5H3z')] %}
-  <a class="phone-tab{{ ' is-chosen' if chosen == key }}" href="{{ href }}"{% if chosen == key %} aria-current="page"{% endif %}><span class="phone-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ path }}"/></svg></span><span class="phone-tab-name">{{ label|tr(locale) }}</span></a>
+  <a class="phone-tab{{ ' is-chosen' if chosen == key }}" href="{{ href }}"{% if chosen == key %} aria-current="page"{% endif %} title="{{ label|tr(locale) }}"><span class="phone-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ path }}"/></svg></span><span class="phone-tab-name">{{ label|tr(locale) }}</span></a>
   {% endfor %}
 </nav>
 <dialog id="app-popup" class="app-popup phone-sheet" aria-modal="true" aria-labelledby="app-popup-title">
