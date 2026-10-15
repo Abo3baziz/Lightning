@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: month parsing is memoised (the Overview asked for the same months about 900 times a page): `parse_month` in `lightning/core/dates.py`. Pages already render in 20–100 ms with ten months of data.
+
 - 2026-10-15 · Claude: settings are read once per request instead of about ninety times on the Overview (budget and zakat reads too): `raw_setting` in `lightning/database/settings.py`; test `tests/test_settings_memo.py`.
 
 - 2026-10-15 · Claude: open-source cleanup: `OWNER.md` removed (owner questions go in GitHub issues), its links and checks dropped, `NOW.md` messages older than seven days deleted.

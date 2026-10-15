@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import calendar
+import functools
 import os
 import re
 from datetime import date, datetime, timedelta
@@ -72,7 +73,11 @@ def now_iso() -> str:
 
 def parse_month(value: str, field: str = "month") -> tuple[date, date]:
     """``2026-09`` -> (2026-09-01, 2026-09-30)."""
-    text = str(value or "").strip()
+    return _parse_month(str(value or "").strip(), field)
+
+
+@functools.lru_cache(maxsize=512)  # one Overview asks for the same few dozen months about nine hundred times
+def _parse_month(text: str, field: str) -> tuple[date, date]:
     if not _MONTH_RE.match(text):
         raise ValidationError("Use the month format yyyy-mm, e.g. 2026-09.", field)
     year, month = int(text[:4]), int(text[5:7])
