@@ -1030,7 +1030,7 @@ def test_an_early_paid_january_is_not_a_month_that_saved_too_little(mohab):
 def test_financial_health_says_the_early_paid_january_in_words(mohab):
     # As the Overview does: a rate of −1,177% says nothing when the pay landed in December.
     answer = mohab.answers["raise_target"]
-    assert answer.shows("Savings rate — Below your limit 21,582 more went out than the 1,833 that came in 2027-01")
+    assert answer.shows("Savings rate — Needs you 21,582 more went out than the 1,833 that came in 2027-01")
     assert not answer.shows("1177")
 
 
@@ -1045,7 +1045,7 @@ def test_needs_you_offers_the_raise_to_the_plan(mohab):
     # 20% of 45,000 is 9,000; with the 5,000 raise he keeps 14,000 of 50,000.
     assert mohab.notes["raise_saved"].shows("Savings target raised to 28.0%: the plan stays and saves the difference. "
                                             "Most you can plan this month is now 31,313; this month's plan fits.")
-    assert mohab.answers["raise_target"].shows("Your limit At least 28.0%")
+    assert mohab.answers["raise_target"].shows("Good from At least 28.0%")
 
 
 def test_a_plan_below_both_loans_is_named_and_fixed(mohab):

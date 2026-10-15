@@ -64,6 +64,6 @@ def test_a_month_with_far_more_out_than_in_is_said_in_words(c, setup):
     c.transactions.record_inflow("2026-11-15", cib, "1,000", cats["EXP.WORK.SALARY"].id)
     c.transactions.record_outflow("2026-11-20", cib, "5,000", cats["EXP.PERSONAL.FOOD"].id)
     page = visible_text(_ScreenClient(create_app(c), "http://testserver").get("/financial-health").text)
-    assert "Savings rate — Below your limit 4,000 more went out than the 1,000 that came in 2026-11" in page
+    assert "Savings rate — Needs you 4,000 more went out than the 1,000 that came in 2026-11" in page
     assert "2026-11 4,000 more went out than the 1,000 that came in" in page
     assert "-400" not in page

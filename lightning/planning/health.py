@@ -58,6 +58,8 @@ class HealthFigure:
     support: tuple[tuple[str, Decimal | None], ...]
     href: str
     gap: str = ""                # said instead of a rate below −100% (CashFlow.rate_says_nothing)
+    alert: Decimal | None = None  # where "Needs you" starts; `limit` is where "Good" starts
+    band: str | None = None      # "good" | "watch" | "alert" (HealthService.band); None without a limit or a value
 
 
 @dataclass(frozen=True)
@@ -121,14 +123,27 @@ class PlanCheck:
         return "your emergency fund needs" if self.emergency else "your goals need"
 
 
+# Three bands per figure (U15): Good from `LIMIT_DEFAULTS` (the old single limit), Needs you from `ALERT_DEFAULTS`,
+# Watch in between. Loan payments: 36% of income is the usual ceiling lenders use. Debt to cash has no
+# default limit, so it has no band until the user sets one.
 LIMIT_DEFAULTS: dict[str, Decimal | None] = {
+    "emergency_fund": Decimal("6"),
     "savings_rate": Decimal("20"),
     "fixed_costs_to_income": Decimal("50"),
     "loan_payments_to_income": Decimal("20"),
     "debt_to_cash": None,
-    "debt_to_net_worth": None,
+    "debt_to_net_worth": Decimal("30"),
+}
+ALERT_DEFAULTS: dict[str, Decimal | None] = {
+    "emergency_fund": Decimal("3"),
+    "savings_rate": Decimal("10"),
+    "fixed_costs_to_income": Decimal("70"),
+    "loan_payments_to_income": Decimal("36"),
+    "debt_to_cash": None,
+    "debt_to_net_worth": Decimal("70"),
 }
 LIMIT_DIRECTIONS = {
+    "emergency_fund": "minimum",
     "savings_rate": "minimum",
     "fixed_costs_to_income": "maximum",
     "loan_payments_to_income": "maximum",
@@ -136,18 +151,22 @@ LIMIT_DIRECTIONS = {
     "debt_to_net_worth": "maximum",
 }
 LIMIT_LABELS = {
+    "emergency_fund": "Emergency fund",
     "savings_rate": "Savings rate",
     "fixed_costs_to_income": "Fixed costs to income",
     "loan_payments_to_income": "Loan payments to income",
     "debt_to_cash": "Debt to cash",
     "debt_to_net_worth": "Debt to net worth",
 }
-LIMIT_PREFIX = "financial_health_limit_"
+LIMIT_PREFIX = "financial_health_limit_"      # the old single limit: read as the Good boundary until `GOOD_PREFIX` is saved
+GOOD_PREFIX = "financial_health_good_"
+ALERT_PREFIX = "financial_health_alert_"
 EMERGENCY_FUND_MONTHS = Decimal("6")
 RAISE_SHARE = Decimal("1.05")  # recurring income at least 5% above the average is a raise worth planning with
 RAISE_DECLINED = "income_raise_declined"         # the recurring amount whose offer was declined
 
 NO_LIMIT_SUPPORTED = frozenset({"debt_to_cash", "debt_to_net_worth"})
+GOOD_LOCKED = frozenset({"emergency_fund"})  # its Good boundary is the six-month target on the Reserves page
 
 
 def _gap(flow) -> str:
@@ -161,6 +180,17 @@ def compare_to_limit(value: Decimal | None, limit: Decimal | None, direction: st
         return None
     within = value >= limit if direction == "minimum" else value <= limit
     return "within your limit" if within else "outside your limit"
+
+
+def band_of(value: Decimal | None, good: Decimal | None, alert: Decimal | None, direction: str) -> str | None:
+    """Good from `good` (equality is good), Needs you past `alert`, Watch between. No band without both a value and a limit."""
+    if value is None or good is None:
+        return None
+    if (value >= good) if direction == "minimum" else (value <= good):
+        return "good"
+    if alert is not None and ((value < alert) if direction == "minimum" else (value > alert)):
+        return "alert"
+    return "watch"
 
 
 class HealthService:
@@ -193,48 +223,82 @@ class HealthService:
             fixed_costs_to_income=Ratio("fixed_costs_to_income", bills + loans, income),
             bills_a_month=bills, loans_a_month=loans)
 
-    def limit_values(self) -> dict[str, Decimal | None]:
-        """Current profile limits; absent settings use defaults, and `none` means no limit."""
-        values = {}
-        for key, default in LIMIT_DEFAULTS.items():
-            saved = self.settings.get(LIMIT_PREFIX + key)
+    def _stored(self, keys: tuple[str, ...], default: Decimal | None) -> Decimal | None:
+        """The first saved setting among ``keys`` (``none`` means no limit); the default when none is saved."""
+        for name in keys:
+            saved = self.settings.get(name)
             if not saved:
-                values[key] = default
-            elif saved.casefold() == "none":
-                values[key] = None
-            else:
-                try:
-                    values[key] = to_decimal(saved, "limit")
-                except ValidationError:
-                    values[key] = default
-        return values
+                continue
+            if saved.casefold() == "none":
+                return None
+            try:
+                return to_decimal(saved, "limit")
+            except ValidationError:
+                return default
+        return default
+
+    def limit_values(self) -> dict[str, Decimal | None]:
+        """Where Good starts, per figure: the saved Good boundary, else the old single limit, else the default."""
+        return {key: (default if key in GOOD_LOCKED else
+                      self._stored((GOOD_PREFIX + key, LIMIT_PREFIX + key), default))
+                for key, default in LIMIT_DEFAULTS.items()}
+
+    def alert_values(self) -> dict[str, Decimal | None]:
+        """Where Needs you starts, per figure."""
+        good = self.limit_values()
+        return {key: (None if good[key] is None else self._stored((ALERT_PREFIX + key,), default))
+                for key, default in ALERT_DEFAULTS.items()}
+
+    def band(self, key: str, value: Decimal | None) -> str | None:
+        """"good", "watch" or "alert" for a figure's value; None without a value or a limit."""
+        good, alert = self.limit_values().get(key), self.alert_values().get(key)
+        return band_of(value, good, alert, LIMIT_DIRECTIONS[key])
 
     def limit_settings(self) -> list[dict]:
-        values = self.limit_values()
+        values, alerts = self.limit_values(), self.alert_values()
         return [{"key": key, "label": LIMIT_LABELS[key], "direction": LIMIT_DIRECTIONS[key],
-                 "value": values[key], "default": LIMIT_DEFAULTS[key], "no_limit": values[key] is None,
-                 "supports_no_limit": key in NO_LIMIT_SUPPORTED, "unit": "%"} for key in LIMIT_DEFAULTS]
+                 "value": values[key], "alert": alerts[key], "default": LIMIT_DEFAULTS[key],
+                 "alert_default": ALERT_DEFAULTS[key], "no_limit": values[key] is None,
+                 "good_locked": key in GOOD_LOCKED,
+                 "supports_no_limit": key in NO_LIMIT_SUPPORTED, "unit": "months" if key == "emergency_fund" else "%"}
+                for key in LIMIT_DEFAULTS if key not in GOOD_LOCKED]  # Emergency fund's bands are fixed: 6 and 3 months
 
-    def set_limit(self, key: str, raw: str, no_limit: bool = False) -> Decimal | None:
-        if key not in LIMIT_DEFAULTS:
+    def set_limit(self, key: str, raw: str, no_limit: bool = False, alert_raw: str | None = None) -> Decimal | None:
+        """Save where Good starts (and, when given, where Needs you starts). The two must lie on the right sides:
+        for a figure you want high, Needs you is below Good; for one you want low, above."""
+        if key not in LIMIT_DEFAULTS or key in GOOD_LOCKED:
             raise ValidationError("Choose a financial-health limit.", "limit")
         if no_limit:
             if key not in NO_LIMIT_SUPPORTED:
                 raise ValidationError("This figure needs a personal limit.", "limit")
-            value = None
+            good = alert = None
         else:
-            value = check_places(to_decimal(raw, "limit"), 1, "limit")
-            if value < ZERO:
+            good = LIMIT_DEFAULTS[key] if key in GOOD_LOCKED else check_places(to_decimal(raw, "limit"), 1, "limit")
+            if good < ZERO:
                 raise ValidationError("A financial-health limit cannot be negative.", "limit")
-        self.settings.set(LIMIT_PREFIX + key, "none" if value is None else format(value, "f"))
-        return value
+            if alert_raw is None or not str(alert_raw).strip():
+                alert = self.alert_values()[key] if alert_raw is None else ALERT_DEFAULTS[key]
+                if alert is not None and ((alert >= good) if LIMIT_DIRECTIONS[key] == "minimum" else (alert <= good)):
+                    alert = None
+            else:
+                alert = check_places(to_decimal(alert_raw, "limit"), 1, "limit")
+                if alert < ZERO:
+                    raise ValidationError("A financial-health limit cannot be negative.", "limit")
+            if alert is not None and ((alert >= good) if LIMIT_DIRECTIONS[key] == "minimum" else (alert <= good)):
+                raise ValidationError("Needs you must start " + ("below" if LIMIT_DIRECTIONS[key] == "minimum" else "above")
+                                      + " Good.", "limit")
+        self.settings.set(GOOD_PREFIX + key, "none" if good is None else format(good, "f"))
+        self.settings.set(ALERT_PREFIX + key, "none" if alert is None else format(alert, "f"))
+        return good
 
     def restore_limit(self, key: str) -> Decimal | None:
         if key not in LIMIT_DEFAULTS:
             raise ValidationError("Choose a financial-health limit.", "limit")
-        value = LIMIT_DEFAULTS[key]
-        self.settings.set(LIMIT_PREFIX + key, "none" if value is None else format(value, "f"))
-        return value
+        for name, table in ((GOOD_PREFIX, LIMIT_DEFAULTS), (ALERT_PREFIX, ALERT_DEFAULTS)):
+            value = table[key]
+            self.settings.set(name + key, "none" if value is None else format(value, "f"))
+        self.settings.set(LIMIT_PREFIX + key, "none" if LIMIT_DEFAULTS[key] is None else format(LIMIT_DEFAULTS[key], "f"))
+        return LIMIT_DEFAULTS[key]
 
     def plan_check(self, month: str) -> PlanCheck:
         """The month's plan against the Savings rate limit and Saving for goals. The budget, Needs you
@@ -400,23 +464,28 @@ class HealthService:
         savings = self.reporting.cash_flow(savings_start, savings_end)
         income_average = self.budgets.income_average(month_of(day))
         check = self.plan_check(month_of(day))
-        limits = self.limit_values()
+        limits, alerts = self.limit_values(), self.alert_values()
 
         def figure(key, value, unit, period, limit, direction, support, href):
+            alert_key = "savings_rate" if key == "planned_savings_rate" else key
             return HealthFigure(key, value, unit, period, limit, direction,
-                                compare_to_limit(value, limit, direction), tuple(support), href)
+                                compare_to_limit(value, limit, direction), tuple(support), href,
+                                alert=alerts.get(alert_key), band=band_of(value, limit, alerts.get(alert_key), direction))
 
         avg_label = "Average monthly income" if fund.basis == "income" else "Average monthly spending"
-        emergency_status = compare_to_limit(fund.months, EMERGENCY_FUND_MONTHS, "minimum")
+        emergency_status = compare_to_limit(fund.months, limits["emergency_fund"], "minimum")
         figures = (
             figure("net_worth", position.net_worth, "money", f"As of {fmt_date(day)}", None, "maximum",
                    (("What you own", position.what_you_own), ("What you owe", position.what_you_owe)), "/"),
             HealthFigure("emergency_fund", fund.months, "months", f"As of {fmt_date(day)} · months of {avg_label.lower()}",
-                         EMERGENCY_FUND_MONTHS, "minimum", emergency_status,
-                         (("Reserves for emergencies", fund.set_aside), (avg_label, fund.monthly)), "/plan/reserves"),
+                         limits["emergency_fund"], "minimum", emergency_status,
+                         (("Reserves for emergencies", fund.set_aside), (avg_label, fund.monthly)), "/plan/reserves",
+                         alert=alerts["emergency_fund"],
+                         band=band_of(fund.months, limits["emergency_fund"], alerts["emergency_fund"], "minimum")),
             HealthFigure("savings_rate", None, "%", savings_month, limits["savings_rate"], "minimum",
                          "outside your limit" if limits["savings_rate"] is not None else None,
-                         (("Net flow", savings.net), ("Money in", savings.inflows)), "/", _gap(savings))
+                         (("Net flow", savings.net), ("Money in", savings.inflows)), "/", _gap(savings),
+                         alert=alerts["savings_rate"], band="alert" if limits["savings_rate"] is not None else None)
             if savings.rate_says_nothing else
             figure("savings_rate", savings.savings_rate, "%", savings_month, limits["savings_rate"], "minimum",
                    (("Net flow", savings.net), ("Money in", savings.inflows)), "/"),

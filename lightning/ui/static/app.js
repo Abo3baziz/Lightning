@@ -319,11 +319,19 @@ find("input[data-own-suggestions][list]").forEach((input) => {
 };
 initOwnDataPickers();
 
-// A small page jump replaces a sticky header while reading a long register.
+// A small page jump replaces a sticky header while reading a long register. It stays out of the way: hidden
+// until the pointer nears the bottom-right corner (bottom-left in Arabic) or the page is being scrolled, and gone
+// 1.5 s after. Keyboard focus shows it. Reduced motion: no fade (the CSS), the same show and hide.
 (() => {
   const jump = document.getElementById("page-jump");
   if (!jump) return;
   const atEnd = () => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 32;
+  let hideTimer = 0;
+  const wake = () => {
+    jump.classList.add("is-visible");
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => { if (!jump.matches(":focus-visible, :hover")) jump.classList.remove("is-visible"); }, 1500);
+  };
   const update = () => {
     const canMove = document.documentElement.scrollHeight > window.innerHeight + 180;
     const nearTop = window.scrollY < 180;
@@ -335,8 +343,17 @@ initOwnDataPickers();
     jump.classList.toggle("is-top", toTop);
   };
   jump.addEventListener("click", () => window.scrollTo({ top: jump.dataset.target === "top" ? 0 : document.documentElement.scrollHeight, behavior: "smooth" }));
-  window.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update); update();
+  window.addEventListener("scroll", () => { update(); wake(); }, { passive: true });
+  window.addEventListener("resize", update);
+  // The proximity handler: the pointer within 140px of the corner wakes it.
+  document.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") return;
+    const rtl = document.documentElement.dir === "rtl";
+    const dx = rtl ? event.clientX : window.innerWidth - event.clientX;
+    if (dx < 140 && window.innerHeight - event.clientY < 140) wake();
+  }, { passive: true });
+  jump.addEventListener("focus", wake);
+  update();
 })();
 
 // The app's own question dialog, in place of the browser's confirm and alert boxes.
@@ -2551,7 +2568,7 @@ window.lightningPrivacy = (() => {
     if (!leaves(url) || (url.pathname === location.pathname && url.search === location.search)) return;
     window.setTimeout(() => {
       if (event.defaultPrevented) return;
-      slow = window.setTimeout(() => show("Opening…"), 500);
+      slow = window.setTimeout(() => show("Opening…"), 300);
       safety = window.setTimeout(reset, 20000);
     }, 0);
   });

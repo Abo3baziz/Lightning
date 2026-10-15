@@ -57,11 +57,12 @@ COLLECT = """() => {
   const jump = document.querySelector('#page-jump');
   if (jump && innerWidth > 760) {
     jump.hidden = false;
+    const resting = getComputedStyle(jump).opacity === '0';  // U1: it shows only near the corner or while scrolling
     const button = jump.getBoundingClientRect(), main = document.querySelector('.main');
     if (main) {
       const r = main.getBoundingClientRect(), s = getComputedStyle(main);
       const content = {left: r.left + parseFloat(s.paddingLeft), right: r.right - parseFloat(s.paddingRight)};
-      if (!(button.right + 12 <= content.left || button.left - 12 >= content.right)) out.jump.push('Page control overlaps the content column');
+      if (!resting && !(button.right + 12 <= content.left || button.left - 12 >= content.right)) out.jump.push('Page control overlaps the content column');
     }
   }
   return out; }""".replace("%TEXT%", json.dumps(TEXT))

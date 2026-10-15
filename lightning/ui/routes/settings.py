@@ -162,7 +162,7 @@ async def save_financial_health_limit(request: Request):
             c.health.restore_limit(key)
             message = "Restored the default limit."
         else:
-            c.health.set_limit(key, str(form.get("value", "")), form.get("no_limit") == "1")
+            c.health.set_limit(key, str(form.get("value", "")), form.get("no_limit") == "1", str(form.get("alert", "")))
             message = "Financial health limit saved."
         if key == "savings_rate":  # the savings target sets Most you can plan
             message = " ".join(x for x in (message, c.health.plan_note()) if x)

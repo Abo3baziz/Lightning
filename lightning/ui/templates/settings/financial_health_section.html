@@ -7,8 +7,9 @@
     <form class="health-limit-row" method="post" action="/settings/financial-health-limit">
       <input type="hidden" name="key" value="{{ limit.key }}">
       <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
-      <label class="health-limit-name" for="health-limit-{{ limit.key }}">{{ fig[limit.key].label }}<small>{{ 'At least' if limit.direction == 'minimum' else 'At most' }}</small></label>
-      <span class="health-limit-input"><input id="health-limit-{{ limit.key }}" name="value" type="number" min="0" step="0.1" value="{{ limit.value if limit.value is not none else '' }}" aria-label="{{ 'Limit for {label}'|tr(locale, label=fig[limit.key].label) }}"><i>{{ limit.unit }}</i></span>
+      <label class="health-limit-name" for="health-limit-{{ limit.key }}">{{ limit.label|tr(locale) }}<small>{{ 'Good is at least' if limit.direction == 'minimum' else 'Good is at most' }}</small></label>
+      <span class="health-limit-input"><label class="health-limit-band" for="health-limit-{{ limit.key }}">{{ 'Good from'|tr(locale) }}</label><input id="health-limit-{{ limit.key }}" name="value" type="number" min="0" step="0.1" value="{{ limit.value if limit.value is not none else '' }}" {{ 'readonly' if limit.good_locked }} aria-label="{{ 'Good from'|tr(locale) }} · {{ limit.label|tr(locale) }}"><i>{{ limit.unit }}</i></span>
+      <span class="health-limit-input"><label class="health-limit-band" for="health-alert-{{ limit.key }}">{{ 'Needs you from'|tr(locale) }}</label><input id="health-alert-{{ limit.key }}" name="alert" type="number" min="0" step="0.1" value="{{ limit.alert if limit.alert is not none else '' }}" aria-label="{{ 'Needs you from'|tr(locale) }} · {{ limit.label|tr(locale) }}"><i>{{ limit.unit }}</i></span>
       {% if limit.supports_no_limit %}<label class="health-limit-none"><input type="checkbox" name="no_limit" value="1" {{ 'checked' if limit.no_limit }}>{{ "No limit"|tr(locale) }}</label>{% endif %}
       <div class="health-limit-actions"><button class="btn small" type="submit" name="action" value="save">{{ 'Save'|tr(locale) }}</button><button class="btn small" type="submit" name="action" value="reset">{{ "Restore default"|tr(locale) }}</button></div>
     </form>
@@ -19,7 +20,7 @@
 <section class="card data-panel health-settings-emergency">
   <div class="section-head"><div><h2>{{ 'Emergency fund'|tr(locale) }}</h2></div></div>
   <div class="health-target-summary">
-    <div><span class="muted small">{{ "Health limit"|tr(locale) }}</span><b>{{ "At least 6 months"|tr(locale) }}</b></div>
+    <div><span class="muted small">{{ "Good from"|tr(locale) }}</span><b>{{ "At least 6 months"|tr(locale) }}</b></div>
     <div><span class="muted small">{{ 'Basis'|tr(locale) }}</span><b>{{ fig[health_fund.figure].label }}</b></div>
     <div><span class="muted small">{{ "Target"|tr(locale) }}</span><b>{% if health_fund.target is not none %}{{ health_fund.target|money }} {{ base }}{% else %}Unavailable{% endif %}</b></div>
   </div>
