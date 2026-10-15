@@ -60,6 +60,18 @@ def _money(value, signed: bool = False, places: int | None = None) -> str:
         return str(value)
 
 
+def _amount_role(value, role: str, signed: bool = False) -> str:
+    """Format a displayed amount by its job: totals are whole, rows have cents, fields keep what was typed."""
+    if role == "field":
+        # Entry values are already strings in the UI; leave them exactly as entered (including blank values).
+        return str(value) if isinstance(value, str) else _money(value, signed, 2)
+    if role == "total":
+        return _money(value, signed, 0)
+    if role == "row":
+        return _money(value, signed, 2)
+    raise ValueError(f"Unknown amount role: {role}")
+
+
 def _tone(value) -> str:
     if value is None:
         return ""
@@ -72,6 +84,7 @@ def _keep_dates(text) -> Markup:
 
 
 templates.env.filters["money"] = _money
+templates.env.filters["amount_role"] = _amount_role
 templates.env.filters["whole"] = lambda value: fmt(Decimal(value), 0)  # half-up like money, never banker's
 templates.env.filters["tr"] = translate
 
@@ -93,6 +106,8 @@ def _phone_chip(text) -> str:
     returns "", so the tile shows no chip rather than half a word."""
     import re as _re
     value = str(text or "").strip()
+    if value.endswith(" so far"):
+        return "So far"
     if found := _re.fullmatch(r"(?:until |to )(\d{4}-\d{2}-\d{2})", value):
         return found.group(1)
     if found := _re.fullmatch(r"(\d{4})-(\d{2})(?:-\d{2})? to (\d{4})-(\d{2})(?:-\d{2})?", value):

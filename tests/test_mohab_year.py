@@ -925,7 +925,7 @@ def test_paying_from_the_overview_moves_net_worth_only_by_the_salary(mohab):
 
 def test_a_mistake_is_fixed_in_place_and_a_double_entry_deleted(mohab):
     register = mohab.answers["fixed"]
-    assert register.shows("2026-10-26 Carrefour Food & Groceries — −4,060")
+    assert register.shows("2026-10-26 Carrefour Food & Groceries — −4,060.00")
     assert "−4,600" not in register.screen.text
     assert register.screen.text.count("2026-10-10 Talabat Eating Out") == 1
 
@@ -1181,7 +1181,7 @@ def test_the_years_investments(mohab):
     # 1,025 from the sale + 225 price change + 300 dividends + 12 × 1,833.33 of certificate interest
     assert mohab.answers["year_investing"].shows("Net gain or loss 2026-10-01 to 2027-09-30 +23,550")
     # The interest lands on CIB Payroll from NBE, the certificate's bank, and is still the certificate's return.
-    assert mohab.answers["flat"].shows("NBE 3-year certificate 1 certificate 100,000 100,000 100,000 100,000 17.5% 0 0.0% +24.6%")
+    assert mohab.answers["flat"].shows("NBE 3-year certificate 1 certificate 100,000 100,000 100,000 100,000 17.5% +27,500 +27.5% +24.6%")
 
 
 def test_data_checks_pass_after_a_year(mohab):
@@ -1380,7 +1380,7 @@ def test_a_small_difference_from_the_bank_is_one_adjustment(mohab):
     assert check.shows("A small difference", "Lightning is 30.00 EGP above your bank", "Post adjustment of −30.00")
     assert mohab.notes["wallet_adjusted"].shows("Balance adjustment", "The account now matches your bank")
     assert mohab.notes["wallet_adjusted"].shows("2027-09-30 Balance adjustment Other Personal Bank showed",
-                                                "−30 Edit 42,950 EGP")
+                                                "−30.00 Edit 42,950.00 EGP")
     assert mohab.notes["wallet_rechecked"].shows("It matches")
 
 
@@ -1526,8 +1526,10 @@ def test_dollars_he_bought_show_their_cost_value_and_spread(mohab):
 # ------------------------------------------------------------------ gam'eya (savings circle)
 def test_a_gameya_third_instalment_waits_under_needs_you_once(mohab):
     answer = mohab.answers["gameya_due"]
-    assert answer.shows("Gam'eya instalment due: Office gam'eya", "Instalment 3 of 10 was due 2027-09-05")
-    assert answer.screen.text.count("Gam'eya instalment due") == 1       # one row for the circle, not one per month
+    assert answer.shows("Gam'eya instalment due: Office gam'eya", "1 instalment · 2,000 EGP · first due 2027-09-05")
+    needs_you = answer.screen.html.split('aria-labelledby="needs-heading"', 1)[1].split("</details>", 1)[0]
+    grouped_rows = needs_you.split('<div class="overview-inline-list">', 1)[1]
+    assert html.unescape(grouped_rows).count("Gam'eya instalment due") == 1  # the preview also names it; one decision row
     assert mohab.notes["gameya_terms"].shows("Gam'eya terms saved", "Nothing was posted")
     assert mohab.notes["gameya_page"].shows("Instalment 3 of 10", "2 of 10")
 

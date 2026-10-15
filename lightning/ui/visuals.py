@@ -403,7 +403,7 @@ def expense_analysis(c, first: date, last: date, code_filter: str = "", history:
     # Clustered columns: usual month (neutral) beside now (its meaning colour), one scale, from zero.
     col_max = max([r["per_month"] for r in rows] + [r["usual"] or ZERO for r in rows] + [ZERO]) or Decimal(1)
     clusters = [{"name": r["name"], "now": r["per_month"], "usual": r["usual"],
-                 "over": r["over_usual"], "change": r["change_vs_usual"],
+                 "over": r["over_usual"] and not profile["partial"], "change": r["change_vs_usual"],
                  "now_h": float(r["per_month"] / col_max * 100), "usual_h": float((r["usual"] or ZERO) / col_max * 100)}
                 for r in rows[:5]]
     # Small multiples: the same twelve months plus now, one scale for every panel.
@@ -456,7 +456,7 @@ def expense_analysis(c, first: date, last: date, code_filter: str = "", history:
             "tiles": tiles, "clusters": clusters, "multiples": multiples, "heat": heat, "heat_keys": heat_keys,
             "heat_now": now_from, "flow_heat": flow_heat, "history_months": len(keys),
             "usual_total": profile["usual_total"], "usual_out": profile["usual_out"], "per_month": profile["per_month"],
-            "has_history": len(keys) >= 1, "has_range": len(keys) >= 3}
+            "has_history": len(keys) >= 1, "has_range": len(keys) >= 3, "partial": profile["partial"]}
 
 
 def cash_plan(c, forecast, day: date) -> dict:

@@ -14,7 +14,8 @@
 {% endif %}
 {% if attention %}
 <details class="card needs-you" aria-labelledby="needs-heading">
-  <summary><span class="needs-you-dot" aria-hidden="true"></span><b id="needs-heading">{{ "Needs you"|tr(locale) }}</b><span class="needs-you-count">{{ attention|length }}</span><small>{{ attention[0].label }}{% if attention|length > 1 %} and {{ attention|length - 1 }} more{% endif %}</small></summary>
+  {% set first_attention = attention_groups[0]["items"][0] %}
+  <summary><span class="needs-you-dot" aria-hidden="true"></span><b id="needs-heading">{{ "Needs you"|tr(locale) }}</b><span class="needs-you-count">{{ attention|length }}</span><span class="needs-you-preview"><b>{{ first_attention.label }}</b><small>{{ first_attention.detail }}</small></span>{% if attention|length > 1 %}<span class="needs-you-more">+{{ attention|length - 1 }} more</span>{% endif %}</summary>
   {# Feedback ticket 84: one row per kind of decision; a kind with several opens its own page. #}
   <div class="overview-inline-list">{% for g in attention_groups %}<a class="overview-action-row" href="{{ g.href }}"{% if g.popup %} data-popup-open{% endif %}><span><b>{% if g.count > 1 %}{{ g.label|tr(locale) }} · {{ g.count }}{% else %}{{ g.label }}{% endif %}</b><small>{{ g.detail }}</small></span><span>{{ g.action }}</span></a>{% endfor %}</div>
 </details>
@@ -107,17 +108,14 @@
     <header class="overview-section-head"><h2 id="investments-heading">{{ 'Investments'|tr(locale) }}</h2><span>{{ date_from }} to {{ date_to }}</span></header>
     {# Owner decision 2026-10-03: one row of figures here; the detail lives on the Investments tab. #}
     <article class="overview-block wide-card overview-investment-row" aria-label="Investments in this period">
-      <details class="overview-disclosure investment-toggle"><summary><span><b>{{ fig.portfolio_value.label }}</b><small>{{ pos.portfolio_value|money }} · {{ investment_report.holdings_count }} holdings</small></span><b>{{ "Show investments"|tr(locale) }}</b></summary><div class="overview-disclosure-body investment-toggle-body">
       <div class="overview-figure-row">
         {# Position figures come from the one Position (Architecture › Data ownership): the same Holdings value as "Your position" above. #}
-        <div><span>{{ fig.portfolio_value.label }}</span><b>{{ pos.portfolio_value|money }}</b></div>
-        <div><span>{{ fig.holdings_value.label }}</span><b>{{ pos.holdings_value|money }}</b></div>
-        <div><span>{{ fig.new_money_in.label }}</span><b>{{ investment_report.new_money|money }}</b></div>
-        <div><span>{{ fig.result.label }}</span><b class="{{ investment_report.period_result|tone if investment_report.period_result_available else '' }}">{% if investment_report.period_result_available %}{{ investment_report.period_result|money(True) }}{% else %}Unavailable{% endif %}</b></div>
+        <div class="overview-investment-value"><span>{{ fig.portfolio_value.label }}</span><b>{{ pos.portfolio_value|money }}</b></div>
+        <div><span>{{ "Net gain or loss"|tr(locale) }}</span><b class="{{ investment_report.period_result|tone if investment_report.period_result_available else '' }}">{% if investment_report.period_result_available %}{{ investment_report.period_result|money(True) }}{% else %}Unavailable{% endif %}</b></div>
+        <div><span>{{ "Income collected"|tr(locale) }}</span><b>{{ investment_report.income_collected|money }}</b></div>
         <a class="quiet-link" data-popup-open href="/investments?{{ period_query }}">{{ "Open investments"|tr(locale) }}</a>
       </div>
       {% if investment_report.missing %}<p class="overview-context">{{ "A required valuation is missing, so the result is unavailable."|tr(locale) }}</p>{% elif investment_report.at_cost %}<p class="overview-context">{{ investment_report.at_cost|length }} holding(s) valued at cost until a price is entered.</p>{% endif %}
-      </div></details>
     </article>
   </section>
 

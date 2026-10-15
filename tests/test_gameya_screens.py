@@ -59,7 +59,7 @@ def test_create_circle_through_the_screens_on_pc_and_phone(c, setup):
         assert saved.annual_rate == 0 and saved.payout == Decimal("20000.00")
         page = client.get(path)
         for text in ("Where you stand", "0 of 10", "2026-10-05", "Record instalment", "Record payout",
-                     "Nothing owed either way.", 'value="2000.00"'):
+                     "No recorded balance yet.", 'value="2000.00"'):
             assert text in page.text, (phone, text)
         paid = client.post(path + "/instalment", data={"date": "2026-10-05", "amount": "2000.00", "account_id": cib})
         assert paid.status_code == 303 and c.gameya.progress(circle_id, TODAY).paid == 1

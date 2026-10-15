@@ -17,7 +17,7 @@
     {% if p.build %}{{ bar_rows(p.build.rows, 'From free cash to safe to spend') }}{% endif %}
     {% if f.safe_to_spend < 0 %}<p class="flash">{{ "Promised payments are larger than your free cash."|tr(locale) }}</p>{% endif %}
   </article>
-  <article class="card phone-card" id="plan-next" aria-labelledby="next-heading">
+  <article class="card phone-card phone-flat-rows" id="plan-next" aria-labelledby="next-heading">
     <h3 id="next-heading" class="phone-card-title">{{ "The next 30 days"|tr(locale) }}</h3><p class="phone-note">{{ as_of }} to {{ window_end }}</p>
     {% if next_payments %}
     <div class="phone-rows">{% for pay in next_payments[:8] %}
@@ -39,7 +39,7 @@
     <p class="phone-note">{% if f.lowest %}Lowest {{ f.lowest.closing|money }} in {{ f.lowest.month }}{% else %}Past month ends, then estimates{% endif %}</p>
     {{ trend(p.heading, 'Free cash at past month ends, then the forecast', 'Plan', 180) }}
   </article>
-  <article class="card phone-card" aria-labelledby="months-heading">
+  <article class="card phone-card phone-flat-rows" aria-labelledby="months-heading">
     <h3 id="months-heading" class="phone-card-title">{{ "Each month ahead"|tr(locale) }}</h3><p class="phone-note">{{ "Estimates: money in, money out, what is left"|tr(locale) }}</p>
     <div class="phone-rows">{% for r in p.flows %}
       <div class="phone-row"><span>{{ r.month }}<small>In {{ r.in|money }} · out {{ r.out|money }}{% if r.estimated %} · income is an average{% endif %}</small></span><b class="{{ 'pos' if r.net > 0 else ('neg' if r.net < 0 else '') }}">{{ r.net|money(True) }}</b></div>

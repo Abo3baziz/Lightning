@@ -12,7 +12,7 @@
   {% if market %}
   <table class="budget">
     <thead><tr><th>{{ 'Market'|tr(locale) }}</th><th class="num">{{ 'Prices'|tr(locale) }}</th><th>{{ 'Up to'|tr(locale) }}</th><th>{{ 'File'|tr(locale) }}</th></tr></thead>
-    {% for m in market %}<tr><td>{{ m.name }}</td>{% if m.have %}<td class="num">{{ m.have.instruments }}</td><td>{{ m.have.last_date }}</td><td class="muted small">{{ m.have.created_at }}, {{ m.have.origin }}</td>{% else %}<td class="num muted">—</td><td colspan="2" class="muted">{{ 'Not downloaded yet'|tr(locale) }}</td>{% endif %}</tr>{% endfor %}
+    {% for m in market %}<tr><td data-label="{{ 'Market'|tr(locale) }}">{{ m.name }}</td>{% if m.have %}<td class="num" data-label="{{ 'Prices'|tr(locale) }}">{{ m.have.instruments }}</td><td data-label="{{ 'Up to'|tr(locale) }}">{{ m.have.last_date }}</td><td class="muted small" data-label="{{ 'File'|tr(locale) }}">{{ m.have.created_at }}, {{ m.have.origin }}</td>{% else %}<td class="num muted" data-label="{{ 'Prices'|tr(locale) }}">—</td><td colspan="2" class="muted" data-label="{{ 'Up to'|tr(locale) }}">{{ 'Not downloaded yet'|tr(locale) }}</td>{% endif %}</tr>{% endfor %}
   </table>
   {% set cited = market | selectattr('have') | selectattr('source') | map(attribute='source') | unique | list %}
   <p class="muted small">Lightning collects prices every day as a backup. If a source fails for you, download them and fill each investment's month-end and latest prices from them.{% if cited %} Source: {{ cited | join('; ') }}.{% endif %} <a href="/investments/prices/markets">{{ 'Choose markets'|tr(locale) }}</a></p>
@@ -38,8 +38,8 @@
   <p class="muted">These month-end checkpoints are waiting for a price. Get prices asks the sources again; {% if fails >= 2 and market %}they failed the last {{ fails }} times, so you can use the shared prices instead, or {% else %}or {% endif %}enter each price below. Its account return is then posted to the main ledger.</p>
   <div class="actions" style="margin-bottom:12px"><button class="btn" formaction="/investments/prices/online" formnovalidate data-busy="Fetching prices…">{{ 'Get prices'|tr(locale) }}</button>{% if fails >= 2 and market %}<button class="btn" formaction="/investments/prices/market/update" formnovalidate data-busy="Downloading…">{{ 'Use shared prices'|tr(locale) }}</button>{% endif %}</div>
   <table class="budget"><thead><tr><th>{{ 'Checkpoint'|tr(locale) }}</th><th>{{ 'Investment'|tr(locale) }}</th><th>{{ 'Price needed'|tr(locale) }}</th></tr></thead>
-    {% for row in pending %}<tr><td>{{ row.date }}</td><td>{{ row.asset_name }}</td>
-      <td><input name="rp_{{ row.asset_id }}_{{ row.date }}" class="num" inputmode="decimal" placeholder="Price per unit" required></td></tr>{% endfor %}
+    {% for row in pending %}<tr><td data-label="{{ 'Checkpoint'|tr(locale) }}">{{ row.date }}</td><td data-label="{{ 'Investment'|tr(locale) }}">{{ row.asset_name }}</td>
+      <td data-label="{{ 'Price needed'|tr(locale) }}"><input name="rp_{{ row.asset_id }}_{{ row.date }}" class="num" inputmode="decimal" placeholder="Price per unit" required></td></tr>{% endfor %}
   </table>
   <div class="actions" style="margin-top:12px"><button class="btn primary">{{ 'Save missing prices'|tr(locale) }}</button></div>
 <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
@@ -53,12 +53,12 @@
     <thead><tr><th>{{ 'Investment'|tr(locale) }}</th><th class="num">{{ 'You hold'|tr(locale) }}</th><th class="num">{{ 'Last price'|tr(locale) }}</th><th class="num">{{ 'Total value'|tr(locale) }}</th><th class="num" style="width:170px">{{ 'New price per unit'|tr(locale) }}</th></tr></thead>
     {% for r in rows %}
     <tr>
-      <td>{{ r.asset.name }}
+      <td data-label="{{ 'Investment'|tr(locale) }}">{{ r.asset.name }}
         <a class="small" href="/investments/assets/{{ r.asset.id }}/edit" style="margin-left:6px">{{ 'edit'|tr(locale) }}</a></td>
-      <td class="num small">{% if r.held %}{{ r.held.quantity|money(False, 3 if r.asset.unit == 'gram' else (0 if r.asset.unit == 'share' else 4)) }} {{ r.asset.unit }}s{% else %}<span class="muted">—</span>{% endif %}</td>
-      <td class="num small">{% if r.price is not none %}{{ r.price|money(False, 4) }}<div class="muted">{{ r.price_date }}{{ ' · last trade' if r.source == 'TRADE' else (' · at cost' if r.source == 'COST' else (' · price file' if r.source == 'MARKET' else (' · online' if r.source == 'ONLINE' else ''))) }}</div>{% else %}<span class="muted">{{ 'none'|tr(locale) }}</span>{% endif %}</td>
-      <td>{% if r.held and r.held.quantity > 0 %}<input type="text" name="value_{{ r.asset.id }}" inputmode="decimal" class="num" aria-label="Total value of {{ r.asset.name }}">{% else %}<span class="muted">—</span>{% endif %}</td>
-      <td>{% if not r.is_certificate %}<input type="text" name="p_{{ r.asset.id }}" inputmode="decimal" class="num" placeholder="{{ r.price|money(False, 4) if r.price is not none else '' }}">{% else %}<span class="muted">{{ 'Set at purchase'|tr(locale) }}</span>{% endif %}</td>
+      <td class="num small" data-label="{{ 'You hold'|tr(locale) }}">{% if r.held %}{{ r.held.quantity|money(False, 3 if r.asset.unit == 'gram' else (0 if r.asset.unit == 'share' else 4)) }} {{ r.asset.unit }}s{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td class="num small" data-label="{{ 'Last price'|tr(locale) }}">{% if r.price is not none %}{{ r.price|money(False, 4) }}<div class="muted">{{ r.price_date }}{{ ' · last trade' if r.source == 'TRADE' else (' · at cost' if r.source == 'COST' else (' · price file' if r.source == 'MARKET' else (' · online' if r.source == 'ONLINE' else ''))) }}</div>{% else %}<span class="muted">{{ 'none'|tr(locale) }}</span>{% endif %}</td>
+      <td data-label="{{ 'Total value'|tr(locale) }}">{% if r.held and r.held.quantity > 0 %}<input type="text" name="value_{{ r.asset.id }}" inputmode="decimal" class="num" aria-label="Total value of {{ r.asset.name }}">{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td data-label="{{ 'New price per unit'|tr(locale) }}">{% if not r.is_certificate %}<input type="text" name="p_{{ r.asset.id }}" inputmode="decimal" class="num" placeholder="{{ r.price|money(False, 4) if r.price is not none else '' }}">{% else %}<span class="muted">{{ 'Set at purchase'|tr(locale) }}</span>{% endif %}</td>
     </tr>
     {% else %}
     <tr><td colspan="5" class="empty">{{ 'No investments yet.'|tr(locale) }} <a href="/investments/assets/new">{{ 'Add one'|tr(locale) }}</a>.</td></tr>

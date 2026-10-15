@@ -5,11 +5,37 @@ only draws them.
 """
 from __future__ import annotations
 
+import calendar
+from collections import Counter
 from datetime import date, timedelta
 from decimal import Decimal
 
 from lightning.core.dates import fmt_date, months_back, parse_month
 from lightning.core.money import ZERO
+
+
+def comparison_windows(first: date, last: date, month: str) -> list[tuple[date, date]]:
+    """Project each selected month's day range onto a historical month.
+
+    A running month compares days 1–D. For a multi-month period, the benchmark is
+    the average of its complete months and its final partial month, not N full months.
+    A completed month always maps to a completed month (including February).
+    """
+    target_first, target_last = parse_month(month)
+    windows = []
+    cursor = first.replace(day=1)
+    while cursor <= last:
+        end = date(cursor.year, cursor.month, calendar.monthrange(cursor.year, cursor.month)[1])
+        a, b = max(first, cursor), min(last, end)
+        start_day = min(a.day, target_last.day)
+        end_day = target_last.day if b == end else min(b.day, target_last.day)
+        windows.append((target_first.replace(day=start_day), target_first.replace(day=end_day)))
+        cursor = end + timedelta(days=1)
+    return windows
+
+
+def partial_months(first: date, last: date) -> bool:
+    return first.day != 1 or last.day != calendar.monthrange(last.year, last.month)[1]
 
 
 def _median(values: list[Decimal]) -> Decimal | None:
@@ -21,7 +47,7 @@ def _median(values: list[Decimal]) -> Decimal | None:
 
 
 def _against_history(past: list[Decimal], per_month: Decimal) -> dict:
-    """Usual month (the average of the last six whole months) and Usual range (lowest, middle and
+    """Usual month (the average of the last six comparable month windows) and Usual range (lowest, middle and
     highest of the history), and where this period's Per month sits against them."""
     recent = past[-6:]
     usual = sum(recent, ZERO) / len(recent) if recent else None
@@ -37,7 +63,7 @@ def spending_profile(reporting, first: date, last: date, code_filter: str = "", 
                      floor_share: Decimal = Decimal(1), top: int = 4) -> dict:
     """Money out by category (second level) for the period, the biggest ``top`` categories that are at
     least ``floor_share`` % of it, one "Other" row for the rest, and each row against the ``history``
-    whole months before the period. Per month is the period's money out per calendar month it covers,
+    comparable month windows before the period. Per month is the period's money out per calendar month it covers,
     so a year to date compares like with like."""
     def by_cat(start, end) -> dict[str, tuple[str, Decimal]]:
         rows = {}
@@ -62,7 +88,13 @@ def spending_profile(reporting, first: date, last: date, code_filter: str = "", 
     small = spent - sum((v for _, _, v in big), ZERO)
     # Whole months before the period, oldest first, never before the first record.
     keys = months_back(first.replace(day=1) - timedelta(days=1), history, reporting.first_activity_date())
-    hist = [by_cat(*parse_month(k)) for k in keys]
+    def historical_categories(key):
+        samples = [(by_cat(a, b), weight) for (a, b), weight in Counter(comparison_windows(first, last, key)).items()]
+        codes = {code for sample, _ in samples for code in sample}
+        return {code: (next(sample[code][0] for sample, _ in samples if code in sample),
+                       sum((sample.get(code, ("", ZERO))[1] * weight for sample, weight in samples), ZERO) / months_in)
+                for code in codes}
+    hist = [historical_categories(k) for k in keys]
     rows = []
     for code, name, value in big:
         per_month = value / months_in
@@ -87,10 +119,11 @@ def spending_profile(reporting, first: date, last: date, code_filter: str = "", 
     def money_out(start, end) -> Decimal:
         return sum((g.value for g in reporting.spending_by_category(start, end, depth=2)
                     if not code_filter or g.code.startswith(code_filter)), ZERO)
-    recent_all = [money_out(*parse_month(k)) for k in keys[-6:]]
+    recent_all = [sum((money_out(a, b) * weight for (a, b), weight in Counter(comparison_windows(first, last, k)).items()), ZERO) / months_in
+                  for k in keys[-6:]]
     for r in refunds:
         r["share"] = r["value"] / total * 100 if total else ZERO
     return {"rows": rows, "refunds": refunds, "total": total, "small": small, "months_in": months_in, "history_keys": keys,
-            "period_keys": period_keys, "per_month": total / months_in,
+            "period_keys": period_keys, "per_month": total / months_in, "partial": partial_months(first, last),
             "usual_total": sum((r["usual"] or ZERO for r in rows), ZERO),
             "usual_out": sum(recent_all, ZERO) / len(recent_all) if recent_all else None}

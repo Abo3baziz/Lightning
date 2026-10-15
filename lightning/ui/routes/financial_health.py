@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from lightning.core.dates import parse_date, today
 from lightning.core.figures import FIGURES
 from lightning.core.errors import ValidationError
+from lightning.planning.emergency_context import emergency_liquidity_context
 
 from .. import charts
 from ..web import container, render
@@ -103,6 +104,7 @@ async def financial_health(request: Request):
     else:
         error = ""
     overview = c.health.overview(as_of)
+    liquidity_context = emergency_liquidity_context(c.position.at(as_of, match_payments=False))
     trends = overview["trends"]
     labels = {key: ("Emergency fund" if key == "emergency_fund" else FIGURES[key].label) for key in _TONE}
     by_key = {item.key: item for item in overview["figures"]}
@@ -113,6 +115,7 @@ async def financial_health(request: Request):
     savings_values = [month.savings_rate for month in trends]
     worth_values = [month.net_worth for month in trends]
     return render(request, "financial_health.html", **overview,
+                  liquidity_context=liquidity_context,
                   limits=c.health.limit_settings(),
                   kpis=[_kpi(by_key[k], labels[k]) for k in KPI_KEYS if k in by_key],
                   groups=rows, labels=labels,

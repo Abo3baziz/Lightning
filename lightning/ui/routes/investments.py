@@ -282,28 +282,30 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
     groups: dict[str, dict] = {}
     for h, yours, bucket, horizon, capital, unrealized, units in owned_rows:
         name = h.asset_class.split(" › ")[-1]
-        g = groups.setdefault(name, {"name": name, "value": ZERO, "cost": ZERO, "rows": []})
+        g = groups.setdefault(name, {"name": name, "value": ZERO, "cost": ZERO, "gain": ZERO, "invested": ZERO, "rows": []})
         g["value"] += yours or ZERO
         g["cost"] += capital
+        result = h.owned_result(units, yours, capital)
+        g["gain"] += result["gain"] or ZERO
+        g["invested"] += result["invested"]
         g["rows"].append({"h": h, "units": units, "average_cost": capital / units if units else None, "cost": capital,
-                          "price": h.price, "value": yours, "gain": unrealized,
-                          "gain_pct": unrealized / capital * 100 if unrealized is not None and capital else None,
+                          "price": h.price, "value": yours, **result,
                           "xirr": h.xirr * 100 if h.xirr is not None and units == h.quantity else None,
                           "display_return": h.display_return if units == h.quantity else None,
                           "horizon": horizon, "weight": (yours or ZERO) / holdings_total * 100 if holdings_total else ZERO,
                           **_owned_split(splits.get((h.account_id, h.asset_id)), units, h.quantity, unrealized)})
     for name, item in balances:
-        g = groups.setdefault(name, {"name": name, "value": ZERO, "cost": ZERO, "rows": []})
+        g = groups.setdefault(name, {"name": name, "value": ZERO, "cost": ZERO, "gain": ZERO, "invested": ZERO, "rows": []})
         g["value"] += item.value
         g["cost"] += item.value
+        g["invested"] += item.value  # balance-only holdings still belong in the combined return's base
         g["rows"].append({"h": None, "balance": True, "name": item.account, "account_id": item.account_id,
                           "value": item.value, "cost": item.value, "gain": ZERO,
                           "weight": item.value / holdings_total * 100 if holdings_total else ZERO})
     for g in groups.values():
         g["rows"].sort(key=lambda r: (-(r["value"] or ZERO), (r["h"].asset_name if r["h"] else r["name"]).casefold()))
         g["weight"] = g["value"] / holdings_total * 100 if holdings_total else ZERO
-        g["gain"] = g["value"] - g["cost"]
-        g["gain_pct"] = g["gain"] / g["cost"] * 100 if g["cost"] else None
+        g["gain_pct"] = g["gain"] / g["invested"] * 100 if g["invested"] else None
     holding_groups = sorted(groups.values(), key=lambda g: (-g["value"], g["name"].casefold()))
     biggest = charts.bars([{"label": r["name"], "value": r["value"], "note": f"{r['weight']:.1f}% · {g['name']}",
                             "href": f"/accounts/{r['account_id']}"} if r["h"] is None else

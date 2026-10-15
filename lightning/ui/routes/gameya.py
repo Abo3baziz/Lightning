@@ -107,6 +107,21 @@ async def record_instalment(request: Request, account_id: int):
     return redirect(f"/gameya/{account_id}", f"Recorded instalment · {txn.ref}.")
 
 
+@router.post("/{account_id:int}/past-instalments")
+async def record_past_instalments(request: Request, account_id: int):
+    form = await request.form()
+    c = container(request)
+    try:
+        _circle(c, account_id)
+        expected = str(form.get("expected_paid", ""))
+        if not expected.isdigit():
+            raise ValidationError("Review the circle before recording past instalments.", "instalment")
+        txns = c.gameya.record_past_instalments(account_id, expected_paid=int(expected))
+    except LightningError as exc:
+        return _page(request, account_id, error=exc.message, error_form="instalment", status_code=400)
+    return redirect(f"/gameya/{account_id}", f"Recorded {len(txns)} past instalments.")
+
+
 @router.post("/{account_id:int}/payout")
 async def record_payout(request: Request, account_id: int):
     form = await request.form()

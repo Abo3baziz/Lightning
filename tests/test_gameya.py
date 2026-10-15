@@ -212,7 +212,7 @@ def test_overdue_instalment_shows_once_under_needs_you(c, setup):
     rows = [row for row in ReviewInbox(c).items(TODAY) if row["label"].startswith("Gam'eya")]
     assert len(rows) == 1                                  # one row per circle, not per month
     assert rows[0]["label"] == "Gam'eya instalment due: Office gam'eya"
-    assert "Instalment 1 of 10 was due 2026-10-05" in rows[0]["detail"]
+    assert "3 instalments · 6,000 EGP · first due 2026-10-05" in rows[0]["detail"]
     assert rows[0]["href"] == f"/gameya/{circle.id}#record-instalment"
     for day in ("2026-10-05", "2026-11-05", "2026-12-05"):
         c.gameya.record_instalment(circle.id, day)

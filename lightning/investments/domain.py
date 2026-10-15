@@ -46,6 +46,20 @@ class Position:
     owned_cost_basis: Decimal | None = None
     owned_realized: Decimal | None = None
     display_return: DisplayReturn | None = None
+    invested: Decimal = ZERO  # all purchases, including the cost of units since sold
+    owned_invested: Decimal = ZERO
+
+    def owned_result(self, units: Decimal, value: Decimal | None, cost: Decimal) -> dict:
+        """Owned lifetime gain and plain return, using the original purchases as denominator.
+
+        Cost pools keep your purchases apart from assets held for somebody else. Income
+        follows the same owned-unit allocation as the Investments report.
+        """
+        share = units / self.quantity if self.quantity else ZERO
+        gain = None if value is None else value - cost + (self.owned_realized or ZERO) + self.dividends * share
+        invested = self.owned_invested
+        return {"gain": gain, "invested": invested,
+                "gain_pct": gain / invested * 100 if gain is not None and invested else None}
 
     @property
     def average_cost(self) -> Decimal | None:

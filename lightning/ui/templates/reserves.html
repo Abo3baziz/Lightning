@@ -30,6 +30,7 @@
   </div>
   {% if not fund.monthly %}<p class="muted small">{% if fund.basis == 'income' %}Choose your income categories in <a href="/settings?section=budget">{{ 'Settings'|tr(locale) }}</a> to measure months covered.{% else %}Months covered are measured once a month of spending is recorded.{% endif %}</p>{% endif %}
   <p class="muted small">Counted in months of {{ what }} · <a href="/settings?section=budget">{{ "Change in Settings"|tr(locale) }}</a></p>
+  {% include "partials/emergency_liquidity_context.html" %}
   <form method="post" action="/reserves/emergency" class="emergency-form" data-autosave-form>
     <label>{{ "Amount set aside"|tr(locale) }}<input class="money-input" type="text" name="allocated" value="{{ emergency.effective_allocated|money(False, 2) if emergency else '0.00' }}" inputmode="decimal" required>{% if emergency and emergency.spent %}<small class="muted">{{ emergency.effective_allocated|money(False, 0) }} left of {{ (emergency.effective_allocated + emergency.spent)|money(False, 0) }} · {{ emergency.spent|money(False, 0) }} used</small>{% endif %}</label>
     <span class="inline-save-status" aria-live="polite"></span>

@@ -15,7 +15,7 @@
   {% else %}<a class="phone-txn" href="{{ ('/transactions/' ~ r.txn_id ~ '/edit-popup?return_to=' ~ (base_url ~ ('?' ~ keep_qs if keep_qs else ''))|urlencode) if editable else '/transactions/' ~ r.txn_id }}" data-txn="{{ r.txn_id }}"{% if editable %} data-popup-open{% endif %}>{% endif %}
     <span class="phone-txn-av{{ ' is-in' if r.type != 'TRF' and r.amount > 0 }}" aria-hidden="true">{{ initial }}</span>
     <span class="phone-txn-who"><b>{{ who }}</b><small>{{ cat if cat != who else '' }}{% if show_account and with_account and r.type != 'TRF' %}{{ ' · ' if cat != who }}{{ r.account_label }}{% endif %}</small></span>
-    <span class="phone-txn-amount"><b class="{{ '' if r.type == 'TRF' else ('pos' if r.amount > 0 else '') }}">{{ r.amount|abs|money if r.type == 'TRF' and show_account else r.amount|money(True) }}</b>{% if show_balance and r.balance is not none %}<small>{{ r.balance|money }}</small>{% endif %}</span>
+    <span class="phone-txn-amount"><b class="{{ '' if r.type == 'TRF' else ('pos' if r.amount > 0 else '') }}">{{ r.amount|amount_role('row', True) }}</b>{% if show_balance and r.balance is not none %}<small>{{ r.balance|amount_role('row') }}</small>{% endif %}</span>
   {% if selecting %}</label>{% else %}</a>{% endif %}
   {% endif %}
 {% endfor %}

@@ -199,7 +199,7 @@ def test_overview_lists_due_bills_under_needs_you(c, setup, monkeypatch):
     start = page.index('<details class="card needs-you"')
     attention = page[start:page.index("</details>", start)]  # a closed list at the very top
     assert page.index("needs-you") < page.index('class="stat-tiles"')
-    assert "and 1 more" in attention  # the closed summary names the first item and counts the rest
+    assert "+1 more" in attention  # the closed summary previews the first item and counts the rest
     # Feedback ticket 84: both are payments, so they are one row that opens their own page.
     assert "Bills and payments · 2" in attention and "Loan payment due: Car loan, Bill due: Electricity" in attention
     group = TestClient(create_app(c), base_url="http://127.0.0.1").get("/needs-you/payments").text

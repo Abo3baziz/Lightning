@@ -58,11 +58,11 @@ Ranked by harm to trust, then by how often a user meets it.
 
 **[x] X-1 · Visual · P1 — The page-jump button covers figures.** `#page-jump` (`app.js` line 254) floats at the right edge, exactly where right-aligned amounts end. Seen on Zakat, Recurring, Loans, Spending, Budget, Prices, Health, Categories. Give the main column a right padding equal to the button, or dock the button in the sidebar under the account list. On the phone it is fine; the issue is PC.
 
-**X-2 · Visual · P1 — The same amount is written three ways.** Sidebar and Accounts table keep cents (263,462.36), headers round (71,625), the PC register rounds rows (−469) while A06.1 says rows keep two decimals and the phone register does (−468.50). Make one helper decide by role (total, row, field) and use it on PC and phone; add a test that the same transaction renders the same text in both.
+**[x] X-2 · Visual · P1 — The same amount is written three ways.** Sidebar and Accounts table keep cents (263,462.36), headers round (71,625), the PC register rounds rows (−469) while A06.1 says rows keep two decimals and the phone register does (−468.50). Make one helper decide by role (total, row, field) and use it on PC and phone; add a test that the same transaction renders the same text in both.
 
 **[x] X-3 · Logic · P1 (owner) — Annualized returns on short histories.** `XIRR` is shown from day one (Overview of Investments, holdings table, holding page, certificate row). A ring bought this month or a share held five weeks produces three-digit "a year" figures that no user can act on, and feedback row 61 shows users already doubt it. Proposal: under 365 days show *Return* (simple, not annualized) with "held 5 weeks"; from 365 days show XIRR. Keep the calculation; change what is shown.
 
-**X-4 · Logic · P1 — Part of a period against a whole one.** Wherever a running period is compared (Spending's "Against 2026-09", "Against your usual month", "Now against your usual month" bars, Overview's Change in net worth early in the month), compare like with like: days 1–14 against days 1–14 of the earlier month(s), or extrapolate and say "on pace for". Mark a running period "so far" and do not colour its chip green or rose until it is complete, because a half month always looks thrifty.
+**[x] X-4 · Logic · P1 — Part of a period against a whole one.** Wherever a running period is compared (Spending's "Against 2026-09", "Against your usual month", "Now against your usual month" bars, Overview's Change in net worth early in the month), compare like with like: days 1–14 against days 1–14 of the earlier month(s), or extrapolate and say "on pace for". Mark a running period "so far" and do not colour its chip green or rose until it is complete, because a half month always looks thrifty.
 
 **X-5 · Logic · P2 — Charts with two points.** The data has three month-ends, yet charts draw lines, "lowest" and "best" labels as if there were a history: Health's Savings rate line runs diagonally across an otherwise empty plot with one month named; Holding page "Typical move — after three months" is right, "Months up · down 1 · 0" and "Fall from its high 0" add nothing. Rule: below three points, show the number and the sentence "a line appears after three month-ends", never a line. Net worth on Health already does this; do it everywhere.
 
@@ -102,9 +102,9 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Summary
 
-**OV-1 · Flow · P1 — Phone order.** Phone order built (2026-10-14, owner approved C11.1 update). Remaining on PC: Needs you is first and folded to one line; the user cannot tell the count's urgency without opening it. Show the top item's words, its date and amount, and "+2 more".
+**[x] OV-1 · Flow · P1 — Phone order.** Phone order built (2026-10-14, owner approved C11.1 update). Remaining on PC: Needs you is first and folded to one line; the user cannot tell the count's urgency without opening it. Show the top item's words, its date and amount, and "+2 more".
 
-**OV-2 · Visual · P1 — Investments row is broken on PC.** "Portfolio value" floats to the far right as a title while the figure "177,903 · 6 holdings" is tiny on the left with a lone chevron. Lay it out as one KPI row: Portfolio value · Net gain or loss · Income collected · link.
+**[x] OV-2 · Visual · P1 — Investments row is broken on PC.** "Portfolio value" floats to the far right as a title while the figure "177,903 · 6 holdings" is tiny on the left with a lone chevron. Lay it out as one KPI row: Portfolio value · Net gain or loss · Income collected · link.
 
 **OV-3 · Logic · P2 — Three different "change" figures sit together.** Change in net worth +32,013, Net flow +26,341, Investing rate +18,450 money added. A user will ask why net worth rose more than they kept. This is the wealth-change bridge (M3.2): Net worth change = Kept (net flow) + Market moves + Other. Build it as the Change in net worth card's "Show the numbers". Highest-value missing answer on the Overview.
 
@@ -120,7 +120,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Spending
 
-**SP-1 · Logic · P1 — Partial month compared with full months.** See X-4. The green "−25%" and "−22% against your usual month" mislead every day until the month ends. Same for the "Now against your usual month" bars (Food −30%, Other −90%).
+**[x] SP-1 · Logic · P1 — Partial month compared with full months.** See X-4. The green "−25%" and "−22% against your usual month" mislead every day until the month ends. Same for the "Now against your usual month" bars (Food −30%, Other −90%).
 
 **SP-2 · Visual · P2 — Treemap labels clipped.** "Eating 469 · 3%" and "Other 440 · 2%" are cut at the tile edge. Below a minimum tile size, list the category under the treemap instead.
 
@@ -142,7 +142,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 **HE-3 · Logic · P2 — "Debt to cash" is a weak measure for a salaried borrower.** 69.5% compares all remaining car-loan payments (52,500) with cash today. Users understand "Loan payments to income" (5.6%) and "Months to debt-free" (21). Keep the ratio in "Show the numbers"; lead with the two that drive decisions.
 
-**HE-4 · Logic · P2 — Emergency fund ignores liquid holdings.** See RS-1. Show a second line: "Could also use: free cash 55,560 · money market fund 3,033 (days) · certificate locked".
+**[x] HE-4 · Logic · P2 — Emergency fund ignores liquid holdings.** See RS-1. Show a second line: "Could also use: free cash 55,560 · money market fund 3,033 (days) · certificate locked".
 
 **HE-5 · Visual · P3 — "4 of 5 within your limits" over seven rows.** Say "4 within, 1 below, 2 without a limit".
 
@@ -216,7 +216,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Reserves
 
-**RS-1 · Logic · P1 — Emergency coverage.** Spending default and optional income basis built (owner, 2026-10-14). Remaining: liquid-holdings context. Original evidence: Six months of income = 270,000 for a user who spends about 20,000 a month; 10,417 a month to reach it in two years. The usual rule is months of essential spending. The owner chose income on 2026-10-05; this review asks to reconsider: default to spending (fixed bills + usual flexible spending), or show both "4.6 months of spending · 0.4 of income". Also count what can be reached within a week (free cash, money market fund), separately from what is set aside.
+**[x] RS-1 · Logic · P1 — Emergency coverage.** Spending default and optional income basis built (owner, 2026-10-14). Remaining: liquid-holdings context. Original evidence: Six months of income = 270,000 for a user who spends about 20,000 a month; 10,417 a month to reach it in two years. The usual rule is months of essential spending. The owner chose income on 2026-10-05; this review asks to reconsider: default to spending (fixed bills + usual flexible spending), or show both "4.6 months of spending · 0.4 of income". Also count what can be reached within a week (free cash, money market fund), separately from what is set aside.
 
 **RS-2 · Feature · P2 — Refill reminder.** Open gap (Mohab 14). After a payment from the emergency fund, Needs you says "Emergency fund used 6,500 on 2026-10-18 · Refill over 3 months?".
 
@@ -230,7 +230,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 **[x] IN-1 · Logic · P1 — XIRR on short holdings.** See X-3.
 
-**IN-2 · Logic · P1 — Income outside return.** See section 1 #4. The certificate earns 18% but its Gain, Return and Net gain or loss are 0. Net gain or loss for the portfolio (+5,673) excludes 3,667 of interest received in the same months. Use total return everywhere: price change + gain from sales + income.
+**[x] IN-2 · Logic · P1 — Income outside return.** See section 1 #4. The certificate earns 18% but its Gain, Return and Net gain or loss are 0. Net gain or loss for the portfolio (+5,673) excludes 3,667 of interest received in the same months. Use total return everywhere: price change + gain from sales + income.
 
 **[x] IN-3 · Logic · P1 — Sale factors and Holdings after sale disagree.** Settings › Sale factors lists CDs / Time Deposits 100,000 → 95,000 after sale; the figure counts the locked certificate at 0 (`planning/position.py` line 245). Show the lock in Settings, and **(owner)** decide whether a locked certificate counts at 0, at face less a break fee, or as "can borrow against it" (Egyptian banks lend against certificates).
 
@@ -286,7 +286,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 **AC-1 · Logic · P2 — Three names for one figure.** "In your accounts" (sidebar, Transactions), "Total balance" (Accounts), "In this account" (a register). The Glossary should own one name; the Accounts page uses it.
 
-**AC-2 · Logic · P1 — Unsigned transfers on PC.** See section 1 #5. Also "Vodafone Cash / Vodafone Cash" (counterparty and account repeated) on transfer rows: show "To Vodafone Cash" once.
+**[x] AC-2 · Logic · P1 — Unsigned transfers on PC.** See section 1 #5. Also "Vodafone Cash / Vodafone Cash" (counterparty and account repeated) on transfer rows: show "To Vodafone Cash" once.
 
 **AC-3 · Visual · P2 — Sidebar lists only cash, bank and deposits.** "In your accounts 263,462.36" sits over a list that omits THNDR, Gold at home and the gam'eya, so the rows do not add to the total. List every account or say "Cash and bank" for the shown rows.
 
@@ -332,7 +332,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 ### Gam'eya
 
-**GA-1 · Logic · P1 — Joined late.** See section 1 #6. Today's page shows "0 of 10 paid", "Next instalment 2026-08-05", "Your turn 2026-10-05" and "Nothing owed either way". It should say "You owe 3 instalments (6,000) · The pot of 20,000 is due to you" and offer "Record past instalments" (one transfer per date) and "Record payout".
+**[x] GA-1 · Logic · P1 — Joined late.** See section 1 #6. Today's page shows "0 of 10 paid", "Next instalment 2026-08-05", "Your turn 2026-10-05" and "Nothing owed either way". It should say "You owe 3 instalments (6,000) · The pot of 20,000 is due to you" and offer "Record past instalments" (one transfer per date) and "Record payout".
 
 **GA-2 · Flow · P3 — "Account activity" and "More actions" lead.** The main actions (record instalment, record payout) are halfway down. Put "Pay instalment" and "Received the pot" in the header.
 
@@ -457,6 +457,8 @@ Beyond the open gaps already listed in the Project Overview, ranked by how often
 | Bank column presets for CSV, then PDF/Excel | Second import in one click | M | IM-1 |
 | Receipts | Warranty and work claims | M | TX-4 |
 | Lent to people | Informal family lending | M (owner) | HO-2 |
+
+**Trust milestone completed 2026-10-15:** same-day Spending comparisons, total holding gains including income, signed two-decimal registers, atomic gam’eya catch-up, PC Overview preview/KPI row and separate emergency liquidity context. Phone readability report resolved after incorporating the current phone fixes.
 
 ## 14. Suggested order and Mohab steps
 

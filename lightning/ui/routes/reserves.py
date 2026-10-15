@@ -10,6 +10,7 @@ from lightning.core.money import to_decimal
 from lightning.transactions.domain import TxnFilter
 from lightning.core.refs import DocType
 from lightning.categories.domain import Movement
+from lightning.planning.emergency_context import emergency_liquidity_context
 
 from .. import charts, keynotes
 from ..web import container, redirect, render
@@ -57,11 +58,12 @@ def _context(request: Request, error: str = ""):
     set_aside = emergency["effective_allocated"] if emergency else ZERO
     emergency_meter = charts.meter(set_aside, fund.target) if fund.target else None
     position = c.position.at(today())
+    liquidity_context = emergency_liquidity_context(position)
     # Free cash is the last tile below, so the one note is how long the emergency fund lasts.
     notes = [n for n in (keynotes.emergency(fund),) if n]
     return {"reserves": listed, "completed_reserves": completed, "notes": notes, "emergency_meter": emergency_meter,
             "emergency_set_aside": set_aside, "emergency": emergency, "fund": fund,
-            "pos": position, "error": error,
+            "pos": position, "liquidity_context": liquidity_context, "error": error,
             "counterparties": c.counterparties.list_active(),
             "accounts": [account for account in c.accounts.list(active_only=True)
                          if account.account_type.value in ("CASH", "BANK", "DEPOSIT", "BROKERAGE")],

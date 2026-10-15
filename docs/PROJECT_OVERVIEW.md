@@ -109,7 +109,7 @@ The period picker (All time · YTD · Monthly · Custom) drives most visuals. A 
 | Expense analysis: KPI cards, treemap, now against usual, daily calendar or monthly summaries | "Usual" is the 6 whole months before the period; usual range, small multiples, heatmap use the 12 before it |
 | — | Holding page: whole history up to 24 month ends; sparklines last 6 |
 
-A sparkline never follows the period. A comparison always looks at whole months before the period.
+A sparkline never follows the period. A comparison uses earlier months; a partial period uses matching calendar days, labelled so far with neutral comparison chips.
 
 <a id="the-questions-lightning-answers"></a>
 ## 5. The questions Lightning answers
@@ -172,7 +172,7 @@ Early pay, raise and rent changes need explicit confirmation by design: Lightnin
 | 15 | 20 Nov | 300 COMI dividend | Answered |
 | 16 | Dec | Work Uber 1,200 paid back by ACME | Answered |
 | 17 | 20 Dec | 90,000 bonus | Answered; average stays 45,000 |
-| 18 | 24 Dec | January's salary arrives early | Answered after he confirms the suggestion |
+| 18 | **High priority (owner, 2026-10-10): listed shares across US, Europe and GCC.** Keep exchange, identifier and trading currency explicit; value in base currency; check source coverage and licensing first | Owner | US stocks built (v1.1). Open: LSE, Euronext, Xetra, SIX, Nasdaq Nordic and the six GCC markets. [market_data.md](proposals/market_data.md) |
 | 19 | Jan–Apr | 9,000 insurance goal, 2,250 a month | Answered; cash moves only when he assigns it |
 | 20 | 1 Feb | Raise to 50,000 | Answered with confirmation |
 | 21 | Mar | Eid gifts given and received | Answered |

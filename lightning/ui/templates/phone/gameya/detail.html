@@ -7,7 +7,7 @@
 <h1>{{ account.name }}</h1><p>{{ "Gam'eya"|tr(locale) }}{% if terms %} · {{ 'run by'|tr(locale) }} {{ terms.organiser }}{% endif %}</p>
 {% if terms %}{% set owes_you = progress.balance > 0 %}{% set you_owe = progress.balance < 0 %}
 <div class="phone-lead">{{ progress.balance|abs|money(False, 0) }} <small>{{ account.currency }}</small></div>
-<p class="phone-note">{% if owes_you %}{{ 'The circle owes you'|tr(locale) }}{% elif you_owe %}{{ 'You owe the circle'|tr(locale) }}{% else %}{{ 'Nothing owed either way.'|tr(locale) }}{% endif %}</p>{% endif %}
+<p class="phone-note">{% if owes_you %}{{ 'The circle owes you'|tr(locale) }}{% elif you_owe %}{{ 'You owe the circle'|tr(locale) }}{% else %}{{ ('No recorded balance yet.' if progress.overdue or progress.payout_due else 'Nothing owed either way.')|tr(locale) }}{% endif %}</p>{% endif %}
 {% endblock %}
 {% block top_actions %}<a class="btn" href="/accounts/{{ account.id }}">{{ 'Account activity'|tr(locale) }}</a>
 <details class="action-menu phone-more-menu"><summary aria-label="{{ 'More actions'|tr(locale) }}">⋯</summary><div><a data-popup-open href="/accounts/{{ account.id }}/edit">{{ 'Edit account'|tr(locale) }}</a></div></details>{% endblock %}
@@ -49,6 +49,8 @@
     <div class="phone-row"><span>{{ 'Next instalment'|tr(locale) }}</span><b>{% if progress.next_date %}{{ progress.next_date }} · {{ terms.installment|money(False, 0) }}{% else %}{{ 'All recorded'|tr(locale) }}{% endif %}</b></div>
     <div class="phone-row"><span>{{ 'Your turn'|tr(locale) }}</span><b>{{ progress.payout_date }} · {{ terms.payout|money(False, 0) }}{% if progress.payouts %} · {{ 'received'|tr(locale) }}{% endif %}</b></div>
   </div>
+  {% if progress.due_count %}<p class="phone-note">{{ 'Instalments due (not recorded)'|tr(locale) }}: {{ progress.due_count }} · {{ progress.due_amount|money }} {{ account.currency }}</p>{% endif %}
+  {% if progress.payout_due %}<p class="phone-note">{{ 'Payout due to you (not recorded)'|tr(locale) }}: {{ terms.payout|money }} {{ account.currency }} · {{ progress.payout_date }}</p>{% endif %}
   {% if progress.overdue %}<p class="phone-note">{{ 'An instalment is past its date and not recorded yet.'|tr(locale) }}</p>{% endif %}
   {% if progress.all_recorded and not progress.finished %}<p class="phone-note">{{ 'Everything is recorded, but the balance is not zero. Record the difference, such as a fee, in this account.'|tr(locale) }}</p>{% endif %}
   {% if progress.finished %}<p class="phone-note">{{ 'This circle is finished. It no longer appears in your forecast.'|tr(locale) }}</p>{% endif %}
@@ -60,6 +62,12 @@
   <h2 id="instalment-heading" class="phone-card-title">{{ 'Record instalment'|tr(locale) }}</h2>
   <p class="phone-note">{{ 'Instalment'|tr(locale) }} {{ progress.next_index }} {{ 'of'|tr(locale) }} {{ terms.members }}</p>
   {% if error and error_form == 'instalment' %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}
+  {% if progress.due_count %}<form method="post" action="/gameya/{{ account.id }}/past-instalments" class="stack">
+    <p class="phone-note">{{ 'Records one transfer for each scheduled date. Use this only for instalments you already paid.'|tr(locale) }}</p>
+    <input type="hidden" name="expected_paid" value="{{ progress.paid }}">
+    <button class="btn">{{ 'Record past instalments'|tr(locale) }} · {{ progress.due_count }} · {{ progress.due_amount|money }} {{ account.currency }}</button>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>{% endif %}
   <form method="post" action="/gameya/{{ account.id }}/instalment" class="phone-form">
     <div class="field phone-amount"><label for="i-amount">{{ 'Amount'|tr(locale) }} ({{ account.currency }})</label><input id="i-amount" name="amount" value="{{ prefill.instalment_amount }}" inputmode="decimal" required></div>
     <div class="field"><label for="i-date">{{ 'Date'|tr(locale) }}</label><input id="i-date" name="date" type="text" value="{{ prefill.instalment_date }}" placeholder="yyyy-mm-dd" data-smart-date required></div>

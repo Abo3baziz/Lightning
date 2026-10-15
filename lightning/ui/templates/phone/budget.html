@@ -47,7 +47,7 @@
 <section class="phone-section" aria-labelledby="groups-heading">
   <header class="phone-section-head"><h2 id="groups-heading">{{ 'Spending by group'|tr(locale) }}</h2>{% if carryover %}<a href="/budget/carryover-bridge?month={{ month }}">{{ 'Carryover'|tr(locale) }}</a>{% endif %}</header>
   {% set shown = namespace(any=false) %}
-  <div class="card phone-card">
+  <div class="card phone-card phone-flat-rows">
   {% for category_id, row in group_rows if row.budgeted or row.spent %}{% set shown.any = true %}
     {% set used = (row.spent / row.budgeted * 100) if row.budgeted > 0 else (100 if row.spent else 0) %}
     <details class="phone-group"{{ ' open' if request.query_params.get('open_group') == category_id|string }}>

@@ -26,7 +26,7 @@
       {% if spark.points and values|reject('none')|list|length >= 2 %}{{ sparkline(spark, tone, title ~ ' ' ~ 'over six completed months'|tr(locale)) }}<div class="health-trend-axis muted" aria-hidden="true"><span>{{ trends[0].month }}</span><span>{{ trends[-1].month }}</span></div>{% else %}<p class="muted small">{{ 'Not enough completed months to draw a line yet.'|tr(locale) }}</p>{% endif %}
       <details class="health-numbers"><summary>{{ 'Show the numbers'|tr(locale) }}</summary>
         <div class="table-wrap"><table><thead><tr><th>{{ 'Completed month'|tr(locale) }}</th><th class="num">{{ title }}</th></tr></thead><tbody>
-        {% for month in trends %}<tr><td>{{ month.month }}</td><td class="num">{% set val = month.savings_rate if key == 'savings_rate' else month.net_worth %}{% if key == 'savings_rate' and month.gap %}{{ month.gap }}{% elif val is none %}Unavailable{% elif key == 'savings_rate' %}{{ '%.1f'|format(val) }}%{% else %}{{ val|money }} {{ base }}{% endif %}</td></tr>{% endfor %}
+        {% for month in trends %}<tr><td data-label="{{ 'Completed month'|tr(locale) }}">{{ month.month }}</td><td class="num" data-label="{{ title }}">{% set val = month.savings_rate if key == 'savings_rate' else month.net_worth %}{% if key == 'savings_rate' and month.gap %}{{ month.gap }}{% elif val is none %}Unavailable{% elif key == 'savings_rate' %}{{ '%.1f'|format(val) }}%{% else %}{{ val|money }} {{ base }}{% endif %}</td></tr>{% endfor %}
         </tbody></table></div>
       </details>
     </article>
@@ -50,7 +50,7 @@
         {% for name, value in item.support %}<div><dt>{{ name|tr(locale) }}</dt><dd>{{ value|money ~ ' ' ~ base if value is not none else 'Unavailable'|tr(locale) }}</dd></div>{% endfor %}
         {% if item.limit is not none %}<div><dt>{{ "Your limit"|tr(locale) }}</dt><dd>{{ ('At least' if item.direction == 'minimum' else 'At most')|tr(locale) }} {% if item.unit == '%' %}{{ '%.1f'|format(item.limit) }}%{% else %}{{ '%.0f'|format(item.limit) }} {{ 'months'|tr(locale) }}{% endif %}</dd></div>{% else %}<div><dt>{{ "Your limit"|tr(locale) }}</dt><dd>{{ "No limit"|tr(locale) }}</dd></div>{% endif %}
         {% if item.key == 'emergency_fund' %}<div><dt>{{ 'Target'|tr(locale) }}</dt><dd>{{ fund.target|money if fund.target is not none else 'Unavailable'|tr(locale) }}{% if fund.target is not none %} {{ base }}{% endif %}</dd></div>{% endif %}
-      </dl><a class="health-source" href="{{ item.href }}">{{ 'See details'|tr(locale) }}</a></div>
+      </dl>{% if item.key == 'emergency_fund' %}{% include "partials/emergency_liquidity_context.html" %}{% endif %}<a class="health-source" href="{{ item.href }}">{{ 'See details'|tr(locale) }}</a></div>
     </details>
     {% endfor %}
   {% endfor %}

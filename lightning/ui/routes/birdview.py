@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from lightning.core.figures import label
+from lightning.reporting.spending import comparison_windows, partial_months
 from fastapi import APIRouter, Request, Response
 
 from lightning.core.dates import fmt_date, month_of, parse_month, today
@@ -72,7 +73,7 @@ async def expense_analysis(request: Request):
         if selected.key == "month":
             prior_to = first - timedelta(days=1)
             prior_from = prior_to.replace(day=1)
-            prior_to = date(prior_to.year, prior_to.month, calendar.monthrange(prior_to.year, prior_to.month)[1])
+            prior_from, prior_to = comparison_windows(first, last, prior_from.strftime("%Y-%m"))[0]
         elif selected.key == "ytd":
             prior_from = date(first.year - 1, 1, 1)
             prior_to = date(first.year - 1, last.month, min(last.day, calendar.monthrange(first.year - 1, last.month)[1]))
@@ -116,7 +117,7 @@ async def expense_analysis(request: Request):
                 for g in groups if g.value]
     category_bars = charts.grouped_bars(bar_rows, limit=10)
     spend_trend = visuals.spending_trend(c, last, category_code, count=max(6, min(len(trend), 24)))
-    prior_label = (prior_from.strftime("%Y-%m") if selected.key == "month" else "the period before") if prior else ""
+    prior_label = (prior_from.strftime("%Y-%m") + (f" days {prior_from.day}–{prior_to.day}" if partial_months(first, last) else "") if selected.key == "month" else "the period before") if prior else ""
     notes = [n for n in (keynotes.top_category(bar_rows, spending_total, ""),
                          keynotes.compared(spending_total, prior_spending, prior_label)) if n]
     usual = []
@@ -179,7 +180,7 @@ def _expense_stats(a, total, prior, prior_label, largest, selected, first, last,
         diff = now - then
         pct = f" · {abs(diff) / then * 100:.0f}%" if then else ""
         return {"label": label, "text": f"{'+' if diff > 0 else '−' if diff < 0 else ''}{fmt(abs(diff), 0)}{pct}",
-                "tone": "up" if diff > 0 else "down" if diff < 0 else "flat"}
+                "tone": "flat" if partial_months(first, last) else ("up" if diff > 0 else "down" if diff < 0 else "flat")}
 
     query = (f"category_id={category_filter}&" if category_filter else "") + f"date_from={fmt_date(first)}&date_to={fmt_date(last)}"
     usual = a.get("usual_out")
@@ -193,10 +194,10 @@ def _expense_stats(a, total, prior, prior_label, largest, selected, first, last,
         rows = payments(start, end)
         monthly.append(sum((r["value"] for r in rows), ZERO))
         counts.append(Decimal(len(rows)))
-    stats = [{"key": "out", "surface": "out", "label": label("money_out"), "value": total, "kind": "money",
+    stats = [{"key": "out", "surface": "out", "label": label("money_out") + (" so far" if partial_months(first, last) else ""), "value": total, "kind": "money",
               "spark": charts.sparkline(monthly), "spark_tone": "spend",
               "compare": [compare(f"Against {prior_label}" if prior_label else "Against the period before", total, prior),
-                          compare(f"Against your usual {'month' if months == 1 else 'months'}", total,
+                          compare(("Against the same days in earlier months" if partial_months(first, last) else f"Against your usual {'month' if months == 1 else 'months'}"), total,
                                   usual * months if usual is not None else None)],
               "href": f"/transactions?{query}"}]
     now_rows = payments(first, last)

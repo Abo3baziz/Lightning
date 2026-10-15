@@ -4,6 +4,7 @@
 
 | Who | Work | Files | Since |
 |---|---|---|---|
+| Codex | Trust/phone fixes validated locally (1,593 pass, 9 skipped). Remote push awaits approval after automatic rejection; Europe/GCC adapter work is next in this session. | reporting, investments, gameya, UI, market packs | 2026-10-15 |
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk. | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
@@ -19,9 +20,10 @@
 
 - **Section 13 milestone 1 built:** salary/payday setup, bank CSV presets, full exports, instalment purchases and early payoff use existing screens. Next: optional reminders/grouped confirmations, then analytics. Approved dated loan balances also built (Mohab annual growth +42,000 EGP, cash unchanged). **Read:** `docs/proposals/tab_by_tab_review.md` §13; Architecture › Cash planning, › CSV import and export.
 
-- **Tab-by-tab fixes, step 1 (trust), remaining:** SP-1/X-4 comparisons, IN-2 income in holdings returns, AC-2/X-2 register signs/number roles, GA-1 late-circle dues, OV-2 layout and PC OV-1 preview. X-3, IN-3, CP-1/8, X-1, HL-1, SE-1, SR-1 and phone PH-1 are built; spending default approved/built, RS-1 liquid-holdings context remains. **Read:** `docs/proposals/tab_by_tab_review.md` §1, §14 and unchecked items; `OWNER.md` › Tab-by-tab review has the remaining choices.
+- **Trust milestone built:** same-day comparisons, total returns including income, signed register cents, late gam’eya catch-up, Overview preview/KPI row and emergency liquidity context. Next: step 2 weekly friction. **Read:** `docs/proposals/tab_by_tab_review.md` §14; Architecture › UI contract.
+
 - **Gam'eya and zakat follow-ups:** demo/sample profiles have no circle; the phone Overview's What you owe has no gam'eya breakdown; Investments shows an early-turn circle below zero while Position moves it to What you owe. **Read:** Architecture › Gam'eya, › Zakat.
 
-1. **Next release: European and all GCC stock lists.** US stocks/ETFs are in v1.1; add the remaining exchanges. Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
+1. **Europe/GCC adapters built, release blocked:** Oman and Nasdaq Nordic complete the declared coverage; verify live boards with permitted access and obtain a redistributable source. Current sources keep `publish=False`. Read: Project Overview › #18 and Roadmap M4; `docs/proposals/market_data.md`.
 2. **Gold:** test source from home; silver needs holdings. **Read:** `docs/proposals/market_data.md`.
 3. **Optional:** stable origin/cache and CSS trim. **Read:** Architecture › Page speed.

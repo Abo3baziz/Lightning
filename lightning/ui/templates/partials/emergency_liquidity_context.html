@@ -1,0 +1,15 @@
+<div class="muted small emergency-liquidity-context">
+  <h3>{{ 'Could also use'|tr(locale) }}</h3>
+  <ul>
+    <li>{{ 'Free cash'|tr(locale) }} <b>{{ liquidity_context.free_cash|amount_role('total') if liquidity_context.free_cash is not none else 'Unavailable'|tr(locale) }} {{ base if liquidity_context.free_cash is not none }}</b></li>
+    {% for item in liquidity_context.within_days %}
+    <li>{{ item.label }}{% if item.value is not none %} <b>{{ item.value|amount_role('total') }} {{ base }}</b>{% else %} · {{ 'Value unavailable'|tr(locale) }}{% endif %} · {{ 'Accessible in days'|tr(locale) }}{% if item.unvalued and item.value is not none %} · {{ item.unvalued }} {{ 'unvalued'|tr(locale) }}{% endif %}</li>
+    {% endfor %}
+    {% for item in liquidity_context.locked %}
+    <li>{{ item.label }}{% if item.value is not none %} <b>{{ item.value|amount_role('total') }} {{ base }}</b>{% else %} · {{ 'Value unavailable'|tr(locale) }}{% endif %} · {{ 'Locked until {date}'|tr(locale, date=item.until) }}</li>
+    {% endfor %}
+    {% for item in liquidity_context.unknown %}
+    <li>{{ item.label }}{% if item.value is not none %} <b>{{ item.value|amount_role('total') }} {{ base }}</b>{% else %} · {{ 'Value unavailable'|tr(locale) }}{% endif %} · {{ 'Access timing unknown'|tr(locale) }}{% if item.unvalued and item.value is not none %} · {{ item.unvalued }} {{ 'unvalued'|tr(locale) }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>

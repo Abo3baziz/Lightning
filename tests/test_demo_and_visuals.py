@@ -181,7 +181,7 @@ def test_every_tab_of_the_demo_opens_with_its_key_notes(demo):
     assert "chart-cfall-plot" not in overview  # the Net flow list says it; no column waterfall repeats it (UX plan 5)
     # No chart hides behind a toggle; only the one-row investment figures fold (Codex 2026-10-10), with their summary showing.
     assert "overview-month-toggle" not in overview
-    assert 'class="overview-disclosure investment-toggle"' in overview and "Show investments" in overview
+    assert 'class="overview-figure-row"' in overview and "Income collected" in overview
     assert "chart-trend" in client.get("/birdview").text  # month by month lives on Birdview
 
 

@@ -1765,7 +1765,11 @@ a.chart-meter:hover { background:var(--hover); }
 /* Needs you: one closed row at the top of the Overview; open it to see every item. */
 .main .needs-you { padding:0!important; margin:0 0 var(--gap-block); }
 .main .needs-you > summary, .main .needs-you.is-empty { display:flex; align-items:center; gap:10px; padding:14px 20px; font:700 var(--fs-body)/1.4 var(--body); color:var(--ink); }
-.main .needs-you > summary small { font-weight:500; color:var(--ink-2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.main .needs-you > summary > small { font-weight:500; color:var(--ink-2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.main .needs-you-preview { display:flex; align-items:baseline; gap:8px; min-width:0; flex:1; font-size:var(--fs-meta); font-weight:500; }
+.main .needs-you-preview > b { color:var(--ink); font-weight:700; white-space:nowrap; }
+.main .needs-you-preview > small { min-width:0; overflow:hidden; color:var(--ink-2); text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+.main .needs-you-more { flex:none; color:var(--ink-2); font:600 var(--fs-meta)/1.3 var(--body); white-space:nowrap; }
 .main .needs-you-dot { width:10px; height:10px; border-radius:50%; background:var(--rose); flex:none; }
 .main .needs-you.is-empty .needs-you-dot { background:var(--meadow); }
 .main .needs-you.is-empty { font-weight:600; color:var(--ink-2); }
@@ -2974,6 +2978,14 @@ input[type=file]:not(#_):not(.x_):hover::file-selector-button { border-color:var
 .main .overview-figure-row > div b { font:800 24px/1.1 var(--display); color:var(--ink); font-variant-numeric:tabular-nums; }
 .main .overview-figure-row > div b.pos { color:var(--positive); }
 .main .overview-figure-row .quiet-link { margin-left:auto; align-self:center; }
+/* Overview investments: all three answers and the detail link stay visible in one KPI row. */
+.main .overview-investment-row .overview-figure-row { display:grid; grid-template-columns:minmax(0,1.3fr) repeat(2,minmax(0,1fr)) auto; align-items:center; gap:20px; }
+.main .overview-investment-row .overview-investment-value b { font-size:30px; }
+.main .overview-investment-row .quiet-link { margin-left:0; white-space:nowrap; }
+@media (min-width:761px) and (max-width:1050px) {
+  .main .overview-investment-row .overview-figure-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .main .overview-investment-row .quiet-link { grid-column:1/-1; justify-self:start; }
+}
 /* A11 · picker results: the L1 as a bold header, its categories under it (never "L1 › L2"). */
 .counterparty-results .picker-group { padding:8px 12px 4px; font:700 var(--fs-meta)/1.3 var(--body); color:var(--ink); }
 .counterparty-results .picker-group ~ .counterparty-option { padding-left:20px; }

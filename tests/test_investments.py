@@ -339,7 +339,7 @@ class TestInvestmentPages:
         rows = re.findall(r"<tr\b[^>]*>.*?</tr>", table, re.S)
 
         assert [re.sub(r"<[^>]+>", "", h) for h in re.findall(r"<th\b[^>]*>(.*?)</th>", table.split("</thead>", 1)[0])] == [
-            "Investment", "Units", "Average cost", "Price", "Cost", "Value", "Share", "Gain", "Return", "Since purchase", "Horizon"]
+            "Investment", "Units", "Average cost", "Price", "Cost", "Value", "Share", "Total gain", "Total return", "Since purchase", "Horizon"]
         assert len(headers) == 11 and rows
         assert all(len(re.findall(r"<(?:th|td)\b", row)) == 11 for row in rows)
         assert "Holding details" not in table and 'class="small muted"' not in table

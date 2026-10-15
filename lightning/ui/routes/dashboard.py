@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import calendar
+
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 from collections import defaultdict
@@ -187,6 +189,7 @@ async def dashboard(request: Request):
     investment_report = {
         "holdings_value": holdings_value, "brokerage_cash": investment_cash,
         "portfolio_value": portfolio_value, "new_money": closing_report["net_money"],
+        "income_collected": closing_report["dividends"],
         "period_result": period_result, "period_result_available": period_result is not None,
         "missing": closing_report["missing"] + opening_report["missing"],
         "at_cost": closing_report["at_cost"],
@@ -350,7 +353,7 @@ def _period_stats(c, period, first, as_of, position, cash_flow, change, change_r
     lead = "net_worth" if owes else "what_you_own"
     stats = [{
         "key": "change", "surface": "hold", "label": label("change_in_net_worth" if owes else "change_in_what_you_own"),
-        "value": nw_change, "kind": "money", "badge": {"tone": sign(nw_change), "text": period_name},
+        "value": nw_change, "kind": "money", "badge": {"tone": "flat" if as_of.day < calendar.monthrange(as_of.year, as_of.month)[1] else sign(nw_change), "text": period_name + (" so far" if as_of.day < calendar.monthrange(as_of.year, as_of.month)[1] else "")},
         "sub": nw_reason if nw_change is None else f"{label(lead)} {fmt(position.net_worth if owes else position.what_you_own)}",
         "spark": visuals.trend_spark(networth_trend), "spark_tone": "hold", "href": "#owned-heading",
     }]
@@ -367,7 +370,7 @@ def _period_stats(c, period, first, as_of, position, cash_flow, change, change_r
     stats.append({
         "key": "savings", "surface": "over" if thin else "in", "label": label("savings_rate"),
         "value": None if thin else rate, "kind": "rate", "empty": "—" if thin else None,
-        "badge": {"tone": sign(cash_flow.net), "text": period_name},
+        "badge": {"tone": sign(cash_flow.net), "text": period_name + (" so far" if as_of.day < calendar.monthrange(as_of.year, as_of.month)[1] else "")},
         "figure": cash_flow.net, "sub": savings_sub,
         "spark": visuals.savings_rate_spark(c, as_of), "spark_tone": "in",
         "href": f"/transactions?date_from={fmt_date(first)}&date_to={fmt_date(as_of)}",
@@ -375,7 +378,7 @@ def _period_stats(c, period, first, as_of, position, cash_flow, change, change_r
     invest = investing_rate(money_added, cash_flow.net)
     stats.append({
         "key": "investing", "surface": "in", "label": label("investing_rate"), "value": invest, "kind": "rate",
-        "badge": {"tone": sign(money_added), "text": period_name},
+        "badge": {"tone": sign(money_added), "text": period_name + (" so far" if as_of.day < calendar.monthrange(as_of.year, as_of.month)[1] else "")},
         "figure": money_added, "sub": label("new_money_in").lower() if invest is not None else "Nothing kept this period",
         "meter": {"width": float(max(min(invest, 100), 0)) if invest is not None else 0.0, "tone": "hold"},
         "href": f"/investments?{period_query}",

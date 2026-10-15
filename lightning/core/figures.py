@@ -132,9 +132,9 @@ _TABLE = [
      "Net worth at the end − Net worth the day before the start − Opening balances in the period"),
     ("per_month", "Per month", "A period's money out divided by the calendar months it covers, so a year to date "
      "compares with a single month."),
-    ("usual_month", "Usual month", "The average money out of the last six whole months before the period."),
-    ("usual_range", "Usual range", "The lowest, middle and highest monthly money out of the twelve whole months "
-     "before the period. It needs three of them."),
+    ("usual_month", "Usual month", "The average money out of the last six earlier months, using matching calendar days for a partial period."),
+    ("usual_range", "Usual range", "The lowest, middle and highest money out of the twelve earlier months, using matching calendar days "
+     "for a partial period. It needs three of them."),
     ("investing_rate", "Investing rate", "The share of what you kept (net flow) that you moved into investments. "
      "Money from earlier savings does not count, so it is never more than 100%.", "Money added ÷ Net flow"),
     ("average_monthly_income", "Average monthly income",

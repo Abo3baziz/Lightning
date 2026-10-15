@@ -4,7 +4,7 @@
 
 {# A balance you hold: Azure, a negative one needs you (guideline A03). #}
 {% macro held(value, currency='', places=None) -%}
-<span class="num held{{ ' neg' if value is not none and value < 0 }}">{{ value|money(places=places) }}{% if currency %} <span class="muted small">{{ currency }}</span>{% endif %}</span>
+<span class="num held{{ ' neg' if value is not none and value < 0 }}">{{ value|amount_role('total') if places is none else value|money(places=places) }}{% if currency %} <span class="muted small">{{ currency }}</span>{% endif %}</span>
 {%- endmacro %}
 
 {% macro txn_table(rows, show_account=True, empty='No transactions yet.') -%}
@@ -20,7 +20,7 @@
         {% if r.status == 'VOID' %}<span class="pill void">void</span>{% endif %}</td>
       {% if show_account %}<td class="small">{{ r.account_label }}{% if r.to_account_label %} → {{ r.to_account_label }}{% endif %}</td>{% endif %}
       <td class="small">{% if r.category_label %}{{ r.category_label }}{% else %}<span class="pill {{ r.type }}">{{ r.type_label|tr(locale) }}</span>{% endif %}</td>
-      <td class="num">{% if r.type == 'TRF' %}<span class="num">{{ r.amount|money }}</span>{% else %}{{ amount(r.amount, '', True) }}{% endif %}</td>
+      <td class="num"><span class="num {{ '' if r.type == 'TRF' else r.amount|tone }}">{{ r.amount|amount_role('row', r.type != 'TRF') }}</span></td>
     </tr>
   {% endfor %}
   </tbody>

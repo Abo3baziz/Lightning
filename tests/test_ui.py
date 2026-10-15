@@ -45,7 +45,8 @@ def test_full_flow(client, c):
 
     # the sidebar lists every account with its balance
     page = client.get(f"/accounts/{cib.id}")
-    assert "In your accounts" in page.text and "51,000.00" in page.text and "CIB Current" in page.text
+    sidebar_total = re.search(r'<span>In your accounts</span><span class="num"[^>]*>([^<]+)</span>', page.text)
+    assert sidebar_total and sidebar_total.group(1) == "51,000" and "CIB Current" in page.text
     assert "CIB-CUR-EGP" not in page.text  # ordinary account UI leads with the name, not its code
 
     r = client.post(f"/accounts/{cib.id}/register", data={"date": "2026-09-25", "counterparty": "Carrefour",

@@ -641,7 +641,7 @@ class ReportingService:
 
     def spending_vs_usual(self, date_from, date_to, months: int = 3, history: int = 6, depth: int = 2) -> list[dict]:
         """Each category's spending in the period against its usual month: the average of the
-        ``months`` whole months before the period (only months after the first record count). Also
+        ``months`` earlier months, using the same days for a partial month (only months after the first record count). Also
         the last ``history`` months for a mini trend. Largest first."""
         start, end = parse_date(self._day(date_from)), parse_date(self._day(date_to))
         first_record = self.first_activity_date()
@@ -658,7 +658,8 @@ class ReportingService:
 
         prior = [month_range(start, k) for k in range(1, months + 1)]
         prior = [(a, b) for a, b in prior if a >= floor]
-        prior_values = [by_code(a, b) for a, b in prior]
+        from .spending import comparison_windows
+        prior_values = [by_code(*comparison_windows(start, end, a.strftime("%Y-%m"))[0]) for a, b in prior]
         trend_months = [month_range(end, k) for k in range(history - 1, -1, -1)]
         trend_months = [(a, min(b, end)) for a, b in trend_months if a >= floor]
         trend_values = [by_code(a, b) for a, b in trend_months]

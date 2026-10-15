@@ -43,6 +43,20 @@ class GameyaProgress:
     payout_due: bool             # your turn has come and the payout is not recorded
 
     @property
+    def due_indices(self) -> list[int]:
+        """Unrecorded scheduled instalments due by this date; saving terms posts none."""
+        return [index for index in range(self.paid + 1, self.terms.members + 1)
+                if installment_date(self.terms, index).isoformat() <= self.as_of]
+
+    @property
+    def due_count(self) -> int:
+        return len(self.due_indices)
+
+    @property
+    def due_amount(self) -> Decimal:
+        return self.terms.installment * self.due_count
+
+    @property
     def remaining(self) -> int:
         return self.terms.members - self.paid
 
@@ -187,6 +201,24 @@ class GameyaService:
                 fmt_date(day), funding.id, circle.id, value,
                 description=f"Gam'eya instalment {progress.next_index} of {terms.members} · {circle.name}")
 
+    def record_past_instalments(self, account_id: int, *, expected_paid: int, as_of=None):
+        """Record due dates together, atomically. The shown paid count prevents a stale resubmit.
+
+        Each instalment remains its own dated internal transfer. Any cash validation failure
+        rolls back the entire batch, including earlier dates that would have been affordable.
+        """
+        day = parse_date(as_of, "as_of") if as_of is not None else today()
+        if day > today():
+            raise ValidationError("Choose today or an earlier date.", "as_of")
+        with self.db.transaction():
+            progress = self.progress(account_id, day)
+            if progress.paid != expected_paid:
+                raise ValidationError("The circle has changed. Review its instalments before recording again.", "instalment")
+            if not progress.due_indices:
+                raise ValidationError("No past instalments remain to record.", "instalment")
+            return [self.record_instalment(account_id, installment_date(progress.terms, index))
+                    for index in progress.due_indices]
+
     def record_payout(self, account_id: int, date_value=None, amount=None, payout_account_id=None):
         """Move your turn's payout from the circle into your payout account. The circle may go below zero:
         that is what you owe it for taking the pot early."""
@@ -288,9 +320,10 @@ class GameyaService:
             progress = self.progress(circle.id, on)
             if progress.overdue:
                 rows.append({"label": f"Gam'eya instalment due: {circle.name}",
-                             "detail": f"Instalment {progress.next_index} of {terms.members} was due "
-                                       f"{progress.next_date} · {fmt(terms.installment, 0)} {circle.currency} · "
-                                       "not recorded yet.",
+                             "detail": f"{progress.due_count} instalment{'s' if progress.due_count != 1 else ''} · {fmt(progress.due_amount, 0)} {circle.currency} · "
+                                       f"first due {progress.next_date} · not recorded yet."
+                                       + (f" Payout {fmt(terms.payout, 0)} {circle.currency} was due {progress.payout_date}."
+                                          if progress.payout_due else ""),
                              "href": f"/gameya/{circle.id}#record-instalment", "action": "Record instalment",
                              "priority": 1})
             elif progress.payout_due:

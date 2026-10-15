@@ -365,10 +365,11 @@ class InvestmentService:
             # One average-cost pool per owner (None is you): a sale by one owner removes units at that
             # owner's own average cost, never at a blend of everyone's purchase prices.
             pools = state.setdefault((line["account_id"], line["asset_id"]), {})
-            s = pools.setdefault(line.get("owner_id"), {"qty": ZERO, "cost": ZERO, "realized": ZERO})
+            s = pools.setdefault(line.get("owner_id"), {"qty": ZERO, "cost": ZERO, "realized": ZERO, "invested": ZERO})
             qty, amount = from_e6(line["quantity_e6"]), from_e6(line["amount_base_e6"])
             if qty > 0:
                 s["cost"] += amount
+                s["invested"] += amount
                 s["qty"] += qty
             else:
                 average = s["cost"] / s["qty"] if s["qty"] else ZERO
@@ -390,7 +391,7 @@ class InvestmentService:
         positions = []
         for (acc_id, asset_id), pools in state.items():
             s = {key: sum((pool[key] for pool in pools.values()), ZERO) for key in ("qty", "cost", "realized")}
-            own = pools.get(None, {"qty": ZERO, "cost": ZERO, "realized": ZERO})
+            own = pools.get(None, {"qty": ZERO, "cost": ZERO, "realized": ZERO, "invested": ZERO})
             account, asset = self.accounts.get(acc_id), self.assets.get_asset(asset_id)
             valuation = self.reporting.value_of(asset_id, s["qty"], day) if s["qty"] else None
             holding_cashflows = holding_flows.get((acc_id, asset_id), [])
@@ -411,8 +412,9 @@ class InvestmentService:
                 xirr=annual_rate,
                 display_return=display_return(holding_cashflows, day, annual_rate,
                                               not s["qty"] or bool(valuation and valuation.value is not None)),
+                invested=sum((-amount for _, amount in holding_flows.get((acc_id, asset_id), []) if amount < ZERO), ZERO),
                 owned_quantity=own["qty"], owned_cost_basis=_money(own["cost"]),
-                owned_realized=_money(own["realized"]),
+                owned_realized=_money(own["realized"]), owned_invested=own["invested"],
             ))
         # dividends from something not (or no longer) held in that account still count
         for (acc_id, code), amount in dividends.items():

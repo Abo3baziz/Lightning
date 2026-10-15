@@ -66,6 +66,7 @@ html.phone.keyboard-open .phone-tabbar, html.phone.sheet-open .phone-tabbar { di
 .phone .period-buttons:has(.period-month-seg) .period-button:not(.period-month-seg) { padding: 0 10px; }
 .phone .period-buttons:has(.period-month-seg) .period-month-seg { min-width: 0; }
 .phone .period-button { min-height: 40px; padding: 0 4px; white-space: nowrap; font-size: 14px; }
+.phone .site-period-control .month-stepper > .period-month-value:not(#_):not(.x_) { height: 48px; min-height: 48px; line-height: 48px; }
 .phone .period-month-picker, .phone .period-date-range { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* C03.3 tabs in a section: full width, equal, never scrolling; the gear lives in the app bar. */
@@ -84,10 +85,14 @@ html.phone { --control-h: 48px; --control-h-small: 40px; }
 html.phone .btn:not(.small):not(#_) { height: 48px; min-height: 48px; }
 html.phone .main :is(input, select):not([type=hidden], [type=checkbox], [type=radio], .period-month-value):not(#_):not(.x_) { height: 48px !important; min-height: 48px !important; }
 html.phone .main .cat-icon:not(#_) { width: 44px; height: 44px; }
+/* The PC keeps Save alias visually hidden because Enter saves it; phones expose it as the form's full-width action. */
+html.phone .main .alias-submit:not(#_) { position: static; display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 48px; min-height: 48px;
+  padding: 0 14px; margin: 0; overflow: visible; clip: auto; white-space: normal; border: 0; border-radius: 12px; background: var(--action); color: var(--on-action); font: 700 15px/1.2 var(--body); }
+html.phone .main .alias-enter-hint { display: none; }
 html.phone .stat-chip { white-space: normal; overflow: visible; text-overflow: clip; }
 /* C07, C12: Birdview's now-against-usual chart on a phone is two clusters a row, labels 12px, names wrap. */
 html.phone .main .clusters { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; grid-auto-columns: auto; row-gap: 12px; }
-html.phone .main .cluster-bars { height: 150px; }
+html.phone .main .cluster-bars { height: 104px; }
 html.phone .main .cluster-col :is(small, b) { font-size: 12px; }
 html.phone .main .cluster-name, html.phone .main .cluster span { white-space: normal; overflow: visible; text-overflow: clip; }
 .phone input, .phone select, .phone textarea { font-size: 16px; min-height: 48px; max-width: 100%; box-sizing: border-box; }
@@ -95,6 +100,10 @@ html.phone .main .cluster-name, html.phone .main .cluster span { white-space: no
 
 /* C06 cards: one column, 16 inside, 20px corners, 12 between. */
 .phone .card, .phone .overview-block { box-sizing: border-box; width: 100%; max-width: 100%; margin: 0 0 12px; padding: 16px; border-radius: 20px; }
+.phone .phone-flat-rows { margin: 0 0 12px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.phone .phone-flat-rows > .phone-row:first-child, .phone .phone-flat-rows > .phone-rows > .phone-row:first-child,
+.phone .phone-flat-rows > .phone-rows > .phone-row-more:first-child > summary { border-top: 0; }
+.phone .health-board { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .phone .overview-split, .phone .grid, .phone [class*="-grid"]:not(.cal-grid, .date-popup-grid) { grid-template-columns: minmax(0, 1fr) !important; }
 /* A calendar keeps its seven days across (C07): only layout grids fold to one column. */
 .phone .overview-split { display: grid; gap: 16px; }

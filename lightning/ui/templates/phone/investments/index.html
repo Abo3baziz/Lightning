@@ -51,7 +51,7 @@
 <section class="phone-section" aria-labelledby="holdings-heading">
   <header class="phone-section-head"><h2 id="holdings-heading">{{ 'Holdings'|tr(locale) }}</h2><span>As of {{ period.end_text }}</span></header>
   {% for g in holding_groups %}
-  <article class="card phone-card" aria-label="{{ g.name }}">
+  <article class="card phone-card phone-flat-rows" aria-label="{{ g.name }}">
     <div class="phone-group-head"><span class="phone-group-name"><b>{{ g.name }}</b><small>{{ '%.0f'|format(g.weight) }}% of holdings · gain {{ g.gain|money(True) }}</small></span><b class="phone-group-left">{{ g.value|money }}</b></div>
     <div class="phone-rows">{% for r in g.rows %}
       {% if r.balance %}<a class="phone-row" href="/accounts/{{ r.account_id }}"><span>{{ r.name }}<small>{{ "Cash in the account"|tr(locale) }}</small></span><b>{{ r.value|money }}</b></a>
@@ -62,9 +62,9 @@
 </section>
 
 <section class="phone-section" aria-labelledby="income-heading">
-  <header class="phone-section-head"><h2 id="income-heading">{{ "Dividends collected"|tr(locale) }}</h2><span>{{ ytd_year }} so far</span></header>
+  <header class="phone-section-head"><h2 id="income-heading">{{ "Income collected (dividends and interest)"|tr(locale) }}</h2><span>{{ ytd_year }} so far</span></header>
   <article class="card phone-card">
-    {% if ytd_dividends and ytd_dividends.rows %}{{ phone_bars(ytd_dividends.rows, 'Dividends collected this year') }}
+    {% if ytd_dividends and ytd_dividends.rows %}{{ phone_bars(ytd_dividends.rows, 'Income collected this year') }}
     <a class="phone-quiet" data-popup-open href="/investments/report-detail?kind=dividends&amp;from={{ ytd_year }}-01-01&amp;to={{ today }}">{{ "See them"|tr(locale) }}</a>
     {% else %}<p class="chart-empty">{{ "No dividends collected this year yet."|tr(locale) }}</p>{% endif %}
   </article>
