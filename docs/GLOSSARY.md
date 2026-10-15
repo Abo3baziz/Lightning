@@ -45,6 +45,7 @@ Layer: **Ledger** (real money moved), **Plan** (what-if, moves nothing) or **Rep
 | Term | Layer | Meaning |
 |---|---|---|
 | **Account** | Ledger | Where value is held (CIB, Cash wallet, THNDR brokerage). |
+| **Adjust balance** | Set an account to a balance you know on a date; the difference is recorded as one adjustment row. Was "Check against bank". CDs and physical items say **Update value** instead. | Read directly from the ledger | `reconciliation.ReconciliationService.adjust` |
 | **Gam'eya** | Ledger | A rotating savings circle: one account per circle; every instalment and your payout is an internal transfer, never income or spending; balance = paid in − received (positive: Gam'eya paid in; negative: Gam'eya still to pay). |
 | **Financial asset** | Ledger | What an account holds or counts (EGP cash, COMI share, fund unit, CD, gold gram). |
 | **Asset class** | Ledger | The kind of wealth an asset is; not where held or why paid. |

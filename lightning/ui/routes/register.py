@@ -25,10 +25,32 @@ from lightning.core.refs import DocType
 from lightning.transactions.tags import normalize as normal_tag
 
 from ..web import container, render
+from ..charts import class_tone
 from ..i18n import translate
 
 ENTRY_FIELDS = ("date", "account_id", "counterparty", "counterparty_choice", "counterparty_typed", "category", "category_choice", "whom", "notes", "amount")
 FAR_PAST, FAR_FUTURE = "1900-01-01", "9999-12-31"
+
+
+
+def account_composition(breakdown, value, owned, held):
+    """U4: the account's classes as one 100% bar (four, then Other) and, when held for others, an owned/held bar."""
+    parts = [row for row in breakdown if row["total"] > 0]
+    total = sum((row["total"] for row in parts), ZERO)
+    held_bar = None
+    if held and held > 0 and value and value > 0:
+        yours = max(owned, ZERO)
+        held_bar = {"owned": yours, "held": held, "owned_pct": float(yours / value * 100), "held_pct": float(held / value * 100)}
+    if (len(parts) < 2 and not held_bar) or not total:
+        return None
+    segments = [{"name": row["name"], "tone": class_tone(row["code"]), "amount": row["total"]} for row in parts[:4]]
+    rest = parts[4:]
+    if rest:
+        segments.append({"name": "Other", "tone": "other", "amount": sum((row["total"] for row in rest), ZERO)})
+    for seg in segments:
+        seg["pct"] = float(seg["amount"] / total * 100)
+        seg["share"] = int((seg["amount"] / total * 100).quantize(Decimal(1), ROUND_HALF_UP))
+    return {"segments": segments if len(parts) >= 2 else [], "held_bar": held_bar}
 
 
 def _int(value) -> int | None:
@@ -326,6 +348,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         account_value=account_value, account_owned_value=account_owned_value,
         account_held_value=account_held_value, account_asset_breakdown=account_asset_breakdown,
         holdings=holdings,
+        composition=account_composition(account_asset_breakdown, account_value, account_owned_value, account_held_value) if account_asset_breakdown else None,
         can_invest=can_invest, trade_choices=trade_choices,
         investment_entry=investment_entry, investment_error_field=investment_error_field,
         cash_accounts=[a for a in c.accounts.list(active_only=True) if account and a.id != account.id]
