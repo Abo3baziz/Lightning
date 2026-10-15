@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: phone type is 12px at least, Birdview's category treemap is full-width rows and its usual-month chart two a row, fields 48 and icons 44; `phone.css`, `profiles.css`.
+  Tables on seven phone pages stay open in report `phone-c12-type-tables-and-cut-words`.
 - 2026-10-15 · Claude: Investments no longer warns "reconciliation differs" when a certificate paid interest: the interest lands on the bank, so the check now subtracts it: `ui/routes/investments.py`; test 16 in `tests/test_audit_numbers.py`. Screen changed: Investments.
 - 2026-10-15 · Claude: `tools/stale_check.py` reads only the first clause of a proposal's Status line, so "implementation started … when an item is built" no longer counts as built.
 - 2026-10-15 · Claude: phone buttons and fields now follow C05 (48 page, 40 in a card); `phone.css` sets the control-height variables because `.phone .btn` lost to `style.css`'s `:not(#_)` rules.

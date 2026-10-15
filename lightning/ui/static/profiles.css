@@ -40,6 +40,7 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
 .gate-language { display:flex; align-items:center; gap:7px; margin-inline-start:auto; font-size:12px; }
 .gate-language label { color:var(--ink-2); }
 .gate-language select { max-width:140px; height:36px; border:0; border-radius:12px; padding:0 10px; color:var(--ink); background:#EEF5F3; font:inherit; }
+html.phone .gate-language select { height: 48px; }
 .gate-language select:focus { background:#E2EFE9; outline:0; box-shadow:0 0 0 2px #097852; }
 .content-wrap { width: min(100%, 620px); margin: 0 auto; padding: 48px 0 36px; flex: 1; }
 .intro { margin-bottom: 24px; }
