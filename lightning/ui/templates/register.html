@@ -174,7 +174,7 @@
       {% set kind = 'in' if r.amount > 0 else 'out' %}
       {% if r.type in ('TRF', 'CNV') %}{% set kind = 'transfer' %}{% elif r.type in ('BUY', 'SEL', 'DIV') %}{% set kind = 'invest' %}{% elif r.type == 'OPN' %}{% set kind = 'opening' %}{% endif %}
       {% if edit_id == r.txn_id and edit_acct == r.account_id %}
-      <tr class="add-row editing" data-txn="{{ r.txn_id }}" data-cancel-href="{{ base_url }}{{ '?' ~ keep_qs if keep_qs }}" title="{{ r.ref }} · Enter to save · Esc to cancel · right-click for more">
+      <tr class="add-row editing" data-txn="{{ r.txn_id }}" data-original='{{ edit_original|tojson }}' data-cancel-href="{{ base_url }}{{ '?' ~ keep_qs if keep_qs }}" title="{{ r.ref }} · Enter to save · Esc to cancel · right-click for more">
         <td><a class="sr-only" href="{{ base_url }}{{ '?' ~ keep_qs if keep_qs }}" data-cancel>{{ 'Cancel'|tr(locale) }}</a></td>
         {{ inputs('f-edit', edit, True, r.balance if with_balance else none) }}
       </tr>

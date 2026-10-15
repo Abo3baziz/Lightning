@@ -545,14 +545,20 @@ class TransactionService:
         return self._update(current, day, list(current.lines), current.description, counterparty, notes)
 
     def set_category(self, txn_ids: list[int], category_id: int) -> tuple[list[int], list[int]]:
-        """Bulk edit: give several money-in or money-out rows one category, keeping each row's date,
-        amount, counterparty, notes and owner. Rows that cannot take it (transfers, investment and
-        opening rows, split expenses, or a category for the other direction) are left as they are.
-        All changed rows are saved together. Returns (changed ids, skipped ids)."""
-        category = self.categories.get(category_id)
+        """Give several money-in or money-out rows one category (the selection bar's control)."""
+        return self.bulk_update(txn_ids, {"category_id": category_id})
+
+    def bulk_update(self, txn_ids: list[int], changes: dict) -> tuple[list[int], list[int]]:
+        """Edit many money-in or money-out rows at once, one DB transaction. ``changes`` holds only what the
+        user changed: ``date``, ``counterparty``, ``notes``, ``category_id``, ``owner_id`` (Held for; only for
+        money held for others). Amounts are never bulk-edited. Each row goes through the single-row edit
+        path (``_update``). Rows that cannot take the change (transfers, investment and opening rows, split
+        expenses, voided rows, a category for the other direction) are skipped whole. Returns (changed, skipped)."""
+        category = self.categories.get(changes["category_id"]) if changes.get("category_id") else None
         # Money held for others needs an owner per row, so it is never set in bulk.
-        if category.is_system or category.code == "EXP.SYSTEM.CUSTODY":
+        if category and (category.is_system or category.code == "EXP.SYSTEM.CUSTODY"):
             raise ValidationError("Choose a spending or income category.", "category")
+        day = self._check_date(changes["date"]) if "date" in changes else None
         changed, skipped = [], []
         with self.db.transaction():
             for txn_id in dict.fromkeys(txn_ids):
@@ -560,15 +566,21 @@ class TransactionService:
                 lines_with_category = [line for line in current.lines if line.category_id]
                 wanted = Direction.IN if current.type == DocType.IN else Direction.OUT
                 if (current.is_void or current.type not in {DocType.IN, DocType.OUT} or len(lines_with_category) != 1
-                        or category.direction not in (wanted, Direction.BOTH)):
+                        or (category and category.direction not in (wanted, Direction.BOTH))):
                     skipped.append(txn_id)
                     continue
-                if lines_with_category[0].category_id == category_id:
-                    changed.append(txn_id)
-                    continue
-                lines = [replace(line, category_id=category_id) if line.category_id else line for line in current.lines]
-                self._update(current, parse_date(current.date), lines, current.description, current.counterparty,
-                             current.notes)
+                lines = list(current.lines)
+                if category:
+                    lines = [replace(line, category_id=category.id) if line.category_id else line for line in lines]
+                if "owner_id" in changes:
+                    row_category = self.categories.get(lines_with_category[0].category_id if not category else category.id)
+                    if row_category.code != "EXP.SYSTEM.CUSTODY":
+                        skipped.append(txn_id)
+                        continue
+                    lines = [replace(line, owner_id=changes["owner_id"]) for line in lines]
+                self._update(current, day or parse_date(current.date), lines, current.description,
+                             changes["counterparty"] if "counterparty" in changes else current.counterparty,
+                             changes["notes"] if "notes" in changes else current.notes)
                 changed.append(txn_id)
         return changed, skipped
 

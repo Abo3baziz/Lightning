@@ -300,10 +300,11 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
                    for row in rows if row.type == DocType.CNV}
     edit_id = edit_id or _int(qp.get("edit"))
     edit_acct = edit_acct or _int(qp.get("acct")) or account_id
-    if edit_id and edit_values is None:
+    edit_original = {}
+    if edit_id:
         row = next((r for r in rows if r.txn_id == edit_id and r.account_id == edit_acct), None)
         if row is not None:
-            edit_values = {
+            edit_original = {
                 "date": row.date, "account_id": str(row.account_id), "notes": row.notes,
                 "counterparty": row.other_account_label if row.type == DocType.TRF else (row.counterparty or ""),
                 "category": c.categories.get(row.category_id).name if row.category_id else "",
@@ -311,6 +312,8 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
                 "amount": str(row.amount),
                 "whom": custody_owners.get(row.txn_id, ""),
             }
+            if edit_values is None:
+                edit_values = dict(edit_original)
     holdings, account_value, account_owned_value, account_held_value = [], None, None, None
     account_asset_breakdown = []
     if account:
@@ -359,7 +362,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         conversions=conversions,
         custody_present=any(custody_owners.values()),
         entry=entry or {"date": qp.get("date") or fmt_date(today()), "account_id": qp.get("new_acct", "")},
-        edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {},
+        edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {}, edit_original=edit_original,
         q=q, month=month, preset=preset, active_view=active_view,
         saved_views=c.saved_views.list(account_id), view_account_id=account_id or "",
         filter_category=filter_category, filter_tag=filter_tag, tag_flows=tag_flows,

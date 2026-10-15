@@ -384,6 +384,29 @@ window.askFrom = (text, extra = {}) => {
   const danger = /\b(delete|remove)\b/i.test(title);
   return window.ask({ title, message: rest.join(" "), ok: danger ? "Delete" : "OK", tone: danger ? "danger" : "info", ...extra });
 };
+// askChoice({title, message, choices: [{label, value, primary}]}) resolves the chosen value, or null on Escape.
+window.askChoice = ({ title, message = "", choices }) => new Promise((resolve) => {
+  const dialog = document.createElement("dialog");
+  dialog.className = "ask-dialog tone-info";
+  dialog.setAttribute("aria-labelledby", "ask-title");
+  dialog.innerHTML = '<form method="dialog" class="ask-frame"><div class="ask-text"><h2 id="ask-title"></h2><p id="ask-message"></p></div><div class="ask-actions"></div></form>';
+  dialog.querySelector("h2").textContent = title;
+  dialog.querySelector("p").textContent = message;
+  if (!message) dialog.querySelector("p").remove();
+  let answer = null;
+  const actions = dialog.querySelector(".ask-actions");
+  choices.forEach((choice) => {
+    const button = document.createElement("button");
+    button.type = "button"; button.className = choice.primary ? "btn primary" : "btn"; button.textContent = choice.label;
+    button.addEventListener("click", () => { answer = choice.value; dialog.close(); });
+    actions.append(button);
+  });
+  const back = document.activeElement;
+  dialog.addEventListener("close", () => { dialog.remove(); if (back?.isConnected) back.focus?.(); resolve(answer); }, { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  actions.querySelector(".primary")?.focus();
+});
 // For a submit handler: stop this submit, ask, and send the same form (and button) again on yes.
 window.confirmSubmit = (() => {
   const passed = new WeakSet();
@@ -706,9 +729,21 @@ if (ledger) {
   const count = document.getElementById("selection-count");
   const selectAll = document.getElementById("select-visible");
   const visibleChecks = () => [...ledger.querySelectorAll(".transaction-select:not(:disabled)")];
-  const selectedIds = () => [...new Set(visibleChecks().filter((box) => box.checked).map((box) => box.value))];
+  // U2: the ticked rows survive the page load that opens a row for editing (sessionStorage, keyed by the page).
+  const editRow = document.querySelector("tr.editing[data-txn]");
+  const selKey = (() => { const q = new URLSearchParams(location.search); ["edit", "acct", "pick"].forEach((k) => q.delete(k)); return `lightning-selection:${location.pathname}?${q}`; })();
+  const readSel = () => { try { return JSON.parse(sessionStorage.getItem(selKey) || "[]"); } catch (e) { return []; } };
+  const writeSel = (ids) => { try { ids.length ? sessionStorage.setItem(selKey, JSON.stringify(ids)) : sessionStorage.removeItem(selKey); } catch (e) {} };
+  const kept = editRow ? readSel() : [];
+  if (!editRow) writeSel([]);
+  const selectedIds = () => {
+    const ticked = visibleChecks().filter((box) => box.checked).map((box) => box.value);
+    const all = new Set(visibleChecks().map((box) => box.value));
+    return [...new Set([...ticked, ...kept.filter((id) => !all.has(id))])];
+  };
   const syncSelection = () => {
     const selected = selectedIds();
+    writeSel(selected);
     if (tools) tools.hidden = selected.length === 0;
     const merge = document.getElementById("merge-selected");
     if (merge) merge.hidden = selected.length !== 2;
@@ -738,7 +773,46 @@ if (ledger) {
     ids.forEach((id) => { const input = document.createElement("input"); input.type = "hidden"; input.name = "txn_ids"; input.value = id; form.append(input); });
     document.body.append(form); form.submit();
   };
-  visibleChecks().forEach((box) => box.addEventListener("change", syncSelection));
+  visibleChecks().forEach((box) => { box.checked = kept.includes(box.value) || box.checked; box.addEventListener("change", syncSelection); });
+  if (kept.length) syncSelection();
+  // Saving an edited row while others are ticked: ask whether the change is for this row or all of them.
+  const editForm = document.getElementById("f-edit");
+  if (editForm && editRow) {
+    let decided = false;
+    editForm.addEventListener("submit", (event) => {
+      if (decided) { writeSel([]); return; }
+      const ticked = selectedIds();
+      const ids = [...new Set([...ticked, editRow.dataset.txn])];
+      if (!ticked.length || ids.length < 2) return;
+      let original = {};
+      try { original = JSON.parse(editRow.dataset.original || "{}"); } catch (e) {}
+      const value = (name) => (editForm.elements[name]?.value ?? "").trim();
+      const changed = ["date", "counterparty", "category", "notes", "whom"].filter((name) => value(name) !== String(original[name] ?? "").trim());
+      if (!changed.length) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      const submitter = event.submitter;
+      const amountChanged = value("amount") !== String(original.amount ?? "").trim();
+      window.askChoice({
+        title: t("Change {count} selected rows?", {count: ids.length}),
+        message: amountChanged ? t("The amount changes on this row only.") : "",
+        choices: [{ label: t("Only this row"), value: "one" }, { label: t("All {count} rows", {count: ids.length}), value: "all", primary: true }],
+      }).then((choice) => {
+        if (choice === "one") { decided = true; writeSel([]); editForm.requestSubmit(submitter); return; }
+        if (choice !== "all") return;
+        const form = document.createElement("form"); form.method = "post"; form.action = "/transactions/bulk-edit";
+        const add = (name, val) => { const input = document.createElement("input"); input.type = "hidden"; input.name = name; input.value = val; form.append(input); };
+        const q = new URLSearchParams(location.search); ["edit", "acct"].forEach((k) => q.delete(k));
+        add("back", location.pathname + (q.toString() ? `?${q}` : ""));
+        const token = document.querySelector('meta[name="lightning-session"]')?.content;
+        if (token) add("__session", token);
+        ids.forEach((id) => add("txn_ids", id));
+        changed.forEach((name) => add(name, value(name)));
+        if (changed.includes("category")) add("category_choice", value("category_choice"));
+        writeSel([]);
+        document.body.append(form); form.submit();
+      });
+    }, true);
+  }
   selectAll?.addEventListener("change", () => { visibleChecks().forEach((box) => { box.checked = selectAll.checked; }); syncSelection(); });
   document.getElementById("select-visible-header")?.addEventListener("click", (event) => {
     if (event.target.closest("input")) return;
@@ -912,7 +986,10 @@ document.querySelectorAll(".import-transfer-suggestion").forEach((button) => {
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   const cancel = document.querySelector("[data-cancel]");
-  if (cancel && e.target.closest("tr.editing")) location.href = cancel.href;
+  if (cancel && e.target.closest("tr.editing")) {
+    try { const q = new URLSearchParams(location.search); ["edit", "acct", "pick"].forEach((k) => q.delete(k)); sessionStorage.removeItem(`lightning-selection:${location.pathname}?${q}`); } catch (err) {}
+    location.href = cancel.href;
+  }
 });
 // Sums in amount fields: 120+35*2 becomes 190 when you leave the field or press Enter, so the
 // saved amount is always one you saw. The server works the sum out (lightning/core/money.py:
