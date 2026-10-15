@@ -1712,6 +1712,14 @@ a.chart-meter:hover { background:var(--hover); }
 .main .performance-axis span { font-size:var(--fs-meta)!important; }
 .main .acct-figures b { font:800 var(--num-tile)/1.2 var(--display)!important; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
 .main .acct-figures .muted { font-size:var(--fs-meta)!important; }
+/* Account header: the title, one line under it, then the account's figures in one strip, the first the biggest (A05). */
+.main .acct-title { margin:0; }
+.main .acct-meta { margin:4px 0 0; font:500 var(--fs-body)/1.45 var(--body); color:var(--ink-2); }
+.main .acct-figures { display:inline-flex; align-items:stretch; gap:0; flex-wrap:wrap; margin-top:16px; padding:6px 0; border:1px solid var(--edge); border-radius:var(--r-card); background:var(--paper); box-shadow:var(--shadow-card); }
+.main .acct-figures > div { justify-content:center; gap:2px; padding:8px 26px; }
+.main .acct-figures > div + div { border-inline-start:1px solid var(--line); }
+.main .acct-figures > div:first-child b { font-size:var(--num-card)!important; }
+.main .acct-figures .muted { color:var(--muted); font-weight:600; }
 .icon-btn .icon { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
 /* The page's lead card: the soft gradient, one per page. */
 .main .lead-card { background:linear-gradient(135deg,var(--focal-1),var(--focal-2) 52%,var(--focal-3))!important; border:0!important; box-shadow:var(--shadow-focal)!important; }
