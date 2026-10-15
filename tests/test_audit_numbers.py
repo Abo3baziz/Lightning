@@ -262,3 +262,14 @@ def test_12_the_money_flow_chart_balances_when_a_refund_outweighs_spending(c, se
     left = sum(s["value"] for s in seen["s"] if s["value"] > 0)
     right = sum(t["value"] for t in seen["t"] if t["value"] > 0)
     assert left == right and any(s["label"] == "Refunds" for s in seen["s"])
+
+
+def test_16_certificate_interest_paid_to_the_bank_is_not_an_unresolved_reconciliation_gap(c):
+    """2026-10-15 audit: interest is the certificate's return (in Result) but lands on the bank, so the
+    Investments reconciliation must subtract it; the demo showed "differs by -1,833 ... unresolved"."""
+    from fastapi.testclient import TestClient
+    from lightning.demo import build_demo
+    from lightning.ui.web import create_app
+    build_demo(c)
+    page = TestClient(create_app(c)).get("/investments").text
+    assert "Portfolio reconciliation differs" not in page

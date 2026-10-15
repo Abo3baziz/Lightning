@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: Investments no longer warns "reconciliation differs" when a certificate paid interest: the interest lands on the bank, so the check now subtracts it: `ui/routes/investments.py`; test 16 in `tests/test_audit_numbers.py`. Screen changed: Investments.
 - 2026-10-15 · Claude: Overview 444 to 349 queries, no page over 150 ms or 400 queries: category and effect totals, money held for others, and typed item values read once per request or per item: `reporting/queries.py`, `money_from_others.py`; test in `tests/test_repeated_lookups.py`. Regenerated `style.rtl.css` (the register fix had left it stale). Report `overview-remaining-query-loops` closed; the per-row counterparty match (34 queries on a register) stays as it is.
 
 - 2026-10-15 · Claude: searching a whole number finds the row whose amount the pages show rounded to it (3251 finds 3,250.75); exact cents already worked: `_TERM_SQL` in `lightning/transactions/repository.py`; test in `tests/test_transactions.py`. Report `transactions-search-ignores-amounts` closed (it was partly wrong).

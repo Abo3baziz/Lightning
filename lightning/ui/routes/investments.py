@@ -97,9 +97,12 @@ async def portfolio(request: Request):
                                             investment_report["investment_cash"] is not None else None)
     investment_report["opening_adjustments"] = opening_adjustments
     investment_report["recon_result"] = investment_report["result"]
+    # A certificate's interest is its return (inside Result) but lands on the bank, outside the portfolio.
+    paid_out = sum((paid["amount"] for paid in c.reporting.certificate_interest(period.end_text)
+                    if paid["date"] >= period.start_text), Decimal(0))
     investment_report["recon_difference"] = (
         investment_report["recon_closing"] - investment_report["recon_opening"] -
-        investment_report["net_money"] - investment_report["recon_result"] - opening_adjustments
+        investment_report["net_money"] - investment_report["recon_result"] - opening_adjustments + paid_out
         if investment_report["recon_opening"] is not None and investment_report["recon_closing"] is not None and
         investment_report["recon_result"] is not None else None)
     prior = c.investments.portfolio(before_day)
