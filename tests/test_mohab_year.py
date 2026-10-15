@@ -295,6 +295,7 @@ def _first_evening(o: Mohab) -> None:
     o.on("2026-09-30")
     o.ask("start", "I have nothing in here yet. Where do I start?")
 
+    b.submit({"currency": "EGP"}, button="Save currencies")  # step 1: his currencies, then the accounts
     b.go("Bank")
     # CIB holds the 100,000 he puts into the NBE certificate on 1 July (a CD portfolio holds no cash).
     b.submit({"name": "CIB Payroll", "opening_balance": "138,500", "opening_balance_date": "1/7"}, button="Add account")

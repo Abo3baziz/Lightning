@@ -1846,6 +1846,13 @@ ARABIC_UI = {
     'An estimate by the common rule, for a scholar to confirm: the zakat rate of Zakatable wealth when it is at or above the Nisab, else nothing.': 'تقدير بالقاعدة المعروفة، وعالم هو اللي يأكده: نسبة الزكاة من المال اللي بتتحسب عليه لما يكون وصل النصاب أو أكتر، غير كده مفيش.',
     'What you spent in the Zakat category since your last zakat day, up to the next.': 'اللي صرفته في تصنيف الزكاة من آخر يوم زكاة لحد اللي بعده.',
     'What is left of Zakat due after what you paid this zakat year; never below zero.': 'اللي فاضل من الزكاة المستحقة بعد اللي دفعته السنة دي؛ ومش بينزل عن صفر.',
+    'Your currencies': 'عملاتك',
+    'Other currencies you hold': 'عملات تانية معاك',
+    'Add a currency': 'أضف عملة',
+    'Save currencies': 'احفظ العملات',
+    'Save your currencies first.': 'احفظ عملاتك الأول.',
+    'Only your currencies are listed.': 'بتظهر عملاتك بس.',
+    'Add one in Settings, under Currencies.': 'أضف واحدة من الإعدادات، تحت العملات.',
 }
 
 

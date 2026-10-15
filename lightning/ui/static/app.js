@@ -168,6 +168,7 @@ const initOwnDataPickers = (root = document) => {
     list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
   };
   input.value = shown();
+  input.disabled = select.disabled;
   input.addEventListener("input", () => { select.value = ""; input.setCustomValidity(wasRequired ? "Choose an option from the list." : ""); render(); });
   // Focus shows every choice and selects the current text, so typing replaces it instead of filtering by it.
   input.addEventListener("focus", () => { render(true); input.select(); });
@@ -2375,3 +2376,35 @@ document.querySelectorAll("form.phone-as-of input[data-native-date]").forEach((i
   input.addEventListener("change", () => { if (input.value) input.form.requestSubmit(); });
   input.addEventListener("click", () => { try { input.showPicker?.(); } catch (error) { /* the tap itself opens it */ } });
 });
+
+// Setup, "Other currencies you hold": a type-and-pick that adds removable chips; each chip submits its code.
+(() => {
+  document.querySelectorAll("select[data-chip-add]").forEach((select) => {
+    const box = document.querySelector(select.dataset.chipAdd);
+    if (!box) return;
+    const name = select.dataset.chipName || "extra";
+    box.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-chip-remove]");
+      if (button) button.closest(".chip")?.remove();
+    });
+    select.addEventListener("change", () => {
+      const code = select.value;
+      window.setTimeout(() => {
+        select.value = "";
+        const typed = select.parentElement.querySelector('input[type="text"]');
+        if (typed) typed.value = "";
+      }, 0);
+      if (!code || Array.from(box.querySelectorAll("input")).some((input) => input.value === code)) return;
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.append(`${code} `);
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.className = "chip-x"; remove.dataset.chipRemove = "";
+      remove.setAttribute("aria-label", t("Remove")); remove.textContent = "×";
+      const hidden = document.createElement("input");
+      hidden.type = "hidden"; hidden.name = name; hidden.value = code;
+      chip.append(remove, hidden);
+      box.append(chip);
+    });
+  });
+})();

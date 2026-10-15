@@ -19,9 +19,9 @@
     </div>
     <div class="field {{ 'has-error' if error_field == 'currency' }}">
       <label for="currency">{{ 'Currency'|tr(locale) }}</label>
-      <input id="currency" name="currency" list="account-currencies" value="{{ account.currency if account else values.currency }}" {{ 'disabled' if account }} required autocomplete="off">
-      <datalist id="account-currencies">{% for currency in currencies %}<option value="{{ currency.code }}">{{ currency.name }}</option>{% endfor %}</datalist>
-      {% if account %}<div class="help">{{ "An account's currency cannot be changed after it is created."|tr(locale) }}</div>{% else %}<div class="help">{{ 'Add a currency in Settings before using it here. Exchange rates are entered in Settings.'|tr(locale) }}</div>{% endif %}
+      {% set chosen = account.currency if account else (values.currency or base) %}
+      <select id="currency" name="currency" data-own-picker {{ 'disabled' if account }} required>{% for currency in currencies %}<option value="{{ currency.code }}" {{ 'selected' if currency.code == chosen }}>{{ currency.code }} — {{ currency.name }}</option>{% endfor %}</select>
+      {% if account %}<div class="help">{{ "An account's currency cannot be changed after it is created."|tr(locale) }}</div>{% else %}<div class="help">{{ 'Only your currencies are listed.'|tr(locale) }} <a href="/settings?section=currencies">{{ 'Add one in Settings, under Currencies.'|tr(locale) }}</a></div>{% endif %}
       {% if error_field == 'currency' %}<small class="error">{{ error }}</small>{% endif %}
     </div>
   </div>

@@ -257,7 +257,7 @@ def test_account_form_offers_registered_currencies(client, c):
     CurrencyRegistry(c.db).register("USD")
     page = client.get("/accounts/new")
     assert 'id="currency" name="currency"' in page.text
-    assert '<option value="USD">US Dollar</option>' in page.text
+    assert '<option value="USD" >USD — US Dollar</option>' in page.text or 'USD — US Dollar' in page.text
 
 
 def test_other_currency_accounts_show_native_balance_and_unavailable_conversion(client, c):

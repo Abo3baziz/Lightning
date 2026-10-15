@@ -107,7 +107,18 @@ async def dashboard(request: Request):
     accounts = c.accounts.list()
     if not accounts:
         from lightning.samples.profiles import sample_stories
-        return render(request, "dashboard/welcome.html", base=c.base_currency, currencies=c.profile_currencies,
+        registry = c.currencies
+        held = [row["code"] for row in registry.list()]
+        base = c.base_currency
+        common = ["USD", "EUR", "SAR", "AED", "GBP", "KWD"]
+        names = {row["code"]: row["name"] for row in registry.suggestions()}
+        order = [code for code in common if code in names] + [code for code in names if code not in common]
+        return render(request, "dashboard/welcome.html", base=base, currencies=c.profile_currencies,
+                      currency_choices=[(code, names[code]) for code in order],
+                      held_currencies=[base] + [code for code in held if code != base],
+                      extra_currencies=[code for code in held if code != base],
+                      currencies_done=c.settings.get("setup_currencies_done") == "1",
+                      editing_currencies=request.query_params.get("currencies") == "edit",
                       sample_stories=sample_stories())
     # Every position figure comes from one calculation; see lightning/planning/position.py.
     period_position = c.position.at(as_of)
@@ -251,19 +262,29 @@ async def dashboard(request: Request):
 
 @router.post("/setup/currency")
 async def set_welcome_currency(request: Request):
-    """Set the base while the first-account screen is still empty and safe to change."""
+    """Register the profile currency and the others held; the base only moves while the profile is empty."""
     c = container(request)
-    code = str((await request.form()).get("currency", "")).strip().upper()
-    allowed = {currency for currency, _ in c.profile_currencies}
-    if c.accounts.list() or code not in allowed:
+    form = await request.form()
+    code = str(form.get("currency", "")).strip().upper()
+    extras = []
+    for value in form.getlist("extra"):
+        value = str(value).strip().upper()
+        if value and value != code and value not in extras:
+            extras.append(value)
+    known = {row["code"] for row in c.currencies.suggestions()}
+    if code not in known or any(extra not in known for extra in extras):
         return redirect("/", "Choose the profile currency before adding an account.")
     try:
-        c.currencies.register(code)
-        c.set_profile_currency(code)
+        if not c.accounts.list():
+            c.currencies.register(code)
+            c.set_profile_currency(code)
+        for extra in extras:
+            c.currencies.register(extra)
     except (ValueError, LightningError) as exc:
         message = exc.message if isinstance(exc, LightningError) else str(exc)
         return redirect("/", message)
-    return redirect("/", f"Profile currency set to {code}.")
+    c.settings.set("setup_currencies_done", "1")
+    return redirect("/", f"Currencies saved: {' · '.join([c.base_currency] + extras)}.")
 
 
 @router.post("/setup/guide")
