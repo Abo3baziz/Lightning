@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: field wells are a blue-tinted `#E8F1FA` (focus `#E3EEF9`), defined once as `--field` and `--field-focus`; guideline A10 tokens updated in the app and phone files. Contrast: Ink 14.22/13.81, Ink 2 8.14/7.91, Muted 4.68/4.55.
 - 2026-10-15 · Claude: institutions: the account form's Institution is type-and-pick over 46 Egyptian banks, brokers and wallets (plus your own), with logo-or-monogram tiles in the picker, accounts list and sidebar; migration `0056_institutions.sql`.
   Logos could not be downloaded here (no network): run `tools/fetch_institution_logos.py` from a PC.
 - 2026-10-15 · Claude: account form: the cash type reads Cash, More details and Last 4 digits are gone (a stored last 4 is kept), no Travel in new profiles' categories; the Mohab sample's Sahel weekend is Entertainment.
