@@ -11,7 +11,7 @@ import re
 from decimal import Decimal, InvalidOperation
 
 from lightning.categories.domain import Movement
-from lightning.core.dates import now_iso, parse_date
+from lightning.core.dates import now_iso, parse_date, today
 from lightning.core.errors import ConflictError, LightningError, NotFoundError, ValidationError
 from lightning.core.limits import MAX_CSV_IMPORT_BYTES
 from lightning.core.refs import DocType
@@ -45,9 +45,12 @@ def is_internal(category: str) -> bool:
 
 def _date(value: str) -> str:
     try:
-        return parse_date(value).isoformat()
+        day = parse_date(value)
     except ValidationError as exc:
         raise ValueError(exc.message) from None
+    if day > today():  # the same rule as typing it: the review marks the row to fix at once, not when Post fails
+        raise ValueError(f"{day.isoformat()} is in the future. Record transactions on or after the day they happen.")
+    return day.isoformat()
 
 
 def _decimal_amount(value: str) -> Decimal:

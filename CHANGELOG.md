@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: the CSV import review marks a future-dated row to fix at once, as typing it does, instead of failing at Post: `_date` in `lightning/bank_imports.py`; test in `tests/test_bank_imports.py`. Report `import-preview-does-not-flag-future-dates` closed.
+
 - 2026-10-15 · Claude: a budget above 100,000,000 is refused; a blank budget field now says it cleared the limit (it never saved 0; the report was wrong): `MAX_BUDGET` in `budgeting/service.py`, `inline_rule`; test `tests/test_budget_rule_limits.py`. Reports `budget-blank-rule-saves-zero` and `huge-budget-amounts-accepted` closed (150% of income stays allowed: percent rules go to 10,000%).
 
 - 2026-10-15 · Claude: `report/` folder: one file per unprocessed finding in `technical-bug`, `visual-bug`, `technical-improvement`, `visual-improvement`, with who/skills/version in front matter; a generated `INDEX.md`; a fixed report is deleted with its fix; capped at 20 reports and 30 days each (`tools/report_index.py`, `tests/test_reports.py`). All skills now file there; `docs/proposals/open_feedback.md` became one report.
