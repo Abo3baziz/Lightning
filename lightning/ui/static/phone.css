@@ -80,8 +80,8 @@ html.phone.keyboard-open .phone-tabbar, html.phone.sheet-open .phone-tabbar { di
 .phone .section-tabs:has(.plan-tab:nth-child(4)) { grid-auto-flow: row; grid-template-columns: 1fr 1fr; border-radius: 24px; }
 
 /* C05 touch: 48 to press, fields 48 with 16px text so the phone does not zoom. */
-.phone .btn { min-height: 48px; }
-.phone .btn.small { min-height: 40px; }
+/* style.css sets .btn and fields from these variables behind :not(#_), which a plain .phone rule cannot beat. */
+html.phone { --control-h: 48px; --control-h-small: 40px; }
 .phone input, .phone select, .phone textarea { font-size: 16px; min-height: 48px; max-width: 100%; box-sizing: border-box; }
 .phone kbd, .phone .command-hint, .phone .side-search kbd { display: none; }
 
