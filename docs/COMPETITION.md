@@ -1,6 +1,6 @@
 # Competition: our compass
 
-Last reviewed 2026-10-13. Who else helps people with their money, what their users love and hate, and what that means for Lightning. When a product decision is unclear, read *The compass* first. Every competitor fact is dated "as of" its reading; most Egyptian-app facts are from 2026-10-04 and are stale after about three months. 
+Last reviewed 2026-10-15 (Actual and Lightning workflow audit; other competitor dates unchanged). Who else helps people with their money, what their users love and hate, and what that means for Lightning. When a product decision is unclear, read *The compass* first. Every competitor fact is dated "as of" its reading; most Egyptian-app facts are from 2026-10-04 and are stale after about three months.
 
 ## Contents
 
@@ -41,7 +41,7 @@ Prices and features as of 2026-10-04 (Egyptian apps, Google Play) and 2026-10-05
 | **Money Manager** (Realbyte) | Android, iPhone | Free with ads, EGP 99.99 once | On the phone | Manual | No. No Arabic |
 | **Wallet** (BudgetBakers) | All | Premium subscription | Cloud | Manual; bank sync (15,000+ banks, not Egypt) | Basic |
 | **Telda, BM app** (banks) | Phone | Free with the account | The bank | Own accounts only | No |
-| **Actual Budget** | Web, desktop, self-host | Free, MIT | Your computer or server | Manual, import; SimpleFIN (US), GoCardless (EU) | No |
+| **Actual Budget** | Web, desktop, self-host | Free, MIT | Your computer or server | Manual, import; bank links in supported regions | Off-budget asset values; no security/lot portfolio model |
 | **YNAB** | All | About 109 a year | Cloud | Sync (US, Canada, EU) | No |
 | **Monarch** | Web, phone | 99.99 a year | Cloud | Sync (US, Canada) | Net worth, investments |
 | **Copilot** | iPhone, Mac, web | 95 a year | Cloud | Sync (US) | Net worth, investments |
@@ -50,7 +50,7 @@ Prices and features as of 2026-10-04 (Egyptian apps, Google Play) and 2026-10-05
 | **Moneydance** | Windows, Mac, Linux | 49.99 once | Local, encrypted | Manual, downloads | Stocks, bonds, CDs, funds, cost basis |
 | **GnuCash** | Windows, Mac, Linux | Free (GPL) | Local file | Manual, import | Deep accounting: lots, gains, ROI/CAGR |
 | **Firefly III, Lunch Money** | Self-host; web | Free; subscription | Your server; cloud | Manual; import, some sync | Accounts only; basic |
-| **Lightning** | Windows; Android beta (phone holds the ledger, PC borrows it); English and Arabic | Free so far; 7 days then a licence reminder | Your devices, encrypted, no server | Manual, CSV, PDF statements, bank SMS (Android beta); no bank link | Gold, EGX and US shares, funds, certificates, loans, foreign cash with FX gains |
+| **Lightning** | Windows; Android beta (phone holds the ledger, PC borrows it); English and Arabic | Free so far; 7 days then a licence reminder | Your devices, encrypted, no server | Manual, CSV, bank SMS (Android beta); PDF/Excel statements remain planned; no bank link | Gold, EGX and US shares, funds, certificates, loans, foreign cash with FX gains |
 
 ## What users love and hate
 
@@ -100,7 +100,7 @@ Review-site summaries, not users' own words (2026-10-04), unless marked.
 
 | App | Loved | Hated | Lesson |
 |---|---|---|---|
-| **Actual Budget** (MIT, local-first, envelope) | Free, private, familiar to YNAB 4 users | No native mobile app, self-hosting skill, bank sync only SimpleFIN/GoCardless (none for Egypt), thin reports | Closest in philosophy, nearest rival for the technical user. Copy its promise (your data stays yours), not its setup |
+| **Actual Budget** (MIT, local-first, envelope; code/docs reviewed 2026-10-15) | Funded envelopes, undo, rules, reconciliation and saved reports; local desktop use is available | Optional server/bank setup; Egyptian bank coverage not verified in this audit; security holdings are outside its model | Study its completed budgeting workflows. Reporting is substantial, not thin. Some newest automations/forecasts are experimental |
 | **YNAB** | Changes behaviour | About 109 a year, busy interface, breaking bank links | Do not charge more without adding more |
 | **Monarch** | Design, no ads, household, net worth | Glitchy sync, price | Net worth plus household is what people pay for; we have the first |
 | **Copilot** | Design | iPhone and Mac only, per-person pricing | Design alone earns a 4.8 |
@@ -126,7 +126,7 @@ How the best money apps lay out a phone, read 2026-10-06 (Claude) for the phone 
 
 ## Where Lightning wins and loses
 
-Checked against the code, Overview and changelog 2026-10-13 (v1.1: Arabic and right-to-left, Android beta with bank SMS, foreign currency, FX gains, US stocks).
+Checked against the code, Overview and changelog 2026-10-15 (v1.1: Arabic and right-to-left, Android beta with bank SMS, foreign currency, FX gains, US stocks).
 
 **Wins (say it on the website):**
 - One ledger, plans that move no money, reports that read both.
@@ -140,7 +140,7 @@ Checked against the code, Overview and changelog 2026-10-13 (v1.1: Arabic and ri
 - No household sharing, receipts or reminders.
 - Securities depth: no tax lots or specific-lot selling, splits, reinvested dividends, return of capital, tax reports or TWR (Overview, Deeper investments).
 - No community or ratings yet: Say has 2,128, Qershnat 592 in four months.
-- No gam'eya, zakat, silver, property or vehicles, which Qershnat has.
+- Gam'eya and zakat are built; silver and specialised property/vehicle workflows remain open. Other asset accounts can already track a flat or car by value.
 
 ## Selling points, stress-tested (2026-10-12)
 
@@ -198,33 +198,44 @@ Reference code to inspect for financial rules, as of 2026-10-04. Check the licen
 
 ## Actual Budget code analysis
 
-## Actual Budget code analysis
+**Reviewed 2026-10-15:** `actualbudget/actual` at [`d5d6035`](https://github.com/actualbudget/actual/tree/d5d6035a8f5867717a80635d270fbe64e370ea08), including current `packages/docs/docs/` and implementation. The separate `actualbudget/docs` repository is archived/merged into the app repository; do not use its 2025 snapshot as current documentation. Actual was not run or timed. Lightning was reviewed at `f5f551c`, with 18 pages measured on temporary sample data and three workflow probes. No user data was used. Suggestions below are recommendations, not owner-approved roadmap changes.
 
-Read 2026-10-04: shallow clone of `actualbudget/actual` at `9732a44`; the app was not run. TypeScript, so ideas to borrow, not code. Paths are inside `packages/`. Status of each idea lives in Project Overview › Features worth building.
-
-| Actual has | Where | Lesson for Lightning |
+| Actual does well | Lightning today | Useful next step |
 |---|---|---|
-| Rules engine: and/or conditions, split by amount or percent, three stages, indexed | `loot-core/src/server/rules/` | Built (Settings › Rules). Open: suggest a rule from what you file. Actual keeps `learnCategories` off by default: suggest, never learn silently |
-| Undo and redo, 20 steps over every change | `loot-core/src/server/undo.ts` | Open: undo for last edit, delete or import. Most trust per line of work |
-| Layered import match: exact id, then amount and nearest date; reconciled rows locked; merge two transactions | `accounts/sync.ts` (`matchTransactions`, `reconcileTransactions`), `transactions/merge.ts` | Open: reuse for SMS against CSV, lock a checked month, merge keeping a transfer linked |
-| Schedules: skip weekend, amount ranges, detect recurring from three occurrences | `server/schedules/` (`find-schedules.ts`) | Weekend-aware dates built; public holidays open |
-| i18n: locale files, string-extract CI, 50 currencies | `desktop-client/src/i18n.ts`, `shared/currencies.ts` | Arabic and RTL built; keep strings translated as screens grow |
-| Entry helpers: arithmetic in amounts, `#tag`, Ctrl-K, privacy filter | `shared/arithmetic.ts`, `shared/tags.ts`, `CommandBar.tsx`, `PrivacyFilter.tsx` | All built |
-| Reports as a dashboard, 14 types | `components/reports/reports/` | Open: Age of Money, a spending calendar, one saved filter shared by search, reports and rules |
-| One change-note file per PR | `upcoming-release-notes/` | Open: ends changelog conflicts between AIs |
-| Tests: visual regression, migration warning | `desktop-client/e2e/` | Open: visual snapshots would guard the brand guideline |
+| [Funded envelope budgeting](https://actualbudget.org/docs/getting-started/envelope-budgeting/): To Budget, hold for next month, cover overspending | Category plans, carryover, income averages, Free cash and Safe to spend; no allocation of available money across envelopes | Optional funding view based on owned available cash. Define how budget allocations and reserves interact before adding a Ready to assign number; forecasts and funded cash must stay distinct |
+| [Undo/redo](https://actualbudget.org/docs/getting-started/tips-tricks/#undo-redo), 20 history groups (`loot-core/src/server/undo.ts`) | Void/restore plus specific rule/budget bulk undo; no general edit/import undo | One user action, one undo group, including its dependent links. Existing [undo proposal](proposals/undo.md) is the starting point |
+| [Import matching](https://actualbudget.org/docs/transactions/importing/#avoiding-duplicate-transactions): bank ID first, same amount within seven days, payee match before weaker candidates; merge retains transfer links | Bank-reference duplicate detection, manual-entry links within three days, own-transfer hints; a source already linked on an account prevents another source linking to that transaction | One activity review with evidence and purpose-specific matching policies; keep ambiguous matches for confirmation. Widening three days alone is not a safe improvement. Existing [matching](proposals/import_matching.md) and [merge](proposals/merge_transactions.md) proposals overlap |
+| [Reconciliation](https://actualbudget.org/docs/accounts/reconciliation/): pending/cleared/reconciled rows; edit warning; imports skip changing reconciled matches | Ending-balance check and small adjustment, no checked-history protection | A close-month flow with cleared items and explicit unlock/correction. Actual's UI lock is an edit warning, not an absolute write ban; [month lock](proposals/month_lock.md) is a stronger proposed policy |
+| [Schedules](https://actualbudget.org/docs/schedules/): create from an existing transaction, exact/approximate/range amounts, link to rules | Monthly recurrence suggestions after three months; payment matching and bill-to-budget links already built. Strict matching normally uses seven days, 10% amounts (1% loans) | Promote a row to a bill/income plan without retyping, with user-owned due/amount ranges and an explained suggestion to update the plan when a bill changes |
+| [Saved filters](https://actualbudget.org/docs/transactions/filters/#saving-filters) and [custom reports](https://actualbudget.org/docs/reports/custom-reports/) share transaction filtering | Search, scoped registers, tags, exports and fixed reports; no named reusable filter/watchlist | Save a filter once and reuse it in register, report and export, with live dates; offer reuse in rules only for supported conditions |
+| [Budget automation](https://actualbudget.org/docs/experimental/budget-automation/): refill caps, cover schedule, save-by-date, priorities and leftover cleanup | Fill from last month/schedules; % income; reserve goal needs; savings-target checks. Goal fill is intentionally informational and nonselectable | A preview combining these existing services: fund essentials, cover upcoming bills, top up goals, then offer a use for remaining cash. Apply only on confirmation, with undo |
+| [Balance forecast](https://actualbudget.org/docs/experimental/balance-forecast-report/): daily, filterable by account | Monthly forecast and Safe to spend until the next income | Add a dated running balance and first-shortfall date, including each funding account. Month-end can be positive while cash runs short between paydays |
+| [Credit cards](https://actualbudget.org/docs/budgeting/credit-cards/): purchases spend from categories; repayments are transfers | Account UI excludes revolving liability accounts; loan schedules and instalment purchases are built | Separate product decision if credit cards enter scope; do not treat card repayment as a second expense |
 
-**Do not copy:**
-- **The sync design.** CRDT with a hybrid logical clock and merkle trie (`crdt/src/crdt/`). Its issues show the cost: "can't open budget on mobile", "can't sync changes" ([#6279](https://github.com/actualbudget/actual/issues/6279), [#7542](https://github.com/actualbudget/actual/issues/7542), [#6223](https://github.com/actualbudget/actual/issues/6223)). Lightning lends the ledger to one writer; the planned replacement is the [edit journal](proposals/edit_journal.md). A row-merge engine alone cannot enforce our financial rules.
-- **The calculation engine** (`spreadsheet/spreadsheet.ts`): a second place figures live; ours come from services.
-- **Multi-user, OpenID, API, CLI, plugins:** for self-hosters.
-- **Text typed into notes as a language:** fails the user who won't read help.
+**Experimental distinction:** the new Budget Automation UI and Balance Forecast report are explicitly experimental and may require nightly builds. Funded envelopes, undo, matching, schedules, reconciliation, filters and custom reports are documented regular workflows. Category learning is configurable; importing Actual's silent low-confidence fallback is not recommended.
 
-**Where Lightning is ahead:** wealth (Actual has no holdings); six-place integers for gold grams and fund units; an encrypted profile at rest (Actual encrypts only what goes to its sync server); no Docker; Mohab's test checks answers, Actual's tests check code.
+### Connections worth building in Lightning
+
+- **New activity → one transaction → its consequences.** Review the alias/category, manual/SMS/CSV evidence, bill settlement, reserve use and reimbursement in one place. Existing pieces already run separately in `bank_imports`, `planning`, `reserves` and `ReviewInbox`. Linking an existing payment must never post a second expense; one transaction can settle one occurrence while retaining multiple source records.
+- **Salary receipt → a funded payday plan.** Use the existing salary setup and recurring plan; show what the actual received cash can cover until the next payday, then propose reserve assignments. Expected salary stays an estimate, never available money before receipt.
+- **Purchase → reserve spending → refund or reimbursement.** Partial reserve links already exist but are not suggested; the category's `default_reimbursable` flag is stored but not yet a work-expense receivable workflow. A 1,000 expense followed by 600 paid back should show 400 outstanding, with only actual receipts counted as cash.
+- **Certificate → expected payout → bank receipt → return → next forecast.** Interest already enters total return and cash forecasts; matching expected instalments to actual bank interest, highlighting a short receipt and grouping confirmations remain opportunities. Do not create another recurring-income schedule for income already forecast from a certificate.
+- **Repeated correction → explicit reusable rule.** Lightning already infers a usual category (three of the last five transactions). Offer to save a contextual rule when evidence supports one, showing the affected rows and allowing exclusion/dismissal; do not replace the existing habit logic with a duplicate learner.
+- **Needs you → a short weekly completion flow.** It already flags repeated overspending, goals off track and raises. Add preview/apply/undo to those decisions and optional reminders; avoid another dashboard repeating the same alerts.
 
 ### Suggested order
 
-Value order from the 2026-10-04 reading: undo; layered match with a locked month; weekend schedules and month fill (since built); i18n and Arabic (since built); one change note per change. The owner chooses what enters *Next* in `NOW.md`.
+1. Dated cash-shortfall warning (new reproduced gap; linked report below).
+2. General undo, then an integrated activity review with safer matching/provenance and reconciliation protection. Undo is the foundation for larger grouped confirmations.
+3. Partial reserve suggestions and configurable bill matching; certificate receipt reconciliation and reimbursable-expense links.
+4. Optional cash funding/payday allocation, followed by saved views and reports. The funding policy is a product choice, not an arithmetic patch to the current budget.
+5. Reminders and a weekly review over the existing inbox. Defer credit-card accounting to an explicit scope decision.
+
+**Reproduced findings:** [within-month shortfall](../report/visual-improvement/2026-10-15-plan-dated-cash-shortfalls.md), [multiple import sources](../report/visual-improvement/2026-10-15-import-attach-multiple-source-records.md), [partial reserve suggestions](../report/visual-improvement/2026-10-15-reserves-suggest-partial-expense-links.md). These are separate from already-proposed undo, month lock, merge and saved filters.
+
+**Efficiency measurement:** `python tools/perf_check.py`, 2026-10-15, temporary sample-year SQLite database. All 18 pages stayed below the project's 150 ms / 400 query thresholds: Overview 59 ms / 349 queries; Budget 29 / 109; Cash planning 41 / 203; Spending 25 / 108. This measures warm server responses on this host, not encrypted Windows/WebView rendering or a large real database. No immediate speed optimisation is justified by this run. If scale requires it, the measured repeated work is counterparty resolution per register row (34 calls), aliases per counterparty (34), and carryover reads per category (21 on Overview); remeasure at scale before choosing a fix.
+
+**Keep Lightning's strengths:** native-currency investments and FX gains, gold units and costs, Egyptian certificates, gam’eya, zakat, money held for others and Egyptian Arabic. Actual can track asset account values but that is not the same as a security/quantity/return model. Its read-only forecast simulations are useful; its sync protocol and automatic transaction creation are separate architectural/product choices, not prerequisites for a smarter Lightning.
 
 ## Evidence limits and sources
 
