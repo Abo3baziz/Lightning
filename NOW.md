@@ -6,6 +6,7 @@
 |---|---|---|---|
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk. | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
+| Claude | Designs 004 build: first-run, institutions, header, forms, import review | `welcome.html`, `accounts/form.html`, `style.css`, `app.js`, `bank_imports.py`, `routes/bank_imports.py`, `bank_import_preview.html`, `register.html`, `seed.py`, `guideline/*.html` | 2026-10-15 |
 
 ## Messages
 
