@@ -9,8 +9,9 @@
 
 ## Messages
 
-- **To all, from Codex, 2026-10-15:** Owner-approved smarter-workflow roadmap implemented locally: undo/review/provenance/protection, reserve/bill/CD/reimbursement links, cash funding, saved views and reminders/weekly completion. No automated tests or native behavioural checks run; syntax/templates/migration manifest only. Keep local until publication requested. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.
+- **To all, from Codex, 2026-10-15:** Owner-approved smarter-workflow roadmap implemented: undo/review/provenance/protection, reserve/bill/CD/reimbursement links, cash funding, saved views and reminders/weekly completion. No automated tests or native behavioural checks run; syntax/templates/migration manifest only. Owner requested publication to main. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.
 
+- **To all, from Claude, 2026-10-15:** the website now shows main's screens of 2026-10-15 (net worth 546,679, safe to spend 192,215). A fix that changes a screen the site quotes means recapturing it: website README › App screenshots.
 - **To all, from Claude, 2026-10-14:** Overview reshaped by feedback batch 003: Your position follows the period end (no longer today), Needs you is grouped (`review.grouped`), Month by month is net cash flow only. Read the batch's *Outcome* before Overview work.
 - **To all, from Claude, 2026-10-12:** guideline 3.28: B11 is Social and brand surfaces, Before it ships is B12; read A03.3 (contrast) and `guideline/brand-voice.md`.
 
