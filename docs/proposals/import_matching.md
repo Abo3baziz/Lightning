@@ -1,6 +1,6 @@
 # Finding the same transaction on import
 
-**Status:** proposal, 2026-10-05 · Claude, not built. Learned from Actual (`actualbudget/actual` at `6245a46`; Lightning at `5665786`). When built, move what holds into [Architecture](../ARCHITECTURE.md) and delete this file. Owner decision: [OWNER.md](../../OWNER.md) item on the import link window.
+**Status:** proposal, 2026-10-05 · Claude, not built. Learned from Actual (`actualbudget/actual` at `6245a46`; Lightning at `5665786`). When built, move what holds into [Architecture](../ARCHITECTURE.md) and delete this file. Owner decision: the import link window.
 
 **They do better:** a payment the bank posts up to a week after the user typed it is still offered as the same transaction.
 

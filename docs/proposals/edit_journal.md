@@ -140,7 +140,7 @@ Both transports carry the same authenticated envelopes. A sync round exchanges c
 
 **Cost and abuse.** Keep the dedicated Cloudflare account and private domain. Enforce authenticated mailbox creation, unguessable IDs, per-device request and byte limits, per-recipient queue quotas, upload quotas, bounded signatures before costly work, backoff and monitoring. A device exhausting its quota must not consume another device's reserved control/recovery capacity. Cloudflare request, duration, storage, R2 and push-call costs must be measured together; the old daily-request calculation is not a capacity promise. [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) distinguishes these charges and idle WebSocket behavior.
 
-Before deployment, verify actual edge-rule availability and whether blocked requests consume Worker allowance on the chosen plan. A valid-shaped flood may still reach billed code; no claim that arbitrary abuse leaves real users unaffected. Initially retain unacknowledged envelopes up to 30 days and temporary snapshots up to 7 days, with retries from devices after expiry. Authority retirement records must survive mailbox queue expiry. Owner setup stays in [OWNER.md](../../OWNER.md).
+Before deployment, verify actual edge-rule availability and whether blocked requests consume Worker allowance on the chosen plan. A valid-shaped flood may still reach billed code; no claim that arbitrary abuse leaves real users unaffected. Initially retain unacknowledged envelopes up to 30 days and temporary snapshots up to 7 days, with retries from devices after expiry. Authority retirement records must survive mailbox queue expiry. Owner setup is tracked as GitHub issues.
 
 ## 7. Authority, pairing and recovery
 

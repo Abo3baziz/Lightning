@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: skills `bug-hunt` and `stale-check` with `tools/bug_crawl.py` (crawls every page) and `tools/stale_check.py` (old messages, dead links, built proposals, merged branches, version and guideline drift); two dead OWNER.md links in proposals fixed.
+
 - 2026-10-15 · Claude: skills live in a tool-neutral `skills/` folder (`feedback-review` moved there, neutral model wording); `.claude/skills/` holds one-line stubs so Claude Code finds them.
 
 - 2026-10-15 · Claude: `feedback-review` skill now compiles into one report, investigates in the main session, then uses two agents at most (Opus designs, Sonnet builds) and deletes the reviewed files: `.claude/skills/feedback-review/SKILL.md`.
