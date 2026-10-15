@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from lightning.core.dates import fmt_date, now_iso, parse_date, today
 from lightning.core.errors import ValidationError
+from lightning.core.memo import request_cached
 from lightning.core.money import check_places, from_e6, to_decimal, to_e6
 from lightning.database.connection import Database
 from lightning.market.bundle import MAX_GAP_DAYS
@@ -76,6 +77,7 @@ class Rate:
         return self.date if self.stale else None
 
 
+@request_cached  # valuation asks for the same rate dozens of times per page; a write clears the memo
 def _stored(db: Database, base: str, quote: str, day: str,
             exclude: tuple[str, ...] = ()) -> tuple[Decimal, str, str] | None:
     floor = (_date.fromisoformat(day) - timedelta(days=MISSING_DAYS)).isoformat()

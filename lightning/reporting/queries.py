@@ -198,24 +198,30 @@ class ReportQueries:
         grouped, params = self._statement_groups(account_id, date_from, date_to)
         return int(self.db.scalar(f"SELECT COALESCE(SUM(q), 0) FROM ({grouped} LIMIT ?)", (*params, first)))
 
-    @request_cached
+    @request_cached(deep=True)
+    def _prices_of(self, asset_id: int) -> list[dict]:
+        """Every price of one asset, newest first, a typed price before an automatic one on the same day.
+        One read per asset per request: a page asks for the same asset at a dozen month ends."""
+        return [dict(row) for row in self.db.all(
+            "SELECT price_e6, currency, date, source FROM price_history WHERE asset_id = ?"
+            " ORDER BY date DESC, CASE WHEN source IN ('MANUAL','REEVALUATION_MANUAL') THEN 0 ELSE 1 END",
+            (asset_id,))]
+
     def latest_price(self, asset_id: int, as_of: str) -> dict | None:
-        row = self.db.one(
-            "SELECT price_e6, currency, date, source FROM price_history WHERE asset_id = ? AND date <= ?"
-            " ORDER BY date DESC, CASE WHEN source IN ('MANUAL','REEVALUATION_MANUAL') THEN 0 ELSE 1 END LIMIT 1",
-            (asset_id, as_of),
-        )
+        row = next((price for price in self._prices_of(asset_id) if price["date"] <= as_of), None)
         return dict(row) if row else None
 
-    @request_cached
+    @request_cached(deep=True)
+    def _trade_prices_of(self, asset_id: int) -> list[dict]:
+        """Every buy and sell price of one asset, newest first; read once per asset per request."""
+        return [dict(row) for row in self.db.all(
+            f"SELECT le.unit_price_e6 AS price_e6, le.date FROM ledger_entries le {POSTED}"
+            " WHERE le.asset_id = ? AND t.type IN ('BUY', 'SEL') ORDER BY le.date DESC, t.id DESC",
+            (asset_id,))]
+
     def latest_trade_price(self, asset_id: int, as_of: str) -> dict | None:
         """The price of the most recent buy or sell on or before the date."""
-        row = self.db.one(
-            f"SELECT le.unit_price_e6 AS price_e6, le.date FROM ledger_entries le {POSTED}"
-            " WHERE le.asset_id = ? AND le.date <= ? AND t.type IN ('BUY', 'SEL')"
-            " ORDER BY le.date DESC, t.id DESC LIMIT 1",
-            (asset_id, as_of),
-        )
+        row = next((price for price in self._trade_prices_of(asset_id) if price["date"] <= as_of), None)
         return dict(row) if row else None
 
     @request_cached

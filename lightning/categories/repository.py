@@ -33,6 +33,7 @@ class CategoryRepository:
     def __init__(self, db: Database):
         self.db = db
 
+    @request_cached(deep=True)
     def list(self) -> list[Category]:
         return [_row(r) for r in self.db.all("SELECT * FROM categories ORDER BY sort_order, code")]
 

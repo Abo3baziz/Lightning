@@ -7,6 +7,7 @@ import unicodedata
 from difflib import SequenceMatcher
 
 from lightning.core.dates import now_iso
+from lightning.core.memo import request_cached
 from lightning.core.errors import ConflictError, NotFoundError, ValidationError
 from lightning.database.connection import Database
 
@@ -24,6 +25,7 @@ class CounterpartyService:
     def __init__(self, db: Database):
         self.db = db
 
+    @request_cached
     def resolve(self, value: str):
         key = normalize(value)
         if not key:
@@ -34,6 +36,7 @@ class CounterpartyService:
             "ON a.counterparty_id=c.id WHERE a.normalized_alias=? LIMIT 1", (key, key)
         )
 
+    @request_cached
     def get(self, counterparty_id: int):
         return self.db.one("SELECT * FROM counterparties WHERE id=?", (counterparty_id,))
 

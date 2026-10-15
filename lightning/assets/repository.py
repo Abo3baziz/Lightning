@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 from lightning.core.dates import now_iso
+from lightning.core.memo import request_cached
 from lightning.core.money import from_e6, to_e6
 from lightning.database.connection import Database
 
@@ -58,22 +59,27 @@ class AssetRepository:
         row = self.db.one("SELECT * FROM asset_classes WHERE id = ?", (class_id,))
         return _class(row) if row else None
 
+    @request_cached(deep=True)
     def get_class_by_code(self, code: str) -> AssetClass | None:
         row = self.db.one("SELECT * FROM asset_classes WHERE code = ?", (code,))
         return _class(row) if row else None
 
     # financial assets
+    @request_cached(deep=True)
     def list_assets(self) -> list[FinancialAsset]:
         return [_asset(r) for r in self.db.all("SELECT * FROM financial_assets ORDER BY code")]
 
+    @request_cached(deep=True)
     def get_asset(self, asset_id: int) -> FinancialAsset | None:
         row = self.db.one("SELECT * FROM financial_assets WHERE id = ?", (asset_id,))
         return _asset(row) if row else None
 
+    @request_cached(deep=True)
     def get_asset_by_code(self, code: str) -> FinancialAsset | None:
         row = self.db.one("SELECT * FROM financial_assets WHERE code = ?", (code,))
         return _asset(row) if row else None
 
+    @request_cached(deep=True)
     def get_cash_asset(self, currency: str) -> FinancialAsset | None:
         row = self.db.one(
             "SELECT * FROM financial_assets WHERE is_cash = 1 AND currency = ?", (currency,)
