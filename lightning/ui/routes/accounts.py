@@ -472,6 +472,8 @@ async def update_account(request: Request, account_id: int):
     account = c.accounts.get(account_id)
     form = await request.form()
     values = {k: str(form.get(k, "")) for k in FIELDS}
+    if "last4" not in form:  # the form no longer shows it: keep what is stored
+        values["last4"] = account.last4 or ""
     try:
         account = c.account_flows.update_account(
             account_id, name=values["name"], account_type=values["account_type"],

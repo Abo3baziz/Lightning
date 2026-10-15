@@ -53,16 +53,10 @@
   <div class="field" id="account-type-guidance" data-account-type="{{ values.account_type }}">
     <div class="help" id="account-type-help"></div>
   </div>
-  <details {{ 'open' if error_field in ('last4', 'notes') }}>
-    <summary>{{ 'More details'|tr(locale) }}</summary>
-    <div class="row" style="margin-top:12px">
-      {{ field('last4', 'Last 4 digits', values, error_field, help='Optional. Never enter the full number.', attrs='inputmode="numeric" maxlength="4"') }}
-    </div>
-    <div class="field">
-      <label for="notes">{{ 'Notes'|tr(locale) }}</label>
-      <textarea id="notes" name="notes" rows="2">{{ values.notes }}</textarea>
-    </div>
-  </details>
+  <div class="field">
+    <label for="notes">{{ 'Notes'|tr(locale) }}</label>
+    <textarea id="notes" name="notes" rows="2">{{ values.notes }}</textarea>
+  </div>
   <div class="actions" style="margin-top:16px">
     <button class="btn primary">{{ 'Save' if account else 'Add account' }}</button>
     <a class="btn" href="{{ '/accounts/' ~ account.id if account else '/accounts' }}">{{ 'Cancel'|tr(locale) }}</a>

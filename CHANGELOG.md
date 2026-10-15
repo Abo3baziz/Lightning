@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: account form: the cash type reads Cash, More details and Last 4 digits are gone (a stored last 4 is kept), no Travel in new profiles' categories; the Mohab sample's Sahel weekend is Entertainment.
 - 2026-10-15 · Claude: setup starts with your currencies (profile base plus others held, as chips); the account form's currency is a pick list of registered currencies only; welcome Add links wait for the save; `welcome.html`, `routes/dashboard.py`, `accounts/form.html`.
 - 2026-10-15 · Claude: account page header: the type and bank line sits under the title, and the three figures (in this account, what you own, held for others) share one strip, the first largest; `register.html`, `style.css`.
 - 2026-10-15 · Codex: Spending compares the same days across months; running comparisons stay neutral. Holdings gains include income and sales; PC/phone register rows keep signs and cents, account totals stay whole.

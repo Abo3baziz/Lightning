@@ -548,7 +548,7 @@ def _live_the_year(o: Mohab) -> None:
              button="Add reserve")
     o.on("2027-08-31")
     o.month("2027-08", salary="50,000", rent="13,200")
-    o.enter("CIB Payroll", "2027-08-12", "Hacienda Bay", "Personal › Travel", "-14,200")
+    o.enter("CIB Payroll", "2027-08-12", "Hacienda Bay", "Personal › Entertainment", "-14,200")
     o.to_reserve("CIB Payroll", "Hacienda Bay", "Sahel trip")
     o.ask("trip", "How much is left from the Sahel money?", "Cash planning", "Reserves")
     o.enter("CIB Payroll", "2027-08-31", "ACME Egypt", "Bonus", "30,000", notes="End of service")
