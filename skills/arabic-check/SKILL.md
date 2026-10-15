@@ -38,4 +38,8 @@ Let the tests find untranslated strings; do not read the dictionaries (they are 
 
 ## Report
 
+**Where findings go.** Read `report/README.md` once. Fix a small finding now (branch, test, changelog line) and file **no** report. File anything bigger as one report in
+`report/<category>/` (this skill's name in `skills`, your model in `reporter`, `app_version` from `pyproject.toml`, `commit` from `git rev-parse --short HEAD`), then run
+`python tools/report_index.py`. Fixing a report means deleting its file in the same commit. Never leave a finding only in chat, and never let the folder pile up (20 reports, 30 days).
+
 Pages checked, the strings you added (count and 5 examples), layout problems found and fixed, anything left (with page and string) for a native reader to review. Say plainly that a human Arabic reader should check the voice.

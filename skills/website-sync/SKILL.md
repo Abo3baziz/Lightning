@@ -39,4 +39,8 @@ Read a site page only around the line you change.
 
 ## Report
 
+**Where findings go.** Read `report/README.md` once. Fix a small finding now (branch, test, changelog line) and file **no** report. File anything bigger as one report in
+`report/<category>/` (this skill's name in `skills`, your model in `reporter`, `app_version` from `pyproject.toml`, `commit` from `git rev-parse --short HEAD`), then run
+`python tools/report_index.py`. Fixing a report means deleting its file in the same commit. Never leave a finding only in chat, and never let the folder pile up (20 reports, 30 days).
+
 Which of the nine checks passed; each mismatch (file, expected, found) and what you changed; what needs the owner (a sheet check, a release approval). List the commits pushed in each repo.

@@ -23,4 +23,8 @@ Tool-neutral. The repo is public: stale files mislead readers and leak history. 
 
 ## Report
 
+**Where findings go.** Read `report/README.md` once. Fix a small finding now (branch, test, changelog line) and file **no** report. File anything bigger as one report in
+`report/<category>/` (this skill's name in `skills`, your model in `reporter`, `app_version` from `pyproject.toml`, `commit` from `git rev-parse --short HEAD`), then run
+`python tools/report_index.py`. Fixing a report means deleting its file in the same commit. Never leave a finding only in chat, and never let the folder pile up (20 reports, 30 days).
+
 Counts per kind, what you fixed, and a short list of decisions for the owner. Do not list every stale branch.

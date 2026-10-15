@@ -1,8 +1,19 @@
-# Open user feedback
+---
+title: Twelve user requests from feedback batches 001-003 that wait for an owner decision
+category: visual-improvement
+area: feedback
+status: open
+created: 2026-10-15
+reporter: Claude Sonnet 5.5
+skills: feedback-review
+app_version: 1.1.0b1
+commit: 821db7a
+repo: both
+---
 
-**Status:** proposal, 2026-10-15 · Claude, not built. What is still open from feedback batches 001–003 after their folder was retired
-(`user feedback/`, in git history before 2026-10-15). Everything else in those batches is fixed, already existed or was declined, and is in
-the changelog and `tests/test_feedback_batch_003.py`, `tests/test_mohab_year.py`. When an item is built or decided, delete its row.
+## Report
+These are the requests left open when the `user feedback/` folder was retired (it is in git history before 2026-10-15). Everything else in those batches is fixed or already existed.
+Each row needs the owner to choose build or decline; when one is decided, build it (and delete its row) or delete its row with a one-line reason in the changelog. Delete this report when the table is empty.
 
 | Batch row | Request | Why it is open |
 |---|---|---|

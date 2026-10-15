@@ -60,6 +60,15 @@ def built_proposals() -> list[str]:
     return out
 
 
+def old_reports(days: int = 30) -> list[str]:
+    out = []
+    for path in (ROOT / "report").glob("*/*.md"):
+        match = re.search(r"^created:\s*(\d{4}-\d{2}-\d{2})", path.read_text(encoding="utf-8"), re.M)
+        if match and old(match.group(1), days):
+            out.append(f"report/{path.parent.name}/{path.name} is unprocessed since {match.group(1)}")
+    return out
+
+
 def branches() -> list[str]:
     merged, ahead = [], []
     for name in git("branch", "-r", "--format=%(refname:short)").splitlines():
@@ -97,6 +106,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=7)
     args = parser.parse_args()
-    findings = [*hand_off(args.days), *dead_links(), *built_proposals(), *branches(), *versions(), *guideline_copies()]
+    findings = [*hand_off(args.days), *dead_links(), *built_proposals(), *old_reports(), *branches(), *versions(), *guideline_copies()]
     print("\n".join(findings) or "nothing stale")
     sys.exit(1 if findings else 0)

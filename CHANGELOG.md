@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: `report/` folder: one file per unprocessed finding in `technical-bug`, `visual-bug`, `technical-improvement`, `visual-improvement`, with who/skills/version in front matter; a generated `INDEX.md`; a fixed report is deleted with its fix; capped at 20 reports and 30 days each (`tools/report_index.py`, `tests/test_reports.py`). All skills now file there; `docs/proposals/open_feedback.md` became one report.
+
 - 2026-10-15 · Claude: fewer repeated reads per page: exchange rates, categories, counterparties and assets are read once per request, and each asset's prices once, not once per month end (Overview 642 to 444 queries, Investments 291 to 181; every page identical): `fx.py`, `reporting/queries.py`, `assets/repository.py`; test `tests/test_repeated_lookups.py`.
 
 - 2026-10-15 · Claude: skills `release-check`, `guideline-audit`, `number-audit`, `perf-check`, `arabic-check`, `website-sync` (all in `skills/`), with `tools/release_check.py` and `tools/perf_check.py`; `AGENTS.md` points to `skills/README.md`.

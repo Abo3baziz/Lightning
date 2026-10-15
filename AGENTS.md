@@ -14,6 +14,7 @@ Each fact lives in one file; link to it, never copy it. No other files under `do
 | [Glossary](docs/GLOSSARY.md) | One name and meaning per term and figure | You add or rename one |
 | [Competition](docs/COMPETITION.md) | Competitors, what users love/hate, where we win/lose | You learn something, or choose between designs |
 | [guideline/](guideline/) | Brand: [app.html](guideline/app.html) (A, PC), [website.html](guideline/website.html) (B), [phone.html](guideline/phone.html) (C), [brand-voice.md](guideline/brand-voice.md) (voice) | The owner gives a new version; change the website repo's copy too |
+| [report/](report/README.md) | Findings not yet fixed: bugs and improvements, visual or technical; read `report/INDEX.md` only | You find something (add one); you fix it (delete it in the same commit) |
 | [CHANGELOG.md](CHANGELOG.md) | Every change, newest first under `Unreleased` | Every push |
 | `docs/proposals/` | Unbuilt designs, one file each | Once built, move what holds into Architecture and delete it |
 
@@ -47,6 +48,7 @@ Never at the cost of a test, a required check, or a read you need.
 
 - **Claims and messages belong to their author.** Never edit another AI's, except deleting a message to you once handled (to all: keep seven days). Make each claim's *Work* distinguish parallel sessions. A helper (Codex's Luna) gets its own rows, written by its AI.
 - **Push rejected?** `git pull --rebase`, keep both sides in changelog and `NOW.md`, retest, push.
+- **Findings:** every bug or improvement found goes in `report/` (one file each, front matter says who, which skills, which version); fixing it deletes the file. Read `report/INDEX.md` before anything else there.
 - **Skills:** `skills/README.md` lists them: feedback-review, bug-hunt, number-audit, guideline-audit, arabic-check, perf-check, stale-check, release-check, website-sync. Read the one that fits and follow it.
 - **Never undo another AI's work** without the owner; disagree in a GitHub issue for the owner.
 
