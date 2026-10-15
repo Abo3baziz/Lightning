@@ -24,7 +24,7 @@ from lightning.core.dates import fmt_date, month_of, today
 from lightning.core.errors import NotFoundError, ValidationError
 from lightning.core.figures import FIGURES
 from lightning.core.memo import request_cache
-from lightning.core.money import ZERO, fmt, to_decimal
+from lightning.core.money import ZERO, fmt, quantize, to_decimal
 from lightning.workflows import live_prices
 from lightning.ui import sections
 from lightning.ui.i18n import BROWSER_UI, localize_html, localized_figures, translate
@@ -72,6 +72,7 @@ def _keep_dates(text) -> Markup:
 
 
 templates.env.filters["money"] = _money
+templates.env.filters["whole"] = lambda value: fmt(Decimal(value), 0)  # half-up like money, never banker's
 templates.env.filters["tr"] = translate
 
 
@@ -161,11 +162,11 @@ def _compact(value) -> str:
     if v >= 1_000_000:
         text = f"{v / 1_000_000:.1f}M"
     elif v >= 10_000:
-        text = f"{v / 1000:.0f}k"
+        text = f"{quantize(v / 1000, 0):.0f}k"
     elif v >= 1000:
         text = f"{v / 1000:.1f}k"
     else:
-        text = f"{v:.0f}"
+        text = f"{quantize(v, 0):.0f}"
     return sign + text.replace(".0k", "k").replace(".0M", "M")
 
 

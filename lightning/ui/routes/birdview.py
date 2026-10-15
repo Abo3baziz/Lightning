@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request, Response
 
 from lightning.core.dates import fmt_date, month_of, parse_month, today
 from lightning.core.errors import LightningError, ValidationError
-from lightning.core.money import ZERO, to_decimal
+from lightning.core.money import ZERO, fmt, to_decimal
 
 from ..web import container, redirect, render
 from ..periods import Period, parse_period
@@ -178,7 +178,7 @@ def _expense_stats(a, total, prior, prior_label, largest, selected, first, last,
             return {"label": label, "text": "nothing to compare yet", "tone": "flat"}
         diff = now - then
         pct = f" · {abs(diff) / then * 100:.0f}%" if then else ""
-        return {"label": label, "text": f"{'+' if diff > 0 else '−' if diff < 0 else ''}{abs(diff):,.0f}{pct}",
+        return {"label": label, "text": f"{'+' if diff > 0 else '−' if diff < 0 else ''}{fmt(abs(diff), 0)}{pct}",
                 "tone": "up" if diff > 0 else "down" if diff < 0 else "flat"}
 
     query = (f"category_id={category_filter}&" if category_filter else "") + f"date_from={fmt_date(first)}&date_to={fmt_date(last)}"

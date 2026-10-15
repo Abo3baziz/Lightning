@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: whole-number figures round half up everywhere (468.50 read 468 on the Spending comparison and day calendar but 469 elsewhere): `whole` filter, `_compact`, Spending compare and plan chart titles; test `tests/test_half_up_figures.py`.
+
 - 2026-10-14 · Codex: Section 13 milestone 1: optional salary/payday setup, bank CSV presets, full financial Excel/CSV exports, instalment purchase plans and previewed early loan payments in existing screens.
   Migration `0055_loan_actions.sql` preserves short-month paydays, exact instalment totals and linked extra payments/fees; voids restore schedules. Dummy round-trip fixture rebuilt; owner-approved historical loan balances now follow cash receipt dates.
   Validation: financial regression, browser preview/edit/download flows, English/Arabic screens, Mohab, PC brand and phone checks; full suite 1,548 passed, 10 skipped after incorporating latest main.

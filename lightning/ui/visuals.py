@@ -10,7 +10,7 @@ from decimal import Decimal
 from urllib.parse import urlencode
 
 from lightning.core.dates import fmt_date, months_back, parse_date, parse_month
-from lightning.core.money import ZERO
+from lightning.core.money import ZERO, fmt
 
 from lightning.planning.domain import PlanKind
 from lightning.investments import journey
@@ -482,10 +482,10 @@ def cash_plan(c, forecast, day: date) -> dict:
             mark["count"] += 1
             mark["amount"] += p.amount
             mark["late"] = mark["late"] or late
-            mark["title"] += f"\n{p.item.name} · {p.due_date} · {p.amount:,.0f}"
+            mark["title"] += f"\n{p.item.name} · {p.due_date} · {fmt(p.amount, 0)}"
             continue
         mark = {"name": p.item.name, "amount": p.amount, "income": p.item.is_income, "due": p.due_date,
-                "x": x, "row": 0, "late": late, "count": 1, "title": f"{p.item.name} · {p.due_date} · {p.amount:,.0f}"}
+                "x": x, "row": 0, "late": late, "count": 1, "title": f"{p.item.name} · {p.due_date} · {fmt(p.amount, 0)}"}
         last[p.item.is_income] = mark
         marks.append(mark)
     before_income = f.payments_before_income   # the same payments Safe to spend takes off
