@@ -64,7 +64,8 @@ _TERM_SQL = (
     " OR EXISTS (SELECT 1 FROM ledger_entries s JOIN accounts a ON a.id = s.account_id"
     " LEFT JOIN categories c ON c.id = s.category_id WHERE s.transaction_id = t.id AND ("
     " a.code LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\' OR c.code LIKE ? ESCAPE '\\'"
-    " OR c.name LIKE ? ESCAPE '\\' OR printf('%.2f', abs(s.amount_e6) / 1000000.0) LIKE ? ESCAPE '\\')))"
+    " OR c.name LIKE ? ESCAPE '\\' OR printf('%.2f', abs(s.amount_e6) / 1000000.0) LIKE ? ESCAPE '\\'"
+    " OR CAST(abs(s.amount_e6) / 1000000.0 + 0.5 AS INTEGER) = ?)))"  # a whole number finds the figure the pages show
 )
 
 
@@ -202,6 +203,7 @@ class TransactionRepository:
         for term in search_terms(f.search):
             where.append(_TERM_SQL)
             params.extend([_like(term)] * 10)
+            params.append(int(term) if term.isdigit() else None)  # 3251 finds 3,250.75, shown as 3,251
         clause = " AND ".join(where)
         total = self.db.scalar(f"SELECT COUNT(*) FROM transactions t WHERE {clause}", tuple(params)) or 0
         rows = self.db.all(

@@ -269,3 +269,12 @@ class TestRegister:
         assert c.accounts.find_by_text("wallet").id == accounts["wallet"].id
         assert c.accounts.find_by_text("CIB-CUR-EGP · CIB Current").id == accounts["cib"].id
         assert c.accounts.find_by_text("Carrefour") is None
+
+
+def test_search_finds_a_row_by_the_whole_figure_the_pages_show(c, setup):
+    from lightning.transactions.domain import TxnFilter
+    accounts, cats = setup
+    c.transactions.record_outflow("2026-10-02", accounts["cib"].id, "3250.75", cats["EXP.PERSONAL.FOOD"].id, counterparty="Carrefour")
+    found = lambda text: c.transactions.find(TxnFilter(search=text))[1]
+    assert found("3250.75") == found("3251") == found("3,251") == 1  # the exact figure and the one the pages round to
+    assert found("3252") == 0  # a different whole figure finds nothing
