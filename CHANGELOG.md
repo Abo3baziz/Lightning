@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: new skill site-recapture with `tools/site_shots.py` (the site's PC, phone and paired screens in English or Arabic, sizes as the site uses them); website-sync points at the site's new `tools/release.py` and `tools/site_check.py`.
 - 2026-10-15 · Claude: website recaptured from main (Mohab to 2026-10-04): seven places with the dollar brokerage, a Pounds and dollars section, Download as the header button and the home page's main action, search titles under 60.
   Six findings from the capture filed in `report/` (device line, Currencies screen, the sample's reconciliation gap).
 - 2026-10-15 · Claude: account page header: the type and bank line sits under the title, and the three figures (in this account, what you own, held for others) share one strip, the first largest; `register.html`, `style.css`.

@@ -16,5 +16,6 @@ A new skill is written once, here, in plain words with no tool-only commands.
 | [perf-check](perf-check/SKILL.md) | Time pages, count queries, fix waste (`tools/perf_check.py`) |
 | [arabic-check](arabic-check/SKILL.md) | Find and add untranslated Arabic strings, check RTL, digits and voice |
 | [website-sync](website-sync/SKILL.md) | Keep the app and website repos consistent after a release or guideline change |
+| [site-recapture](site-recapture/SKILL.md) | The app changed a screen or figure the website shows: recapture and update the site (`tools/site_shots.py`) |
 
-Order for a release: stale-check, release-check (which calls bug-hunt, number-audit, guideline-audit, arabic-check and perf-check), then website-sync.
+Order for a release: stale-check, release-check (which calls bug-hunt, number-audit, guideline-audit, arabic-check and perf-check), then website-sync, then site-recapture if the release changed what the site shows.
