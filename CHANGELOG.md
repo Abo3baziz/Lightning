@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: phone buttons and fields now follow C05 (48 page, 40 in a card); `phone.css` sets the control-height variables because `.phone .btn` lost to `style.css`'s `:not(#_)` rules.
+  The rest of the phone audit is in report `phone-c12-type-tables-and-cut-words`.
 - 2026-10-15 · Claude: feedback rows 32 to 76 settled by the owner: built 35 and 50; declined 38 (pie), 54 (one card destination), 60 (S/M/L tags), 62 (price volume), 63 (fall from high), 65 (free emergency target), 73 (review timeout), recorded in Architecture › UI contract; 76 was already built (ticket 88); 32 and 75 stay as reports. The combined request report is deleted.
 
 - 2026-10-15 · Claude: feedback rows 32 to 76 settled by the owner: built 35 and 50; declined 38 (pie), 54 (one card destination), 60 (S/M/L tags), 62 (price volume), 63 (fall from high), 65 (free emergency target), 73 (review timeout), recorded in Architecture › UI contract; 76 was already built (ticket 88); 32 and 75 stay as reports. The combined request report is deleted.
