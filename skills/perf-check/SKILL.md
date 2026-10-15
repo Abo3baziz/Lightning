@@ -31,10 +31,11 @@ Measure first, change the one worst thing, measure again. Never read a service f
    `tests/test_reporting_performance.py::test_main_tabs_read_each_figure_once_and_show_the_same_pages_as_without_the_cache`). Run the suite and Mohab.
 6. **Record:** one changelog entry with the before and after numbers (queries and milliseconds), one branch per fix, merge.
 
-## Known hotspots (last measured 2026-10-15 on the sample year)
+## Known hotspots (measured 2026-10-15 on the sample year, after the first round of fixes)
 
-Overview `/`: 642 queries, 114 ms (`fx_rates` rate lookup repeated 80 times; price lookups). `/plan` and `/financial-health`: about 370 queries (`price_history` lookup 47–53 times).
-`/investments`: 291 queries (`fx_rates` 52 times). `/accounts/1` and `/transactions`: `counterparties` match query 34 times. `/counterparties`: `categories` read 37 times. These are ideas, not facts: re-measure before acting.
+Overview `/` is still the heaviest page: 444 queries (was 642), about 110 ms. Fixed already: exchange-rate lookups (`fx._stored`), per-date price lookups (now one read per asset: `ReportQueries._prices_of`,
+`_trade_prices_of`), category and cash-asset lookups. Left, each a loop that is hard to batch: category totals per month (44 queries on Overview and Spending), the counterparty match per register row
+(34 on `/accounts/1`, `/transactions`), per-owner holdings on `/plan`, physical item lookups. These are ideas, not facts: re-measure before acting.
 
 ## Report
 

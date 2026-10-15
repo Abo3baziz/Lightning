@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: fewer repeated reads per page: exchange rates, categories, counterparties and assets are read once per request, and each asset's prices once, not once per month end (Overview 642 to 444 queries, Investments 291 to 181; every page identical): `fx.py`, `reporting/queries.py`, `assets/repository.py`; test `tests/test_repeated_lookups.py`.
+
 - 2026-10-15 · Claude: skills `release-check`, `guideline-audit`, `number-audit`, `perf-check`, `arabic-check`, `website-sync` (all in `skills/`), with `tools/release_check.py` and `tools/perf_check.py`; `AGENTS.md` points to `skills/README.md`.
 
 - 2026-10-15 · Claude: skills `bug-hunt` and `stale-check` with `tools/bug_crawl.py` (crawls every page) and `tools/stale_check.py` (old messages, dead links, built proposals, merged branches, version and guideline drift); two dead OWNER.md links in proposals fixed.
