@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: phone date fields open the calendar on tap with no keyboard, show the calendar button, and the calendar draws as a 7-column grid; `phone.css`, `phone-fields.js`.
 - 2026-10-15 · Claude: phone tables show as stacked rows with each column's heading above its value (prices, counterparties, held-for-others, settings); `phone.css`, `phone-fields.js`.
 - 2026-10-15 · Claude: phone type is 12px at least, Birdview's category treemap is full-width rows and its usual-month chart two a row, fields 48 and icons 44; `phone.css`, `profiles.css`.
   Tables on seven phone pages stay open in report `phone-c12-type-tables-and-cut-words`.

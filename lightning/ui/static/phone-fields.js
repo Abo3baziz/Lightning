@@ -46,3 +46,13 @@
     });
   });
 })();
+
+/* Phone dates (guideline C12: a date is a picker, never typed): a date field is read-only so no keyboard opens; app.js opens the calendar on tap. */
+(() => {
+  const control = (target) => target.closest?.(".iso-date-control");
+  const field = (target) => (target.matches?.("input[data-smart-date]") && control(target)) ? target : null;
+  document.addEventListener("focusin", (event) => {
+    const input = field(event.target);
+    if (input) { input.readOnly = true; input.inputMode = "none"; }
+  });
+})();
