@@ -260,7 +260,7 @@ Reviewed 2026-10-13. Detail of each build is in the CHANGELOG; claims and next s
 |---|---|---|
 | M0–M1 Foundation, cash accounts | Shipped | — |
 | B Budget | Shipped | Change one category without the full grid |
-| M2 Reports and corrections | Partial | Checked-history close/undo/merge built locally; behavioural acceptance remains |
+| M2 Reports and corrections | Partial | Checked-history close/undo/merge built and covered by workflow regression tests; ordinary-PC acceptance remains |
 | M3 Manual investments | Shipped | — |
 | M3.1 Instrument catalogue | Partial | Coverage and identifier quality |
 | M3.2 Wealth history | Partial | Wealth-change bridge; owned-only XIRR |
@@ -273,4 +273,4 @@ Reviewed 2026-10-13. Detail of each build is in the CHANGELOG; claims and next s
 | v1.1 | Merged, not released | Owner bumps to 1.1.0 and builds ([v1_1_presentable.md](proposals/v1_1_presentable.md) §5–6) |
 | In-app updates (Windows) | Planned for later | **Update** button: check `Lightning-downloads`, verify signature, helper swaps folders, keeps the old for rollback; profiles untouched; refuse during an unfinished lend. Android updates come from Google Play. |
 
-**Owner-approved smarter workflows (2026-10-15):** all five roadmap stages are implemented locally, including dated cash warnings, undo/review/provenance/protection, reserve/bill/CD/reimbursement links, optional cash funding, saved views and reminders/weekly completion. Syntax/template/manifest checks only; automated and native behavioural acceptance remain outstanding. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.
+**Owner-approved smarter workflows (2026-10-15):** all five roadmap stages are implemented, including dated cash warnings, undo/review/provenance/protection, reserve/bill/CD/reimbursement links, optional cash funding, saved views and reminders/weekly completion. Service, HTTP, PC/phone browser, Arabic, currency, performance and encrypted-sync regression checks now cover the workflows, alongside the annual PC/phone scenario. Native Windows/Android notification delivery and ordinary-device acceptance remain outstanding. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.

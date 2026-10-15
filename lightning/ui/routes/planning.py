@@ -306,7 +306,7 @@ def _item_form(request: Request, c, values: dict, item=None, error: str = "", er
                   categories=_category_options(c, movement), counterparties=c.counterparties.list_active(),
                   error=error, error_field=error_field, back=back, form_action=form_action,
                   promotion=promotion, promotion_currency=promotion["currency"] if promotion else None,
-                  amount_currency=promotion["currency"] if promotion else (selected_account.currency if selected_account else c.transactions.base_currency))
+                  amount_currency=selected_account.currency if selected_account else c.transactions.base_currency)
 
 
 @router.get("/from-transaction/{txn_id:int}")
@@ -331,6 +331,8 @@ async def promote_transaction(request: Request, txn_id: int):
     form = await request.form()
     values = _form_values(form)
     back = f"/transactions/{txn_id}"
+    if values["start_date"] == source["values"]["start_date"] and values["frequency"] == "MONTHLY":
+        values["month_day"] = source["values"]["month_day"]
     if values["kind"] != source["values"]["kind"]:
         return _item_form(request, c, values, error="Keep the transaction's income or bill type.",
                           error_field="kind", status_code=400, back=back,

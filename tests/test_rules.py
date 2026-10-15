@@ -155,7 +155,8 @@ def test_the_past_changes_only_when_asked_and_one_undo_puts_it_back(c, setup):
     assert "would change 1 past transaction" in page and "Leave the past as it is" in page
     assert c.transactions.get(old[0]).lines[0].category_id == cats["EXP.PERSONAL.FOOD"]   # nothing moved yet
     rule_id = c.rules.list()[0].id
-    applied = client.post(f"/rules/{rule_id}/apply", follow_redirects=False)
+    applied = client.post(f"/rules/{rule_id}/apply", data={"transaction_id": str(old[0]),
+                          "fingerprint": c.rules.past_token(rule_id)}, follow_redirects=False)
     assert "refiled" in applied.headers["location"]
     category_of = lambda txn_id: next(l.category_id for l in c.transactions.get(txn_id).lines if l.category_id)
     assert category_of(old[0]) == cats["EXP.PERSONAL.UTILITIES"] and category_of(old[1]) == cats["EXP.PERSONAL.FOOD"]

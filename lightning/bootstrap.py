@@ -243,7 +243,7 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
         def validate_history(records):
             import json
             from types import SimpleNamespace
-            from lightning.core.ledger import validate_posting
+            from lightning.core.ledger import PostingLine, validate_posting
             ids = set()
             affected, days = {}, []
             for record in records:
@@ -261,7 +261,13 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
             for txn_id in ids:
                 txn = transactions.repo.get(txn_id)
                 if txn and not txn.is_void:
-                    validate_posting(txn.lines)
+                    postings = [PostingLine(
+                        account_id=line.account_id, asset_id=line.asset_id, quantity=line.quantity,
+                        effect=line.effect, unit_price=line.unit_price, fx_rate=line.fx_rate,
+                        category_id=line.category_id, memo=line.memo, amount=line.amount,
+                        amount_base=line.amount_base, is_cash=assets.get_asset(line.asset_id).is_cash,
+                        owner_id=line.owner_id) for line in txn.lines]
+                    validate_posting(postings)
                     lines.extend(txn.lines)
             if lines:
                 transactions._check_holdings(lines)

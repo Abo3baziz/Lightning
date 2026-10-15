@@ -314,6 +314,8 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
     if page_number > 1:
         keep["page"] = page_number
     base_url = (f"/accounts/{account_id}" if account_id else "/transactions")
+    reserve_rows = [row.txn_id for row in rows if row.type == DocType.OUT]
+    reserve_suggestions = c.reserves.suggested_reserves_for_transactions(reserve_rows)
     return render(
         request, "register.html", status_code=status_code,
         account=account,
@@ -329,8 +331,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         cash_accounts=[a for a in c.accounts.list(active_only=True) if account and a.id != account.id]
                       if can_invest and account.account_type.value != "BROKERAGE" else [],
         rows=rows, **_lists(request),
-        reserve_suggestions={row.txn_id: c.reserves.suggested_reserves(row.txn_id)
-                             for row in rows if row.type == DocType.OUT},
+        reserve_suggestions=reserve_suggestions,
         custody_owners=custody_owners,
         conversions=conversions,
         custody_present=any(custody_owners.values()),

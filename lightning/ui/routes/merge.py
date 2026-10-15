@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/transactions/merge-selected")
 async def selected_merge(request: Request):
     ids = list(dict.fromkeys(request.query_params.getlist("txn_ids")))
-    if len(ids) != 2 or any(not value.isdigit() or int(value) <= 0 for value in ids):
+    if len(ids) != 2 or any(not value.isdigit() or len(value) > 19 or not 1 <= int(value) <= 2**63 - 1 for value in ids):
         return redirect("/transactions?select=1", "Select two transactions in the register, then choose Merge selected.")
     return redirect(f"/transactions/merge?keep={ids[0]}&drop={ids[1]}")
 
@@ -25,7 +25,7 @@ def _template(request):
 async def merge_preview(request: Request):
     keep_id = request.query_params.get("keep", "")
     drop_id = request.query_params.get("drop", "")
-    if not keep_id.isdigit() or not drop_id.isdigit():
+    if any(not value.isdigit() or len(value) > 19 for value in (keep_id, drop_id)):
         return render(request, _template(request), keep_id=keep_id if keep_id.isdigit() else "",
                       drop_id="", preview=None, error="Select both transaction entries to compare.")
     c = container(request)
@@ -41,7 +41,7 @@ async def merge_preview(request: Request):
 async def confirm_merge(request: Request):
     form = await request.form()
     keep_id, drop_id = str(form.get("keep_id", "")), str(form.get("drop_id", ""))
-    if not keep_id.isdigit() or not drop_id.isdigit():
+    if any(not value.isdigit() or len(value) > 19 for value in (keep_id, drop_id)):
         return render(request, _template(request), keep_id="", drop_id="", preview=None,
                       error="Select both transaction entries to compare.", status_code=400)
     c = container(request)

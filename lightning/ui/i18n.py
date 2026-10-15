@@ -14,6 +14,14 @@ from lightning.core.figures import FIGURES
 from lightning.ui.i18n_system import FULL_MONTHS, MONTHS, SERVER_ONLY, SYSTEM_TEXT, WEEKDAYS
 
 ARABIC_UI = {
+    'Saved register views': 'طرق عرض العمليات المحفوظة',
+    '{name} summary': '{name} ملخص',
+    'Certificate interest needs review': 'عائد الشهادة محتاج مراجعة',
+    'Reimbursement needs review': 'التعويض محتاج مراجعة',
+    'This activity is no longer a posted cash income or expense.': 'النشاط ده ما بقاش إيراد أو مصروف نقدي مسجل.',
+    '{name} needs review': '{name} محتاج مراجعة',
+    '{name} · {date} · {amount} {currency} still unmatched.': '{name} · {date} · {amount} {currency} لسه من غير مطابقة.',
+
     'A certificate interest receipt cannot be turned into a recurring plan.': 'متحولش عائد شهادة مستلم لخطة دخل متكرر.',
     'Check your setup': 'راجع إعداداتك',
     'No {currency} exchange rate to {base} is available on {date}. Add a rate before using this scheduled amount.': 'مفيش سعر صرف من {currency} لـ {base} متاح يوم {date}. ضيف سعر صرف قبل استخدام المبلغ المخطط ده.',

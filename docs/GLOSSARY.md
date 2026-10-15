@@ -198,9 +198,9 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 
 | Figure | Meaning | How it is calculated | Function |
 |---|---|---|---|
-| **Cash available to assign** | Actual owned liquid cash left after reserves, funded spending and bills due outside those funds. Missing FX makes it unavailable; expected income never contributes. | Owned liquid cash − Effective reserves − Funded spending left − Unfunded bills due | `planning.funding.CashFundingService.preview` |
-| **Funded spending left** | This month's assigned category cash after owned spending and refunds, floored at zero. Unused funding does not carry automatically. | max(Assigned category amount − Owned spending, 0) | `planning.funding.CashFundingService.preview` |
-| **Outstanding reimbursement** | The eligible amount claimed for an owned expense that valid explicitly linked repayments or refunds have not covered. A claim is not cash before receipt. | max(Eligible claimed amount − Valid linked receipts, 0) | `reimbursements.ReimbursementService._claim_summary` |
+| **Cash available to assign** | Actual owned liquid cash left after reserves, funded spending and bills due outside those funds. Missing FX makes it unavailable; expected income never contributes. | Read directly from the plan | `planning.funding.CashFundingService.preview` |
+| **Funded spending left** | This month's assigned category cash after owned spending and refunds, floored at zero. Unused funding does not carry automatically. | Read directly from the plan | `planning.funding.CashFundingService.preview` |
+| **Outstanding reimbursement** | The eligible amount claimed for an owned expense that valid explicitly linked repayments or refunds have not covered. A claim is not cash before receipt. | Read directly from the plan | `reimbursements.ReimbursementService._claim_summary` |
 | **What you owe** | Payments you are certain to make: bills already due, loans and what you owe a savings circle. | Bills due (other than loan payments) + Loans still to pay + Gam'eya still to pay | `planning.position.Position.what_you_owe` |
 | **Net worth** | What you own after what you owe. | What you own − What you owe | `planning.position.Position.net_worth` |
 | **Debt to net worth** | What you owe for each pound of net worth. None when net worth is zero or less. | What you owe ÷ Net worth | `planning.health.Ratio.percent` |

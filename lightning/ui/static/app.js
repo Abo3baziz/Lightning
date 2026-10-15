@@ -141,6 +141,21 @@ const initOwnDataPickers = (root = document) => {
   // delete; categories show under their L1 as a header (never "L1 › L2"); focus lists every choice.
   const groupOf = (option) => option.parentElement?.tagName === "OPTGROUP" ? option.parentElement.label : "";
   const shown = () => { const option = select.selectedOptions[0]; return option && option.value !== "" ? option.textContent.trim() : ""; };
+  const place = () => {
+    if (list.hidden) return;
+    const rect = input.getBoundingClientRect();
+    const width = Math.min(Math.max(230, rect.width), innerWidth - 16);
+    const below = Math.max(0, innerHeight - rect.bottom - 12);
+    const above = Math.max(0, rect.top - 12);
+    const upward = below < Math.min(280, list.scrollHeight) && above > below;
+    const height = Math.min(280, upward ? above : below);
+    list.style.width = `${width}px`;
+    list.style.maxHeight = `${Math.max(48, height)}px`;
+    list.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - width - 8))}px`;
+    list.style.top = `${upward ? Math.max(8, rect.top - Math.min(list.scrollHeight, height) - 4) : rect.bottom + 4}px`;
+  };
+  document.addEventListener('scroll', () => { if (!list.hidden) place(); }, true);
+  window.addEventListener('resize', place);
   const render = (all = false) => {
     const query = all ? "" : input.value.trim().toLocaleLowerCase();
     const matches = entries().filter((option) => !query || `${groupOf(option)} ${option.textContent}`.toLocaleLowerCase().includes(query)).slice(0, all ? 5 : 80);
@@ -163,9 +178,7 @@ const initOwnDataPickers = (root = document) => {
       list.append(button);
     });
     if (!matches.length) { close(); return; }
-    const rect = input.getBoundingClientRect();
-    list.style.left = `${Math.max(8, rect.left)}px`; list.style.top = `${rect.bottom + 4}px`; list.style.width = `${Math.max(230, rect.width)}px`;
-    list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
+    list.hidden = false; place(); input.setAttribute("aria-expanded", "true"); active = -1;
   };
   input.value = shown();
   input.addEventListener("input", () => { select.value = ""; input.setCustomValidity(wasRequired ? "Choose an option from the list." : ""); render(); });
@@ -2391,4 +2404,10 @@ window.lightningPrivacy = (() => {
 document.querySelectorAll("form.phone-as-of input[data-native-date]").forEach((input) => {
   input.addEventListener("change", () => { if (input.value) input.form.requestSubmit(); });
   input.addEventListener("click", () => { try { input.showPicker?.(); } catch (error) { /* the tap itself opens it */ } });
+});
+
+// Saved filters use the same delegated listener in full pages and popup content.
+document.addEventListener('change', (event) => {
+  const field = event.target.closest('[data-submit-on-change]');
+  if (field?.form) field.form.requestSubmit();
 });

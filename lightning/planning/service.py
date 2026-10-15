@@ -274,14 +274,14 @@ class PlanningService:
         if not (item.counterparty_id or item.category_id):
             return []
         due = date.fromisoformat(payment.due_date)
-        window = item.match_window_days
+        window = max(item.match_window_days, 45)
         currency = self.accounts.get(item.account_id).currency if item.account_id else self.transactions.base_currency
         rows = self.repo.candidates(
             item.is_income, item.account_id, item.category_id, item.counterparty_id,
             fmt_date(due - timedelta(days=window)),
             fmt_date(min(due + timedelta(days=window), day)), currency)
         strict = {row["id"] for row in self.candidates(payment, day)}
-        tolerance = Decimal(item.match_tolerance_pct) / Decimal(100)
+        tolerance = Decimal(max(item.match_tolerance_pct, 50)) / Decimal(100)
         return [row for row in rows if row["id"] not in strict
                 and abs(row["amount"] - expected) <= expected * tolerance]
 
@@ -304,10 +304,10 @@ class PlanningService:
                                            item.category_id, item.counterparty_id, currency)
         if not txn:
             raise ValidationError("Choose a posted, owned transaction for this account and payment.")
-        if abs((date.fromisoformat(txn["date"]) - due).days) > item.match_window_days:
+        if abs((date.fromisoformat(txn["date"]) - due).days) > max(item.match_window_days, 45):
             raise ValidationError("That transaction is too far from the scheduled payment date.")
         expected = scheduled.still_owed if scheduled.outstanding else scheduled.amount
-        tolerance = Decimal(item.match_tolerance_pct) / Decimal(100)
+        tolerance = Decimal(max(item.match_tolerance_pct, 50)) / Decimal(100)
         if abs(txn["amount"] - expected) > expected * tolerance:
             raise ValidationError("That transaction amount is too far from the planned payment.")
         with self.db.transaction():
@@ -321,21 +321,40 @@ class PlanningService:
     def record_payment(self, item_id: int, due_date: str, date_paid: str, amount, account_id: int | None) -> int:
         """Post the payment as a normal transaction and link it."""
         item = self.get(item_id)
+        try:
+            due = fmt_date(parse_date(due_date, "due_date"))
+        except ValidationError:
+            raise ValidationError("Choose a scheduled payment date.", "due_date") from None
+        selected_account = (account_id if account_id is not None and str(account_id).strip() else item.account_id)
+        if not selected_account:
+            raise ValidationError("Choose the account the money moved through.", "account_id")
+        try:
+            selected_account_id = int(selected_account)
+            account = self.accounts.get(selected_account_id)
+        except (TypeError, ValueError, OverflowError, NotFoundError):
+            raise ValidationError("Choose a valid cash account.", "account_id") from None
+        if account.account_type.value not in {"BANK", "CASH", "BROKERAGE"}:
+            raise ValidationError("Choose a cash account.", "account_id")
+        item_currency = (self.accounts.get(item.account_id).currency if item.account_id
+                         else self.transactions.base_currency)
+        if account.currency != item_currency:
+            raise ValidationError(f"Choose an account in {item_currency} to pay this planned item.", "account_id")
+        if item.kind == PlanKind.LOAN and account.currency != self.transactions.base_currency:
+            raise ValidationError("Choose a cash account in your profile currency.", "account_id")
         if item.kind == PlanKind.LOAN:
-            payment = next((p for p in self.payments(item, "2999-12-31") if p.due_date == due_date), None)
+            payment = next((p for p in self.payments(item, "2999-12-31") if p.due_date == due), None)
             if payment and payment.status == PaymentStatus.PAID and payment.outstanding:
                 from .loan_actions import record_early_payment
                 value = to_decimal(amount, "amount")
                 if value > payment.still_owed:
                     raise ValidationError("Pay no more than this instalment's remaining amount.", "amount")
                 remaining = self.loan_progress(item)["still_to_pay"]
-                return record_early_payment(self, item.id, value, "0", date_paid, account_id,
-                                            remaining, due_date=due_date)
-        account = account_id or item.account_id
-        if not account:
-            raise ValidationError("Choose the account the money moved through.", "account_id")
-        if item.kind == PlanKind.LOAN and self.accounts.get(int(account)).currency != self.transactions.base_currency:
-            raise ValidationError("Choose a cash account in your profile currency.", "account_id")
+                return record_early_payment(self, item.id, value, "0", date_paid, selected_account_id,
+                                            remaining, due_date=due)
+        scheduled = next((payment for payment in self.payments(item, due)
+                          if payment.due_date == due), None)
+        if scheduled is None:
+            raise ValidationError("That date is not on this payment schedule.", "due_date")
         if not item.category_id:
             raise ValidationError(f"Give {item.name} a category first, so its payments land in the right place.",
                                   "category_id")
@@ -345,13 +364,13 @@ class PlanningService:
         implicit_plan = self.is_installment_purchase(item.id) or item.month_day is not None
         party = self.counterparties.get(item.counterparty_id)["name"] if item.counterparty_id else ("" if implicit_plan else item.name)
         with self.db.transaction():
-            if self.repo.is_settled(item.id, due_date):  # a second press or tab must not pay it twice
-                raise ValidationError(f"{item.name} · {due_date} is already settled. Open it again first to change it.")
+            if self.repo.is_settled(item.id, due):  # a second press or tab must not pay it twice
+                raise ValidationError(f"{item.name} · {due} is already settled. Open it again first to change it.")
             record = self.transactions.record_inflow if item.is_income else self.transactions.record_outflow
-            txn = record(fmt_date(parse_date(date_paid)), int(account), value, item.category_id,
+            txn = record(fmt_date(parse_date(date_paid)), selected_account_id, value, item.category_id,
                          counterparty=party, description=item.name if implicit_plan else "",
                          notes=f"{item.kind_label} · {item.name}")
-            self.repo.settle(item.id, due_date, "PAID", txn.id, value)
+            self.repo.settle(item.id, due, "PAID", txn.id, value)
         return txn.id
 
     def skip(self, item_id: int, due_date: str) -> None:
@@ -517,7 +536,11 @@ class PlanningService:
             frequency = Frequency(str(values.get("frequency", "MONTHLY")).upper())
         except ValueError:
             raise ValidationError("Choose how often it repeats.", "frequency") from None
-        interval = int(str(values.get("interval_count") or 1))
+        interval_raw = values.get("interval_count")
+        try:
+            interval = int(str(1 if interval_raw in (None, "") else interval_raw))
+        except (TypeError, ValueError, OverflowError):
+            raise ValidationError("Repeat every 1 to 52 periods.", "interval_count") from None
         if not 1 <= interval <= 52:
             raise ValidationError("Repeat every 1 to 52 periods.", "interval_count")
         start = fmt_date(parse_date(values.get("start_date"), "start_date"))
@@ -526,28 +549,40 @@ class PlanningService:
         if end and end < start:
             raise ValidationError("The last date must be on or after the first date.", "end_date")
         count_raw = str(values.get("payment_count") or "").strip()
-        count = int(count_raw) if count_raw else None
+        try:
+            count = int(count_raw) if count_raw else None
+        except (TypeError, ValueError, OverflowError):
+            raise ValidationError("Enter 1 to 600 payments.", "payment_count") from None
         if count is not None and not 1 <= count <= 600:
             raise ValidationError("Enter 1 to 600 payments.", "payment_count")
         if kind == PlanKind.LOAN and count is None and end is None:
             raise ValidationError("Enter how many payments are left, or the last payment date.", "payment_count")
         principal_raw = str(values.get("principal") or "").strip()
         principal = to_decimal(principal_raw, "principal") if principal_raw else None
-        account_id = self._id(values.get("account_id"))
+        account_id = self._id(values.get("account_id"), "account_id")
         if account_id:
-            self.accounts.get(account_id)
-        category_id = self._id(values.get("category_id"))
+            try:
+                account = self.accounts.get(account_id)
+            except NotFoundError:
+                raise ValidationError("Choose a valid funding account.", "account_id") from None
+            if kind == PlanKind.LOAN and account.currency != self.transactions.base_currency:
+                raise ValidationError("Choose a cash account in your profile currency for a loan.", "account_id")
+        category_id = self._id(values.get("category_id"), "category_id")
         if category_id:
-            self.categories.get(category_id)
+            try:
+                self.categories.get(category_id)
+            except NotFoundError:
+                raise ValidationError("Choose a valid category.", "category_id") from None
         elif kind == PlanKind.LOAN:
             # Loan payments count as spending; without a choice they land in Loan payments.
             try:
                 category_id = self.categories.get_by_code(LOAN_CATEGORY).id
             except NotFoundError:
                 category_id = None
-        counterparty_id = self._id(values.get("counterparty_id"))
+        counterparty_id = self._id(values.get("counterparty_id"), "counterparty_id")
         if counterparty_id:
-            self.counterparties.get(counterparty_id)
+            if self.counterparties.get(counterparty_id) is None:
+                raise ValidationError("Choose a valid counterparty.", "counterparty_id")
         try:
             weekend_move = WeekendMove(str(values.get("weekend_move") or "none").lower())
         except ValueError:
@@ -555,14 +590,16 @@ class PlanningService:
         if frequency == Frequency.ONCE:
             weekend_move = WeekendMove.NONE  # a one-off payment keeps the date you chose
         try:
-            match_window_days = int(str(values.get("match_window_days") or MATCH_WINDOW_DAYS))
+            raw_window = values.get("match_window_days")
+            match_window_days = int(str(MATCH_WINDOW_DAYS if raw_window in (None, "") else raw_window))
         except (ValueError, TypeError):
             raise ValidationError("Choose a matching window from 0 to 31 days.", "match_window_days") from None
         if not 0 <= match_window_days <= 31:
             raise ValidationError("Choose a matching window from 0 to 31 days.", "match_window_days")
         default_tolerance = 1 if kind == PlanKind.LOAN else 10
         try:
-            match_tolerance_pct = int(str(values.get("match_tolerance_pct") or default_tolerance))
+            raw_tolerance = values.get("match_tolerance_pct")
+            match_tolerance_pct = int(str(default_tolerance if raw_tolerance in (None, "") else raw_tolerance))
         except (ValueError, TypeError):
             raise ValidationError("Choose an amount tolerance from 0 to 25 percent.", "match_tolerance_pct") from None
         if not 0 <= match_tolerance_pct <= 25:
@@ -587,6 +624,14 @@ class PlanningService:
         return day
 
     @staticmethod
-    def _id(value) -> int | None:
-        text = str(value or "").strip()
-        return int(text) if text.isdigit() else None
+    def _id(value, field: str = "id") -> int | None:
+        text = "" if value is None else str(value).strip()
+        if not text:
+            return None
+        try:
+            value_id = int(text)
+        except (TypeError, ValueError, OverflowError):
+            raise ValidationError("Choose a valid option.", field) from None
+        if value_id <= 0 or value_id > 9_223_372_036_854_775_807:
+            raise ValidationError("Choose a valid option.", field)
+        return value_id

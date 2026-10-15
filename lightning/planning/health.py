@@ -280,7 +280,7 @@ class HealthService:
         text = f"Most you can plan this month is now {fmt(room, 0)}"
         if check.planned is not None:
             text += f"; this month's plan is {fmt(check.over_by, 0)} over it" if check.over_by else "; this month's plan fits"
-        fixed = self.bills_a_month(day) + self.loans_a_month(parse_month(month)[0])
+        fixed = self.bills_a_month(parse_month(month)[0]) + self.loans_a_month(parse_month(month)[0])
         if fixed > room:
             text += f". Bills and loan payments alone come to {fmt(fixed, 0)} a month, more than that"
         return text + "."
@@ -295,7 +295,7 @@ class HealthService:
             return []
         start = parse_month(month)[0]
         left = (check.plan_saves if check.plan_saves is not None
-                else check.income - self.bills_a_month(day) - self.loans_a_month(start))
+                else check.income - self.bills_a_month(start) - self.loans_a_month(start))
         late = []
         for goal in sorted(self.budgets.reserve_goal_needs(month), key=lambda row: row["due_date"]):
             share = max(min(goal["amount"], left), ZERO)
