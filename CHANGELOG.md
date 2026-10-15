@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: skills `release-check`, `guideline-audit`, `number-audit`, `perf-check`, `arabic-check`, `website-sync` (all in `skills/`), with `tools/release_check.py` and `tools/perf_check.py`; `AGENTS.md` points to `skills/README.md`.
+
 - 2026-10-15 · Claude: skills `bug-hunt` and `stale-check` with `tools/bug_crawl.py` (crawls every page) and `tools/stale_check.py` (old messages, dead links, built proposals, merged branches, version and guideline drift); two dead OWNER.md links in proposals fixed.
 
 - 2026-10-15 · Claude: skills live in a tool-neutral `skills/` folder (`feedback-review` moved there, neutral model wording); `.claude/skills/` holds one-line stubs so Claude Code finds them.
