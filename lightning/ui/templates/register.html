@@ -144,7 +144,7 @@
   </form>
   <div class="saved-register-views">
     <form method="get" action="{{ base_url }}" class="row">
-      <label class="field">Saved views<select data-own-picker name="saved_view" onchange="this.form.requestSubmit()"><option value="">Open a saved view…</option>{% for view in saved_views %}<option value="{{ view.id }}"{{ ' selected' if active_view and active_view.id == view.id }}>{{ view.name }}</option>{% endfor %}</select></label>
+      <label class="field">Saved views<select data-own-picker name="saved_view" data-submit-on-change><option value="">Open a saved view…</option>{% for view in saved_views %}<option value="{{ view.id }}"{{ ' selected' if active_view and active_view.id == view.id }}>{{ view.name }}</option>{% endfor %}</select></label>
     </form>
     <form method="post" action="/transactions/views" class="row">
       <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"><input type="hidden" name="account_id" value="{{ view_account_id }}">

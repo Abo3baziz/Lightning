@@ -1,6 +1,7 @@
 """Opt-in reminders over existing plans and the review inbox; nothing is posted."""
 from datetime import timedelta
 from hashlib import sha256
+from pathlib import Path
 
 from lightning.core.dates import parse_date, today
 from lightning.workflows.review import ReviewInbox
@@ -51,10 +52,25 @@ class ReminderService:
         if old_backup:
             items.append({"label": "A fresh backup is due", "detail": "Keep a recent copy of your records.",
                           "href": "/settings?section=data", "priority": 1})
+        profile_key = self._profile_key()
         seen, result = set(), []
         for item in items:
-            identity = sha256((day.isoformat() + item["href"] + item["label"] + item["detail"]).encode()).hexdigest()[:32]
+            identity = sha256((profile_key + "\0" + day.isoformat() + "\0" + item["href"]
+                               + "\0" + item["label"] + "\0" + item["detail"]).encode()).hexdigest()[:32]
             if identity not in seen:
                 seen.add(identity)
                 result.append({"id": identity, "label": item["label"], "detail": item["detail"], "href": item["href"]})
         return result
+
+    def _profile_key(self):
+        """Give native per-day dedupe a stable profile scope, with a path fallback for legacy databases."""
+        db = self.c.db
+        try:
+            if db.has_table("profile_identity"):
+                row = db.one("SELECT profile_id FROM profile_identity WHERE singleton=1")
+                if row and row["profile_id"]:
+                    return str(row["profile_id"])
+        except Exception:
+            # A profile may predate persistent identity, or be closing while the UI stays fail-closed.
+            pass
+        return str(Path(db.path).expanduser().resolve())

@@ -96,7 +96,7 @@ def _native_reminder_loop(window, origin: str, allowed_origin: tuple[str, str, i
 
                             native_state["href"] = href
                             text = (label if not detail else f"{label} · {detail}")[:63]
-                            native.BeginInvoke(Action(lambda: _show_balloon(icon, text, closed)))
+                            native.BeginInvoke(Action(lambda icon=icon, text=text: _show_balloon(icon, text, closed)))
                             seen[item_id] = today
                             _write_reminder_prefs(path, seen)
                             break  # keep one balloon active so its click target cannot be confused with another

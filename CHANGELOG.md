@@ -22,6 +22,11 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
   Logos could not be downloaded here (no network): run `tools/fetch_institution_logos.py` from a PC.
 - 2026-10-15 · Claude: account form: the cash type reads Cash, More details and Last 4 digits are gone (a stored last 4 is kept), no Travel in new profiles' categories; the Mohab sample's Sahel weekend is Entertainment.
 - 2026-10-15 · Claude: setup starts with your currencies (profile base plus others held, as chips); the account form's currency is a pick list of registered currencies only; welcome Add links wait for the save; `welcome.html`, `routes/dashboard.py`, `accounts/form.html`.
+- 2026-10-15 · Codex: tested and repaired smarter workflows: redo validation, duplicate merge, linked reserve spending, goal review, month-end promotion and selected-account currency labels; regression coverage and browser checks added.
+  Also fixed exact matching limits, wrong-currency payments, early-payment review, numeric CSV exports, Arabic text, profile-scoped reminder dedupe and batched reserve lookup performance.
+  Migrations: `0056_checked_history.sql`, `0057_import_provenance.sql`, `0058_saved_views.sql`, `0059_reimbursements.sql`, `0060_plan_matching.sql`, `0061_deposit_receipts.sql`, `0062_cash_funding.sql`.
+
+- 2026-10-15 · Claude: `tools/site_shots.py` adds the dollar brokerage (`account-usd`) and the holdings row with its price/FX split (`a-holdings-usd`) for the website's new dollar savings guide; one Arabic finding filed.
 - 2026-10-15 · Codex: added session undo/redo, checked bank-history protection, multi-source import provenance, safe duplicate merge and combined activity review on PC/phone.
 - 2026-10-15 · Codex: connected partial reserves, configurable bill matching and transaction-to-plan setup, certificate receipt reconciliation and explicit partial reimbursement claims.
 - 2026-10-15 · Codex: added optional funded payday assignments, reusable saved views/report/export, rule correction offers, selected bulk preview, weekly review and opt-in native reminders. Local implementation; automated/native behavioural acceptance outstanding.

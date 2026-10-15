@@ -131,9 +131,9 @@ async def saved_view(request: Request, view_id: int):
         return Response(exc.message, status_code=404, media_type="text/plain")
     except ValueError as exc:
         return Response(str(exc), status_code=400, media_type="text/plain")
-    rows = [tuple(_safe_text(value) for value in
-                  (row.date, row.ref, row.type, row.account_label, row.counterparty or row.description,
-                   row.category_label, row.notes, str(row.amount), row.currency, str(row.amount_base)))
+    rows = [(row.date, row.ref, row.type, _safe_text(row.account_label),
+             _safe_text(row.counterparty or row.description), _safe_text(row.category_label),
+             _safe_text(row.notes), str(row.amount), row.currency, str(row.amount_base))
             for row in report["rows"]]
     return _csv(f"lightning-view-{view_id}.csv",
                 ("date", "reference", "type", "account", "counterparty", "category", "notes",

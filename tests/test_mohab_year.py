@@ -617,6 +617,9 @@ def _a_gameya(o: Mohab) -> None:
     o.notes["gameya_second"] = b.submit(button="Record instalment")      # 2027-08-05
     o.ask("gameya_due", "Is a gam'eya instalment waiting for me?")
     o.notes["gameya_page"] = b.click("Gam'eya instalment due")
+    if b.page.path.startswith("/needs-you/"):
+        o.notes["gameya_group"] = b.page
+        o.notes["gameya_page"] = b.click("Gam'eya instalment due")
     o.notes["gameya_third"] = b.submit(button="Record instalment")       # 2027-09-05, his turn's month
     o.notes["gameya_payout"] = b.submit(button="Record payout")          # 20,000 on 2027-09-05
     o.ask("gameya_after", "What am I worth now, and what do I owe the circle?")
@@ -920,7 +923,11 @@ def test_paying_from_the_overview_moves_net_worth_only_by_the_salary(mohab):
     before = mohab.answers["needs_you"].figure("Net worth Excludes money held for others")
     after = mohab.answers["paid_from_overview"].figure("Net worth Excludes money held for others")
     assert after - before == D("45000")  # rent and the loan were already owed
-    assert mohab.answers["paid_from_overview"].shows("Nothing needs you today")
+    paid = mohab.answers["paid_from_overview"]
+    assert not paid.shows("Bill due: Landlord")
+    assert not paid.shows("Loan payment due: Car loan")
+    # Confirming those payments does not dismiss independent certificate receipt decisions.
+    assert paid.shows("Certificate interest needs review")
 
 
 def test_a_mistake_is_fixed_in_place_and_a_double_entry_deleted(mohab):
@@ -1528,7 +1535,9 @@ def test_dollars_he_bought_show_their_cost_value_and_spread(mohab):
 # ------------------------------------------------------------------ gam'eya (savings circle)
 def test_a_gameya_third_instalment_waits_under_needs_you_once(mohab):
     answer = mohab.answers["gameya_due"]
-    assert answer.shows("Gam'eya instalment due: Office gam'eya", "1 instalment · 2,000 EGP · first due 2027-09-05")
+    assert answer.shows("Gam'eya instalment due: Office gam'eya")
+    decision = mohab.notes.get("gameya_group", answer.screen)
+    assert decision.shows("1 instalment · 2,000 EGP · first due 2027-09-05")
     needs_you = answer.screen.html.split('aria-labelledby="needs-heading"', 1)[1].split("</details>", 1)[0]
     grouped_rows = needs_you.split('<div class="overview-inline-list">', 1)[1]
     assert html.unescape(grouped_rows).count("Gam'eya instalment due") == 1  # the preview also names it; one decision row

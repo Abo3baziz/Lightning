@@ -198,7 +198,7 @@ Reference code to inspect for financial rules, as of 2026-10-04. Check the licen
 
 ## Actual Budget code analysis
 
-**Reviewed 2026-10-15:** `actualbudget/actual` at [`d5d6035`](https://github.com/actualbudget/actual/tree/d5d6035a8f5867717a80635d270fbe64e370ea08), including current `packages/docs/docs/` and implementation. The separate `actualbudget/docs` repository is archived/merged into the app repository; do not use its 2025 snapshot as current documentation. Actual was not run or timed. Lightning was reviewed at `f5f551c`, with 18 pages measured on temporary sample data and three workflow probes. No user data was used. The owner approved implementing the suggested roadmap on 2026-10-15; it is now built locally, with behavioural acceptance outstanding. The comparison table records the audit baseline.
+**Reviewed 2026-10-15:** `actualbudget/actual` at [`d5d6035`](https://github.com/actualbudget/actual/tree/d5d6035a8f5867717a80635d270fbe64e370ea08), including current `packages/docs/docs/` and implementation. The separate `actualbudget/docs` repository is archived/merged into the app repository; do not use its 2025 snapshot as current documentation. Actual was not run or timed. Lightning was reviewed at `f5f551c`, with 18 pages measured on temporary sample data and three workflow probes. No user data was used. The owner approved implementing the suggested roadmap on 2026-10-15; it is now built with automated service, HTTP and PC/phone browser regression coverage; native device acceptance remains outstanding. The comparison table records the audit baseline.
 
 | Actual does well | Lightning at the audit | Direction adopted |
 |---|---|---|
@@ -231,7 +231,7 @@ Reference code to inspect for financial rules, as of 2026-10-04. Check the licen
 4. Optional funded payday preview/apply with undo, saved views and matching report/export: built.
 5. Opt-in reminders, reusable rule offers/selected past-row confirmation and weekly completion: built.
 
-Contracts live in Architecture. Automated tests and native behaviour were not run for this implementation; publication remains local. Credit-card accounting was explicitly deferred by this roadmap and remains outside it.
+Contracts live in Architecture. Automated service, HTTP, Arabic, PC/phone browser, annual scenario, performance and encrypted-sync checks cover this implementation. Native notification delivery remains unverified on Windows/Android. Credit-card accounting was explicitly deferred by this roadmap and remains outside it.
 
 **Efficiency measurement:** `python tools/perf_check.py`, 2026-10-15, temporary sample-year SQLite database. All 18 pages stayed below the project's 150 ms / 400 query thresholds: Overview 59 ms / 349 queries; Budget 29 / 109; Cash planning 41 / 203; Spending 25 / 108. This measures warm server responses on this host, not encrypted Windows/WebView rendering or a large real database. No immediate speed optimisation is justified by this run. If scale requires it, the measured repeated work is counterparty resolution per register row (34 calls), aliases per counterparty (34), and carryover reads per category (21 on Overview); remeasure at scale before choosing a fix.
 

@@ -11,7 +11,7 @@ from lightning.core.refs import DocType
 from .tags import tags_in
 
 
-ALLOWED_DEPENDENCIES = {"bank_import_rows", "planned_payments", "reserve_transaction_links"}
+ALLOWED_DEPENDENCIES = {"ledger_entries", "bank_import_rows", "planned_payments", "reserve_transaction_links"}
 
 
 @dataclass(frozen=True)
@@ -48,6 +48,9 @@ class MergeService:
         return self.tx.get(keep_id)
 
     def _validate_pair(self, keep_id, drop_id):
+        if any(isinstance(value, bool) or not isinstance(value, int) or
+               not 1 <= value <= 2**63 - 1 for value in (keep_id, drop_id)):
+            raise ValidationError("Choose two valid transactions.")
         if keep_id == drop_id:
             raise ValidationError("Choose two different transactions.")
         keep = self.tx.get(keep_id)

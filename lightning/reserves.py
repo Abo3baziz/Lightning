@@ -17,6 +17,20 @@ class CashReserveService:
     def __init__(self, db: Database):
         self.db = db
 
+    @staticmethod
+    def _id(value, field: str) -> int:
+        if (isinstance(value, bool) or
+                not isinstance(value, int) and
+                not (isinstance(value, str) and value.strip().isascii() and value.strip().isdigit())):
+            raise ValidationError("Choose a valid saved item.", field)
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError, OverflowError):
+            raise ValidationError("Choose a valid saved item.", field) from None
+        if parsed <= 0 or parsed > 9_223_372_036_854_775_807:
+            raise ValidationError("Choose a valid saved item.", field)
+        return parsed
+
     @request_cached(deep=True)
     def list_active(self):
         return [self._row(row) for row in self.db.all(
@@ -79,7 +93,11 @@ class CashReserveService:
                             (reserve_id, str(row["created_at"])[:10], today().isoformat(), row["allocated_e6"], row["status"]))
 
     def get(self, reserve_id: int):
-        row = self.db.one("SELECT * FROM cash_reserves WHERE id=?", (reserve_id,))
+        reserve_id = self._id(reserve_id, "reserve_id")
+        row = self.db.one(
+            "SELECT r.*,(SELECT COALESCE(SUM(l.amount_e6),0) FROM reserve_transaction_links l "
+            "JOIN transactions t ON t.id=l.transaction_id WHERE l.reserve_id=r.id AND t.status='POSTED') AS spent_e6 "
+            "FROM cash_reserves r WHERE r.id=?", (reserve_id,))
         if not row:
             raise NotFoundError("Reserve not found.")
         return self._row(row)
@@ -198,6 +216,8 @@ class CashReserveService:
         return next((item for item in self.list_active() if item["id"] == reserve_id), self.get(reserve_id))
 
     def set_expense_link(self, reserve_id: int, transaction_id: int, amount):
+        reserve_id = self._id(reserve_id, "reserve_id")
+        transaction_id = self._id(transaction_id, "transaction_id")
         with self.db.transaction():
             return self._set_expense_link(reserve_id, transaction_id, amount)
 
@@ -274,58 +294,85 @@ class CashReserveService:
     def suggested_reserves(self, transaction_id: int) -> list[dict]:
         # A register page asks this for every spending row. A suggestion can use only the cash still
         # assigned to the reserve, and only up to its unpaid target. Linking always needs confirmation.
+        return self.suggested_reserves_for_transactions((transaction_id,)).get(transaction_id, [])
+
+    def suggested_reserves_for_transactions(self, transaction_ids) -> dict[int, list[dict]]:
+        """Return register suggestions for many transactions using a fixed number of reads."""
+        ids = list(dict.fromkeys(int(value) for value in transaction_ids))
+        if not ids:
+            return {}
+        result = {transaction_id: [] for transaction_id in ids}
+        eligible = self._eligible_reserves()
+        if not eligible:
+            return result
+        facts = self._suggestion_facts(ids)
+        return {transaction_id: self._suggestions_from_facts(facts.get(transaction_id), eligible)
+                for transaction_id in ids}
+
+    def _eligible_reserves(self):
         eligible = []
         for reserve in self.list_active():
             unpaid = max(reserve["target"] - reserve["spent"], ZERO)
             available = min(reserve["effective_allocated"], unpaid)
             if available > ZERO:
                 eligible.append((reserve, available))
-        if not eligible:
+        return eligible
+
+    def _suggestion_facts(self, transaction_ids) -> dict[int, dict]:
+        values = ",".join("(?)" for _ in transaction_ids)
+        params = tuple(transaction_ids)
+        rows = self.db.all(
+            "WITH selected(id) AS (VALUES " + values + "), "
+            "ledger_facts AS ("
+            "SELECT le.transaction_id,"
+            "SUM(CASE WHEN a.is_cash=1 AND le.effect='OUTFLOW' AND le.owner_id IS NULL "
+            "THEN ABS(le.amount_base_e6) ELSE 0 END) AS total_e6,"
+            "MAX(CASE WHEN le.owner_id IS NOT NULL THEN 1 ELSE 0 END) AS has_non_user_lines,"
+            "GROUP_CONCAT(DISTINCT le.category_id) AS categories,"
+            "GROUP_CONCAT(DISTINCT CASE WHEN a.is_cash=1 AND le.quantity_e6<0 THEN le.account_id END) "
+            "AS cash_accounts FROM ledger_entries le JOIN selected s ON s.id=le.transaction_id "
+            "LEFT JOIN financial_assets a ON a.id=le.asset_id GROUP BY le.transaction_id), "
+            "link_facts AS ("
+            "SELECT l.transaction_id,SUM(l.amount_e6) AS linked_e6,GROUP_CONCAT(DISTINCT l.reserve_id) "
+            "AS linked_reserves FROM reserve_transaction_links l JOIN selected s ON s.id=l.transaction_id "
+            "JOIN transactions linked_tx ON linked_tx.id=l.transaction_id AND linked_tx.status='POSTED' "
+            "GROUP BY l.transaction_id) "
+            "SELECT t.id,t.counterparty_id,t.type,t.status,t.description,"
+            "COALESCE(l.total_e6,0) AS total_e6,COALESCE(l.has_non_user_lines,0) AS has_non_user_lines,"
+            "l.categories,l.cash_accounts,COALESCE(f.linked_e6,0) AS linked_e6,f.linked_reserves,"
+            "EXISTS(SELECT 1 FROM money_from_others m WHERE m.transaction_id=t.id) AS in_custody "
+            "FROM selected s JOIN transactions t ON t.id=s.id "
+            "LEFT JOIN ledger_facts l ON l.transaction_id=t.id "
+            "LEFT JOIN link_facts f ON f.transaction_id=t.id", params)
+        def parsed_ids(raw):
+            return {int(value) for value in (raw or "").split(",") if value}
+        return {int(row["id"]): dict(row) | {"categories_set": parsed_ids(row["categories"]),
+                                             "cash_accounts_set": parsed_ids(row["cash_accounts"]),
+                                             "linked_reserves_set": parsed_ids(row["linked_reserves"])}
+                for row in rows}
+
+    @staticmethod
+    def _suggestions_from_facts(transaction, eligible) -> list[dict]:
+        if not transaction:
             return []
-        transaction = self.db.one(
-            "SELECT id,counterparty_id,type,status,description FROM transactions WHERE id=?", (transaction_id,)
-        )
-        external_expense = bool(transaction and transaction["type"] == "ADJ" and
-                                (transaction["description"] or "").startswith("Ownership: expense paid by "))
-        if (not transaction or (transaction["type"] != "OUT" and not external_expense) or
-                transaction["status"] != "POSTED"):
+        external_expense = (transaction["type"] == "ADJ" and
+                            (transaction["description"] or "").startswith("Ownership: expense paid by "))
+        if ((transaction["type"] != "OUT" and not external_expense) or transaction["status"] != "POSTED"):
             return []
-        total_e6 = int(self.db.scalar(
-            "SELECT COALESCE(SUM(ABS(le.amount_base_e6)),0) FROM ledger_entries le "
-            "JOIN financial_assets a ON a.id=le.asset_id WHERE le.transaction_id=? AND a.is_cash=1 "
-            "AND le.effect='OUTFLOW' AND le.owner_id IS NULL",
-            (transaction_id,),
-        ) or 0)
-        linked_e6 = int(self.db.scalar(
-            "SELECT COALESCE(SUM(l.amount_e6),0) FROM reserve_transaction_links l "
-            "JOIN transactions t ON t.id=l.transaction_id WHERE l.transaction_id=? AND t.status='POSTED'",
-            (transaction_id,),
-        ) or 0)
-        remaining = total_e6 - linked_e6
-        if remaining <= 0:
+        remaining = int(transaction["total_e6"]) - int(transaction["linked_e6"])
+        if (remaining <= 0 or transaction["in_custody"] or
+                (transaction["has_non_user_lines"] and not external_expense)):
             return []
-        has_non_user_lines = self.db.scalar(
-            "SELECT 1 FROM ledger_entries WHERE transaction_id=? AND owner_id IS NOT NULL", (transaction_id,))
-        if (self.db.scalar("SELECT 1 FROM money_from_others WHERE transaction_id=?", (transaction_id,)) or
-                (has_non_user_lines and not external_expense)):
-            return []
-        categories = {int(row["category_id"]) for row in self.db.all(
-            "SELECT DISTINCT category_id FROM ledger_entries WHERE transaction_id=? AND category_id IS NOT NULL",
-            (transaction_id,))}
-        cash_accounts = {int(row["account_id"]) for row in self.db.all(
-            "SELECT DISTINCT le.account_id FROM ledger_entries le JOIN financial_assets a ON a.id=le.asset_id "
-            "WHERE le.transaction_id=? AND a.is_cash=1 AND le.quantity_e6<0", (transaction_id,))}
-        linked_reserves = {int(row["reserve_id"]) for row in self.db.all(
-            "SELECT reserve_id FROM reserve_transaction_links WHERE transaction_id=?", (transaction_id,))}
         candidates = []
         for reserve, available in eligible:
-            # An existing link is an editable amount, not a new partial-use suggestion.
-            if reserve["id"] in linked_reserves:
+            if reserve["id"] in transaction["linked_reserves_set"]:
                 continue
             matched = ((transaction["counterparty_id"] is not None and
                         reserve["counterparty_id"] == transaction["counterparty_id"]) or
-                       (reserve["category_id"] is not None and reserve["category_id"] in categories))
-            matched = matched or (reserve.get("account_id") is not None and reserve["account_id"] in cash_accounts)
+                       (reserve["category_id"] is not None and
+                        reserve["category_id"] in transaction["categories_set"]))
+            matched = matched or (reserve.get("account_id") is not None and
+                                  reserve["account_id"] in transaction["cash_accounts_set"])
             amount_e6 = min(remaining, to_e6(available))
             if matched and amount_e6 > 0:
                 amount = from_e6(amount_e6)
