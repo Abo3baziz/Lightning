@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: trend dots say how much a line moved since its previous point ("+27,560 (+20%) since the last point"), in the tooltip and the screen-reader label: `charts.trend`, `partials/charts.html`; test in `tests/test_charts.py`. Feedback row 50 built.
+
 - 2026-10-15 · Claude: Cash planning's Lowest point card names the first month that ends below your reserves ("Runs short in 2026-12"); the forecast is monthly, so a daily path stays unbuilt: `CashForecast.first_short_month`, `_plan_stats`; test `tests/test_first_shortfall.py`. Feedback row 35 built.
 
 - 2026-10-15 · Claude: Overview 444 to 349 queries, no page over 150 ms or 400 queries: category and effect totals, money held for others, and typed item values read once per request or per item: `reporting/queries.py`, `money_from_others.py`; test in `tests/test_repeated_lookups.py`. Regenerated `style.rtl.css` (the register fix had left it stale). Report `overview-remaining-query-loops` closed; the per-row counterparty match (34 queries on a register) stays as it is.

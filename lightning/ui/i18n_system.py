@@ -1243,6 +1243,7 @@ ROUTES = {
     "Carryover reset from this month.": "المبلغ المرحّل اتصفّر من الشهر ده.",
     "Limit saved.": "الحد اتحفظ.",
     "Budget saved.": "الميزانية اتحفظت.",
+    "{a} since the last point": "{a} عن النقطة اللي قبلها",
     "Budget cleared: this category has no limit now.": "الميزانية اتمسحت: الفئة دي مالهاش حد دلوقتي.",
     "A budget of more than 100,000,000 is not realistic. Check the amount.": "ميزانية أكتر من 100,000,000 مش واقعية. راجع المبلغ.",
     "Income percentage saved.": "نسبة الدخل اتحفظت.",
