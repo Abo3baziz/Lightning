@@ -32,12 +32,14 @@ BOARDS: dict[str, list[Board]] = {
     "us": [Board("america", {"NASDAQ": "XNAS", "NYSE": "XNYS", "AMEX": ""}, "US", stocks=600, etfs=100)],
     "gcc": [Board("ksa", {"TADAWUL": "XSAU"}, "SA"), Board("uae", {"DFM": "XDFM", "ADX": "XADS"}, "AE"),
             Board("qatar", {"QSE": "DSMQ"}, "QA"), Board("kuwait", {"KSE": "XKUW"}, "KW"),
-            Board("bahrain", {"BAHRAIN": "XBAH"}, "BH")],
+            Board("bahrain", {"BAHRAIN": "XBAH"}, "BH"), Board("oman", {"MSM": "XMUS"}, "OM")],
     "europe": [Board("uk", {"LSE": "XLON"}, "GB", 350, 100), Board("germany", {"XETR": "XETR"}, "DE", 160, 60),
                Board("france", {"EURONEXT": "XPAR"}, "FR", 120), Board("netherlands", {"EURONEXT": "XAMS"}, "NL", 75, 40),
                Board("belgium", {"EURONEXT": "XBRU"}, "BE", 30), Board("portugal", {"EURONEXT": "XLIS"}, "PT", 20),
                Board("spain", {"BME": "XMAD"}, "ES", 60), Board("italy", {"MIL": "XMIL"}, "IT", 60),
-               Board("switzerland", {"SIX": "XSWX"}, "CH", 60)],
+               Board("switzerland", {"SIX": "XSWX"}, "CH", 60),
+               Board("sweden", {"OMXSTO": "XSTO"}, "SE", 70), Board("denmark", {"OMXCOP": "XCSE"}, "DK", 40),
+               Board("finland", {"OMXHEX": "XHEL"}, "FI", 40), Board("iceland", {"OMXICE": "XICE"}, "IS", 20)],
 }
 # Prices quoted in a currency's minor unit are published in the ISO 4217 unit: pence, fils.
 MINOR = {"GBX": ("GBP", Decimal(100)), "KWF": ("KWD", Decimal(1000)), "ZAC": ("ZAR", Decimal(100)),

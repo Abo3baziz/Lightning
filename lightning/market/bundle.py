@@ -37,7 +37,7 @@ CATEGORIES = ("STOCK", "FUND.EQUITY", "FUND.FIXED_INCOME", "FUND.MONEY_MARKET", 
 STATUSES = ("active", "inactive", "delisted")
 # Keys never change once published (proposal › The market file).
 _KEY = re.compile(r"[A-Z]{2}:FUND:[A-Za-z0-9-]+"       # EG:FUND:4104
-                  r"|[A-Z]{2}:[A-Z0-9][A-Z0-9.\-]*"      # EG:COMI, US:BRK.B, EG:EGX30
+                  r"|[A-Z]{2}:[A-Z0-9][A-Z0-9._\-]*"    # EG:COMI, US:BRK.B, SE:ERIC_B, EG:EGX30
                   r"|[A-Z]{3}/[A-Z]{3}"                  # USD/EGP: the price of one US dollar in pounds
                   r"|XAU:(?:24|22|21|18|14|12)K")        # XAU:21K: pounds per gram of 21K gold
 MAX_GAP_DAYS = 10  # a close older than this before the asked day is not used for it

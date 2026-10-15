@@ -20,6 +20,7 @@ VENUES: dict[str, tuple[str, str]] = {
     "DSMQ": ("Qatar Stock Exchange", "QA"),
     "XKUW": ("Boursa Kuwait", "KW"),
     "XBAH": ("Bahrain Bourse", "BH"),
+    "XMUS": ("Muscat Stock Exchange", "OM"),
     "XLON": ("London Stock Exchange", "GB"),
     "XETR": ("Xetra", "DE"),
     "XPAR": ("Euronext Paris", "FR"),
@@ -29,6 +30,10 @@ VENUES: dict[str, tuple[str, str]] = {
     "XMAD": ("Madrid Stock Exchange", "ES"),
     "XMIL": ("Borsa Italiana", "IT"),
     "XSWX": ("SIX Swiss Exchange", "CH"),
+    "XSTO": ("Nasdaq Stockholm", "SE"),
+    "XCSE": ("Nasdaq Copenhagen", "DK"),
+    "XHEL": ("Nasdaq Helsinki", "FI"),
+    "XICE": ("Nasdaq Iceland", "IS"),
 }
 
 # The currency a venue's shares are priced in (ISO 4217). A listing's currency follows its exchange, not the profile.
@@ -37,9 +42,10 @@ VENUE_CURRENCY: dict[str, str] = {
     "XCAI": "EGP",
     "XNAS": "USD", "XNYS": "USD", "ARCX": "USD", "XASE": "USD", "BATS": "USD",
     "XSAU": "SAR", "XDFM": "AED", "XADS": "AED", "DSMQ": "QAR", "XKUW": "KWD", "XBAH": "BHD",
+    "XMUS": "OMR",
     "XLON": "GBP",
     "XETR": "EUR", "XPAR": "EUR", "XAMS": "EUR", "XBRU": "EUR", "XLIS": "EUR", "XMAD": "EUR", "XMIL": "EUR",
-    "XSWX": "CHF",
+    "XSWX": "CHF", "XSTO": "SEK", "XCSE": "DKK", "XHEL": "EUR", "XICE": "ISK",
 }
 
 

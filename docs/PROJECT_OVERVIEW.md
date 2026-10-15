@@ -172,7 +172,7 @@ Early pay, raise and rent changes need explicit confirmation by design: Lightnin
 | 15 | 20 Nov | 300 COMI dividend | Answered |
 | 16 | Dec | Work Uber 1,200 paid back by ACME | Answered |
 | 17 | 20 Dec | 90,000 bonus | Answered; average stays 45,000 |
-| 18 | **High priority (owner, 2026-10-10): listed shares across US, Europe and GCC.** Keep exchange, identifier and trading currency explicit; value in base currency; check source coverage and licensing first | Owner | US stocks built (v1.1). Open: LSE, Euronext, Xetra, SIX, Nasdaq Nordic and the six GCC markets. [market_data.md](proposals/market_data.md) |
+| 18 | 24 Dec | January's salary arrives early | Answered after he confirms the suggestion |
 | 19 | Jan–Apr | 9,000 insurance goal, 2,250 a month | Answered; cash moves only when he assigns it |
 | 20 | 1 Feb | Raise to 50,000 | Answered with confirmation |
 | 21 | Mar | Eid gifts given and received | Answered |
@@ -230,7 +230,7 @@ Ideas added 2026-10-05 unless dated; each names its source app (evidence: [Compe
 
 | # | Project | Idea from | Status |
 |---|---|---|---|
-| 18 | **High priority (owner, 2026-10-10): listed shares across US, Europe and GCC.** Keep exchange, identifier and trading currency explicit; value in base currency; check source coverage and licensing first | Owner | US stocks built (v1.1). Open: LSE, Euronext, Xetra, SIX, Nasdaq Nordic and the six GCC markets. [market_data.md](proposals/market_data.md) |
+| 18 | **High priority (owner, 2026-10-10): listed shares across US, Europe and GCC.** Keep exchange, identifier and trading currency explicit; value in base currency; check source coverage and licensing first | Owner | US stocks built (v1.1). Europe (LSE, Euronext, Xetra, SIX and Nasdaq Nordic) and all six GCC countries have adapters and fixture coverage. Live source verification and a source allowing redistribution remain required before publishing. [market_data.md](proposals/market_data.md) |
 | 1 | Return against the risk-free rate (certificate or T-bill over the same dates); needs a dated rate history and time-weighted return | Quicken, Monarch | Not started |
 | 17 | Read PDF and Excel statements through the CSV review (size caps, no macros, no formulas run) | Say, Quicken, Monarch | Not started |
 | 15 | Multi-currency and FX | Wallet, Lunch Money, YNAB | Built (v1.1). Open: bank-imported pairs across currencies |
@@ -264,7 +264,7 @@ Reviewed 2026-10-13. Detail of each build is in the CHANGELOG; claims and next s
 | M3 Manual investments | Shipped | — |
 | M3.1 Instrument catalogue | Partial | Coverage and identifier quality |
 | M3.2 Wealth history | Partial | Wealth-change bridge; owned-only XIRR |
-| M4 Market data and FX | v1.1 built: price files, foreign cash, Convert, FX positions, US stocks | **High priority:** Europe and GCC shares (#18); matching bank-imported pairs across currencies |
+| M4 Market data and FX | v1.1 built: price files, foreign cash, Convert, FX positions, US stocks | **High priority:** live verification/licensed source for Europe and GCC shares (#18); matching bank-imported pairs across currencies |
 | M6 Deposits and gold | Partial | CD portfolios built; next: ordinary-PC acceptance, legacy conversion, statement reconciliation, local gold costs and buyback |
 | M7 Planning and imports | Partial | CSV import, Cash planning, linking statement rows built. Next: reminders; PDF and Excel (#17) |
 | Search | Partial | Built: pages, actions, records, tags, Ctrl-K. Next: scoped pickers, alias history, ranking |

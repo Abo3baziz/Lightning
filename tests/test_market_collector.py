@@ -14,6 +14,7 @@ from tools.market.alarm import alarms
 from tools.market.collect import _settle_keys, backfill, collect
 from lightning.market.model import Quote, SourceError, SourceResult
 from lightning.market.sources import banque_misr, cbe, mubasher, tradingview, yahoo
+from lightning.market.iso import VENUE_CURRENCY
 
 SAMPLES = Path(__file__).parent / "fixtures" / "market"
 
@@ -165,13 +166,24 @@ class FakeNet:
                     for i in range(160)]
             rows.append({"s": "EGX:COMI", "d": ["COMI", "CIB", float(self.egx_close), "EGP", "stock", "common", "EGX"]})
             return {"data": rows}
-        if screener in ("ksa", "uae", "qatar", "kuwait", "bahrain"):
-            self._fail("tradingview-gcc")
-            board = next(b for b in tradingview.BOARDS["gcc"] if b.screener == screener)
+        board_pack = next(((pack, board) for pack in ("gcc", "europe") for board in tradingview.BOARDS[pack]
+                           if board.screener == screener), None)
+        if board_pack:
+            pack, board = board_pack
+            self._fail(f"tradingview-{pack}")
             exchange = sorted(board.venues)[0]
-            return {"data": [{"s": f"{exchange}:{screener[:2].upper()}{i}", "d": [
-                f"{screener[:2].upper()}{i}", f"{screener} company {i}", 20 + i, "SAR", "stock", "common", exchange]}
-                for i in range(70)]}
+            mic = board.venues[exchange]
+            currency = VENUE_CURRENCY[mic]
+            is_fund = any(f.get("right") == "fund" for f in payload.get("filter", []))
+            kind, subtype = ("fund", "etf") if is_fund else ("stock", "common")
+            wanted = board.etfs if is_fund else board.stocks
+            count = min(70, wanted)
+            rows = []
+            for i in range(count):
+                ticker = f"{screener[:2].upper()}{'F' if is_fund else 'S'}{i:03d}"
+                rows.append({"s": f"{exchange}:{ticker}", "d": [ticker, f"{screener} {kind} {i}",
+                              20 + i, currency, kind, subtype, exchange]})
+            return {"data": rows}
         self._fail("tradingview-us")
         kind = "fund" if payload["filter"][1]["right"] == "fund" else "stock"
         count = 100 if kind == "fund" else 420
@@ -195,19 +207,26 @@ class FakeNet:
         return sample("mubasher_history.csv")
 
 
-PACKS = ("egx", "eg-funds", "fx", "us", "gcc")
+PACKS = ("egx", "eg-funds", "fx", "us", "gcc", "europe")
 
 
 def test_a_run_writes_one_folder_per_pack_and_a_failing_source_keeps_its_last_prices(tmp_path):
     root = tmp_path / "market"
     report = collect(root, FakeNet(), "2026-10-01", "2026-10-01T22:30:00Z", PACKS)  # a Thursday: every pack trades
     assert all(report[pack][name]["ok"] for pack, name in (("egx", "tradingview-egx"), ("eg-funds", "mubasher-funds"),
-                                                            ("fx", "banque-misr"), ("us", "tradingview-us"), ("gcc", "tradingview-gcc")))
+                                                            ("fx", "banque-misr"), ("us", "tradingview-us"),
+                                                            ("gcc", "tradingview-gcc"), ("europe", "tradingview-europe")))
     counts = {pack: len(MarketFile.open(root / pack).instruments()) for pack in PACKS}
-    assert counts == {"egx": 161, "eg-funds": 110, "fx": 10, "us": 520, "gcc": 350}
+    assert counts == {"egx": 161, "eg-funds": 110, "fx": 10, "us": 520, "gcc": 420, "europe": 850}
     assert MarketFile.open(root / "egx").close_on("EG:COMI", "2026-10-01").close == D("85.25")
     assert MarketFile.open(root / "fx").close_on("USD/EGP", "2026-10-01").close == D("52.39")
     assert MarketFile.open(root / "gcc").manifest["pack"] == "gcc"
+    gcc_market = MarketFile.open(root / "gcc")
+    assert any(i.mic == "XMUS" and i.currency == "OMR" for i in gcc_market.instruments().values())
+    europe_market = MarketFile.open(root / "europe")
+    assert {i.mic for i in europe_market.instruments().values()} >= {"XSTO", "XCSE", "XHEL", "XICE"}
+    assert {(i.mic, i.currency) for i in europe_market.instruments().values()} >= {
+        ("XSTO", "SEK"), ("XCSE", "DKK"), ("XHEL", "EUR"), ("XICE", "ISK")}
     index = json.loads((root / "index.json").read_text())
     assert sorted(index["packs"]) == sorted(PACKS) and index["packs"]["gcc"]["name"] == "Gulf stocks"
     assert index["packs"]["egx"]["instruments"] == 161 and index["packs"]["egx"]["bytes"] > 0
