@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}{{ title|tr(locale) }}{% endblock %}
-{% block heading %}<h1>{{ title|tr(locale) }}</h1><div class="muted">{{ 'Your own money changing currency, between two of your accounts.'|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header(title|tr(locale), 'Your own money changing currency, between two of your accounts.'|tr(locale)) }}{% endblock %}
 {% block content %}
 <section class="card convert-form" data-convert-form data-quote-url="/accounts/convert/quote">
   {% if error %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}

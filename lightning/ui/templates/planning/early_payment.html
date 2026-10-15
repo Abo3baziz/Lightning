@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}{{ 'Pay early'|tr(locale) }} · {{ item.name }}{% endblock %}
-{% block heading %}<h1>{{ 'Pay early'|tr(locale) }}</h1><p class="muted">{{ item.name }}</p>{% endblock %}
+{% block heading %}{{ page_header('Pay early'|tr(locale), item.name) }}{% endblock %}
 {% block content %}<form method="post" action="/plan/items/{{ item.id }}/early-payment" class="card stack" data-popup-return="{{ 'response' if preview else 'popup' }}">
 <input type="hidden" name="intent" value="{{ 'record' if preview else 'preview' }}">
 {% if preview %}

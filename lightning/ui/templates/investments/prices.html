@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}Investment prices{% endblock %}
-{% block heading %}<h1>{{ 'Investment prices'|tr(locale) }}</h1><div class="muted">{{ 'Lightning fetches them online, falls back on the shared price files, or you type them. A price you type for a day wins.'|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header('Investment prices'|tr(locale), 'Lightning fetches them online, falls back on the shared price files, or you type them. A price you type for a day wins.'|tr(locale)) }}{% endblock %}
 {% block content %}
 <section class="card" style="max-width:1000px;margin-bottom:16px" aria-labelledby="price-files">
   <h2 id="price-files">{{ 'Update prices'|tr(locale) }}</h2>

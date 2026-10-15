@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}{{ 'Bought in instalments'|tr(locale) }}{% endblock %}
-{% block heading %}<h1>{{ 'Bought in instalments'|tr(locale) }}</h1>{% endblock %}
+{% block heading %}{{ page_header('Bought in instalments'|tr(locale)) }}{% endblock %}
 {% block content %}<form method="post" action="/plan/purchases/new" class="card stack" data-popup-return="{{ 'response' if quote else 'popup' }}">
 <input type="hidden" name="intent" value="{{ 'save' if quote else 'preview' }}">
 {% if quote %}

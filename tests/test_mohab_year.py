@@ -314,14 +314,14 @@ def _first_evening(o: Mohab) -> None:
     o.ask("setup", "My accounts are in. What should I do next?")
 
     # Three months of CIB from the bank's CSV.
-    b.go("Accounts", "CIB Payroll", "Import CSV")
+    b.go("Accounts", "CIB Payroll", "Import statement")
     b.submit({}, button="Review statement", files={"file": ("cib-jul-sep.csv", _statement(), "text/csv")})
     b.submit({"map_Date": Choose("Date"), "map_Amount": Choose("Amount"), "map_Counterparty": Choose("Description")},
              button="Preview rows")
     o.notes["review"] = b.page
     # Halfway through he leaves to check something, then comes back to the review from the Overview.
     o.ask("import_waiting", "I left the import half done. Does Lightning remember it?")
-    o.notes["import_again"] = b.go("Accounts", "CIB Payroll", "Import CSV")
+    o.notes["import_again"] = b.go("Accounts", "CIB Payroll", "Import statement")
     b.go("Imported activity needs a decision")
     review = b.page.form("Post ready rows")
     # One decision per name: he answers each imported name once, and every row with that name follows it.
@@ -740,7 +740,7 @@ def _the_feedback_round(o: Mohab) -> None:
     o.notes["cib_check"] = b.submit({"date": "2027-09-30", "balance": str(cib - 5000)}, button="Check")
 
     # A year of Vodafone Cash in one big file, with a mistake in one row.
-    b.go("Vodafone Cash", "Import CSV")
+    b.go("Vodafone Cash", "Import statement")
     o.notes["upload_form"] = b.page
     b.submit({}, button="Review statement", files={"file": ("vodafone-year.csv", _year_statement(), "text/csv")})
     o.notes["big_review"] = b.submit({"amount_model": "SEPARATE", "map_Date": Choose("Date"), "map_Inflow": Choose("Credit"),

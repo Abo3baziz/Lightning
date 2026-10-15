@@ -78,3 +78,12 @@
 {%- set tl = institution_tile(name) -%}
 <span class="inst-tile{{ ' inst-' ~ size if size }}" aria-hidden="true">{% if tl.logo %}<img src="{{ tl.logo }}" alt="" loading="lazy">{% else %}{{ tl.mono }}{% endif %}</span>
 {%- endmacro %}
+
+{# One page header (A05): an optional tile, the title, the line under it, and an optional figure strip on the right.
+   Pass the title and line already translated. #}
+{% macro page_header(title, line='', tile=none, figure='') -%}
+<div class="page-head">{% if tile %}{{ inst_tile(tile) }}{% endif %}
+  <div class="page-head-text"><h1>{{ title }}</h1>{% if line %}<p class="page-line">{{ line }}</p>{% endif %}</div>
+  {% if figure %}<div class="page-figures">{{ figure }}</div>{% endif %}
+</div>
+{%- endmacro %}

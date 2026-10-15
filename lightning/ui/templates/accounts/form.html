@@ -1,8 +1,7 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import field, date_field with context %}
+{% from "partials/macros.html" import field, date_field, page_header with context %}
 {% block title %}{{ ('Edit account' if account else 'New account')|tr(locale) }}{% endblock %}
-{% block heading %}<h1>{{ ('Edit account' if account else 'Add an account')|tr(locale) }}</h1>
-<div class="muted">{{ 'An account is a place where money is held.'|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header(('Edit account' if account else 'Add an account')|tr(locale), 'An account is a place where money is held.'|tr(locale)) }}{% endblock %}
 {% block content %}
 <form method="post" class="card" style="max-width:760px" data-popup-return="response">
   <div class="form-grid">

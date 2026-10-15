@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import page_header with context %}
 {% block title %}Categories{% endblock %}
-{% block heading %}<h1>{{ 'Settings'|tr(locale) }}</h1><div class="muted">{{ "Categories · why money moved"|tr(locale) }}</div>{% endblock %}
+{% block heading %}{{ page_header('Settings'|tr(locale), "Categories · why money moved"|tr(locale)) }}{% endblock %}
 {% block content %}
 
 {% set session = request.state.session_token|default('') %}

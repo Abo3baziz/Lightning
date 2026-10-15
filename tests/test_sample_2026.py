@@ -41,7 +41,7 @@ def test_every_bank_csv_imports_every_row_with_nothing_to_review(c, on_2_october
     _open_accounts(b)
     for name in BANK_FILES:   # CIB Payroll first: its transfers fill the others
         account = next(r["Name"] for r in rows("accounts.csv") if r["File"] == name)
-        b.go(account, "Import CSV")
+        b.go(account, "Import statement")
         page = b.submit({}, button="Review statement",
                         files={"file": (name, (MOHAB_2026 / name).read_bytes(), "text/csv")})
         if page.shows("Match your columns"):   # the headers are Lightning's own, so this should not happen
@@ -66,7 +66,7 @@ def test_an_internal_row_whose_account_is_unknown_asks_which_account(c, on_2_oct
     data = ("Date,Amount,Counterparty,Category,Notes\n"
             "2026-09-10,-500.00,Savings pot,Internal transfer,Moved to savings\n"
             "2026-09-11,-300.00,Wallet,Internal transfer,ATM\n").encode()
-    b.go("CIB Current", "Import CSV")
+    b.go("CIB Current", "Import statement")
     page = b.submit({}, button="Review statement", files={"file": ("moves.csv", data, "text/csv")})
     assert page.shows("Internal transfer · pick the account it moved to or from")
     assert page.shows("Ready · transfer to Wallet")

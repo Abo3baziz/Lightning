@@ -50,6 +50,8 @@ html.phone.keyboard-open .phone-tabbar, html.phone.sheet-open .phone-tabbar { di
 .phone-header h1 { margin: 0; font-size: 24px; line-height: 1.2; color: var(--c-ink); }
 .phone-header .muted, .phone-header p { margin: 4px 0 0; color: var(--c-muted); font-size: 13px; }
 .phone-header > div { display: block; }
+.phone-header > .page-head { display: flex; align-items: center; gap: 12px; }
+.phone-header .page-head .inst-tile { width: 32px; height: 32px; }
 .phone-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; }
 .phone-page-actions > :not(.btn):not(.action-menu) { flex: 1 1 100%; }
 .phone-page-actions:empty { display: none; }
