@@ -631,3 +631,16 @@ def test_short_holding_shows_plain_return_and_positive_worst_month_is_not_rose(i
     monkeypatch.setattr(visuals, "holding_journey", original)
     page = TestClient(create_app(c)).get(f"/investments/holding/{asset.id}?date=2026-09-30").text
     assert "Best month" not in page and "Worst month" not in page
+
+
+def test_a_one_day_hold_says_day_not_days(inv, monkeypatch):
+    c, accounts, _, comi, _ = inv
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-11")
+    account = accounts["thndr"].id
+    c.investments.buy_total("2026-09-10", account, comi.id, "10", "1000")
+    c.assets.set_price(comi.id, "2026-09-11", "110")
+    client = TestClient(create_app(c))
+    holding = client.get(f"/investments/holding/{comi.id}?account={account}&date=2026-09-11").text
+    portfolio = client.get("/investments?period=month&month=2026-09").text
+    assert "Held 1 day" in holding and "Held 1 day" in portfolio
+    assert "Held 1 days" not in holding + portfolio

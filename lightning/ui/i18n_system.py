@@ -338,6 +338,7 @@ SENTENCES = {
     "Towards six months of spending": "ناحية 6 شهور من المصروف",
     "As of {date} · months of average monthly spending": "كما في {date} · شهور من متوسط المصروف الشهري",
     "Locked certificate": "شهادة مقفولة",
+    "Held {n} day": "محتفظ بيه من يوم",
     "Held {n} days": "محتفظ بيه من {n} يوم",
     "Since purchase": "من وقت الشراء",
     "Plain return under one year; annualized after 365 days": "العائد الفعلي قبل سنة؛ عائد سنوي بعد 365 يوم",
