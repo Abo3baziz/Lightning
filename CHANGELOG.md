@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: `tools/stale_check.py` reads only the first clause of a proposal's Status line, so "implementation started … when an item is built" no longer counts as built.
+
 - 2026-10-15 · Claude: feedback rows 32 to 76 settled by the owner: built 35 and 50; declined 38 (pie), 54 (one card destination), 60 (S/M/L tags), 62 (price volume), 63 (fall from high), 65 (free emergency target), 73 (review timeout), recorded in Architecture › UI contract; 76 was already built (ticket 88); 32 and 75 stay as reports. The combined request report is deleted.
 
 - 2026-10-15 · Claude: feedback rows 32 to 76 settled by the owner: built 35 and 50; declined 38 (pie), 54 (one card destination), 60 (S/M/L tags), 62 (price volume), 63 (fall from high), 65 (free emergency target), 73 (review timeout), recorded in Architecture › UI contract; 76 was already built (ticket 88); 32 and 75 stay as reports. The combined request report is deleted.

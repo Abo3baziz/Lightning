@@ -55,7 +55,9 @@ def built_proposals() -> list[str]:
     out = []
     for path in (ROOT / "docs" / "proposals").glob("*.md"):
         head = "\n".join(path.read_text(encoding="utf-8").splitlines()[:6])
-        if re.search(r"Status:\*\*[^\n]*\b(built|done|shipped)\b", head, re.I) and "not built" not in head.lower():
+        status = re.search(r"Status:\*\*([^.;\n]*)", head, re.I)  # the first clause only, not later prose
+        clause = status.group(1).lower() if status else ""
+        if re.search(r"\b(built|done|shipped)\b", clause) and not re.search(r"\b(not|started|partly|remaining)\b", clause):
             out.append(f"{path.relative_to(ROOT)} says it is built: move what holds into Architecture and delete it")
     return out
 
