@@ -37,6 +37,7 @@ class ReportQueries:
         )
         return [dict(r) for r in rows]
 
+    @request_cached(deep=True)
     def effect_totals(self, date_from: str, date_to: str) -> dict[str, int]:
         rows = self.db.all(
             f"SELECT le.effect, SUM(le.amount_base_e6) AS total"
@@ -46,6 +47,7 @@ class ReportQueries:
         )
         return {r["effect"]: int(r["total"] or 0) for r in rows}
 
+    @request_cached(deep=True)
     def category_totals(self, date_from: str, date_to: str) -> list[dict]:
         rows = self.db.all(
             f"SELECT le.category_id, le.effect, SUM(le.amount_base_e6) AS total"
@@ -59,6 +61,7 @@ class ReportQueries:
         )
         return [dict(r) for r in rows]
 
+    @request_cached(deep=True)
     def category_totals_by_date(self, date_from: str, date_to: str, key_length: int = 10) -> list[dict]:
         """The same totals as category_totals, split by day (key_length 10, yyyy-mm-dd) or month (7)."""
         rows = self.db.all(
@@ -231,10 +234,15 @@ class ReportQueries:
                           (asset_id,))
         return dict(row) if row else None
 
-    @request_cached
+    @request_cached(deep=True)
+    def _item_values_of(self, asset_id: int) -> list[dict]:
+        """Every typed value of one item, newest first; read once per item per request."""
+        return [dict(row) for row in self.db.all(
+            "SELECT date,quantity_e6,total_value_e6 FROM physical_item_valuations WHERE asset_id=? "
+            "ORDER BY date DESC,id DESC", (asset_id,))]
+
     def manual_item_value(self, asset_id: int, as_of: str) -> dict | None:
-        row = self.db.one("SELECT date,quantity_e6,total_value_e6 FROM physical_item_valuations "
-                          "WHERE asset_id=? AND date<=? ORDER BY date DESC,id DESC LIMIT 1", (asset_id, as_of))
+        row = next((value for value in self._item_values_of(asset_id) if value["date"] <= as_of), None)
         return dict(row) if row else None
 
     @request_cached

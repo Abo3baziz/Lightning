@@ -46,7 +46,7 @@ One screenshot per page and width, no re-takes. Report findings, not the guideli
 4. **Section by section.** For the screen type, read only its sections: headers A05 / B02, type and numbers A06 / B04, cards A07, KPI A08, controls A10, lists A11, charts A12, words A14 / B10,
    spacing A15; phone C01–C12; website B01–B12. Compare spacing, hierarchy, chart style and wording by eye against the text.
 5. **Arabic and dark mode.** Repeat the pages in Arabic (`arabic-check`) and, on the website, dark mode (B09): the `*.rtl.css` files must mirror, not just flip text.
-6. **Fix only what is broken, in the one stylesheet that owns it** (`lightning/ui/static/style.css`, `phone.css`, `style.rtl.css`, `phone.rtl.css`; website `css/`). No inline styles, no new colours.
+6. **Fix only what is broken, in the one stylesheet that owns it** (`lightning/ui/static/style.css`, `phone.css`, `style.rtl.css`, `phone.rtl.css`; website `css/`). No inline styles, no new colours. After editing `style.css`, `phone.css` or `profiles.css`, regenerate the Arabic mirrors or `tests/test_arabic_no_english.py` fails: `cd <scratch> && npm i rtlcss postcss && NODE_PATH=<scratch>/node_modules node tools/build_rtl_css.js`, and commit the `*.rtl.css` files.
    Visible change = run Mohab (`tests/test_mohab_year.py`) and the brand audit again. One branch per feature, changelog line, merge.
 
 ## Report

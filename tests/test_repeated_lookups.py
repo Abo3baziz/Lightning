@@ -35,3 +35,23 @@ def test_prices_are_read_once_per_asset_and_answer_by_date(c, setup):
     assert cached == plain
     assert plain["2026-08-31"] is None and plain["2026-09-05"]["price_e6"] == 80_000_000
     assert plain["2026-09-10"]["price_e6"] == 90_000_000
+
+
+def test_totals_are_read_once_per_period_and_a_write_is_seen(c, setup):
+    accounts, cats = setup
+    food = cats["EXP.PERSONAL.FOOD"]
+    q = c.reporting.q
+    plain = q.category_totals("2026-10-01", "2026-10-31")
+    reads, restore = _count(c, "GROUP BY le.category_id, le.effect")
+    try:
+        with request_cache(c.db):
+            first = q.category_totals("2026-10-01", "2026-10-31")
+            again = q.category_totals("2026-10-01", "2026-10-31")
+            assert len(reads) == 1 and first == again == plain
+            c.transactions.record_outflow("2026-10-05", accounts["cib"].id, "100", food.id)
+            after = q.category_totals("2026-10-01", "2026-10-31")
+            assert len(reads) == 2 and after != plain  # a write inside the request clears the memo
+            after.append({"changed": True})  # a caller editing its copy does not change the next answer
+            assert {"changed": True} not in q.category_totals("2026-10-01", "2026-10-31")
+    finally:
+        restore()

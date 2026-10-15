@@ -7,6 +7,7 @@ from decimal import Decimal
 from lightning.accounts.service import AccountService
 from lightning.core.dates import now_iso, parse_date
 from lightning.core.errors import ValidationError
+from lightning.core.memo import request_cached
 from lightning.core.money import ZERO, check_places, from_e6, to_decimal, to_e6
 from lightning.counterparties import CounterpartyService
 from lightning.database.connection import Database
@@ -154,6 +155,7 @@ class MoneyFromOthersService:
         self._tag_exact_line(transaction_id, owner, target_id,
                              self.accounts.assets.cash_asset(target.currency).id, to_e6(moved))
 
+    @request_cached(deep=True)
     def cash_balance(self, owner: str, account_id: int, as_of: str) -> Decimal:
         day = parse_date(as_of).isoformat()
         total = self.db.scalar("""SELECT COALESCE(SUM(le.quantity_e6),0) FROM ledger_entries le
@@ -167,6 +169,7 @@ class MoneyFromOthersService:
                                 (owner.strip(), account_id, day)) or 0
         return from_e6(int(total) + int(legacy))
 
+    @request_cached(deep=True)
     def cash_total_for_account(self, account_id: int, as_of: str) -> Decimal:
         day = parse_date(as_of).isoformat()
         ledger = self.db.scalar("""SELECT COALESCE(SUM(le.quantity_e6),0) FROM ledger_entries le
@@ -242,6 +245,7 @@ class MoneyFromOthersService:
             (transaction_id, parse_date(day).isoformat(), owner.strip(), account_id, asset_id, units_e6, now_iso()))
         self._tag_exact_line(transaction_id, owner, account_id, asset_id, units_e6)
 
+    @request_cached(deep=True)
     def totals_by_account(self, as_of: str) -> list[dict]:
         day = parse_date(as_of).isoformat()
         totals = {}
@@ -256,6 +260,7 @@ class MoneyFromOthersService:
             totals[row["account_id"]] = totals.get(row["account_id"], 0) + int(row["amount_e6"])
         return [{"account_id": account_id, "amount_e6": amount} for account_id, amount in totals.items()]
 
+    @request_cached(deep=True)
     def by_owner(self, as_of: str) -> list[dict]:
         day = parse_date(as_of).isoformat()
         sums = {}
@@ -295,6 +300,7 @@ class MoneyFromOthersService:
             result.extend(dict(row) | {"amount": from_e6(row["amount_e6"])} for row in legacy)
         return sorted(result, key=lambda row: (row["date"], row.get("id", 0)), reverse=True)[:limit]
 
+    @request_cached(deep=True)
     def investment_positions(self, as_of: str) -> list[dict]:
         day = parse_date(as_of).isoformat()
         rows = self.db.all(
