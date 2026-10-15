@@ -28,6 +28,9 @@ SECTION_NAMES = {Scope.PERSONAL: "Personal", Scope.WORK: "Work"}
 OVER_PLAN_MARGIN = Decimal(50)  # a category a few pounds over its plan is not worth a move
 
 
+MAX_BUDGET = 100_000_000  # EGP a month for one category; above it is a typo, not a plan
+
+
 class BudgetService:
     def __init__(self, db: Database, categories: CategoryService, reporting: ReportingService):
         self.db = db
@@ -852,4 +855,6 @@ class BudgetService:
         value = check_places(to_decimal(raw, "budget"), 2, "budget")
         if value < ZERO:
             raise ValidationError(f"The budget for {category.name} cannot be negative.", "budget")
+        if value > MAX_BUDGET:
+            raise ValidationError(f"A budget of more than {MAX_BUDGET:,} is not realistic. Check the amount.", "budget")
         return value

@@ -573,6 +573,8 @@ async def inline_rule(request: Request, category_id: int):
         return redirect(f"/budget?month={month}", message)
     if request.headers.get("X-Requested-With") == "fetch":
         return Response(status_code=204)
+    if not raw:
+        return redirect(f"/budget?month={month}", "Budget cleared: this category has no limit now.")
     return redirect(f"/budget?month={month}", "Budget saved.")
 
 
