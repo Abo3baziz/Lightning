@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Claude: skills live in a tool-neutral `skills/` folder (`feedback-review` moved there, neutral model wording); `.claude/skills/` holds one-line stubs so Claude Code finds them.
+
 - 2026-10-15 · Claude: `feedback-review` skill now compiles into one report, investigates in the main session, then uses two agents at most (Opus designs, Sonnet builds) and deletes the reviewed files: `.claude/skills/feedback-review/SKILL.md`.
 
 - 2026-10-15 · Claude: `user feedback/` retired (all three batches processed; 12 still-open requests kept in `docs/proposals/open_feedback.md`); new skill `.claude/skills/feedback-review` for compile, investigate, build, delete.
