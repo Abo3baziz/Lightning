@@ -199,28 +199,53 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
     q, month = qp.get("q", "").strip(), qp.get("month", "").strip()
     date_from, date_to = FAR_PAST, FAR_FUTURE
     from_query, to_query = qp.get("date_from", "").strip(), qp.get("date_to", "").strip()
-    if from_query or to_query:
+    preset = qp.get("preset", "").strip()
+    active_view = None
+    if qp.get("saved_view", "").strip():
+        try:
+            active_view = c.saved_views.get(qp.get("saved_view"), account_id)
+            q, preset, from_query, to_query = (active_view[k] or "" for k in ("q", "preset", "date_from", "date_to"))
+            month = ""
+        except LightningError as exc:
+            error = error or exc.message
+    if preset == "custom" and not (from_query and to_query):
+        # Let the user choose the range after selecting the custom option.
+        date_from, date_to = FAR_PAST, FAR_FUTURE
+        month = ""
+    elif preset:
+        try:
+            definition = c.saved_views.normalize({"preset": preset, "date_from": from_query,
+                                                 "date_to": to_query, "q": q, "tag": qp.get("tag", ""),
+                                                 "category_id": qp.get("category_id", "")}, account_id=account_id)
+            date_from, date_to = c.saved_views.dates(definition)
+            from_query, to_query = date_from, date_to
+            month = ""
+        except LightningError as exc:
+            error, preset, from_query, to_query = error or exc.message, "", "", ""
+    elif from_query or to_query:
         try:
             if not from_query or not to_query:
                 raise ValidationError("Choose both start and end dates.")
             date_from, date_to = fmt_date(parse_date(from_query)), fmt_date(parse_date(to_query))
             if date_to < date_from:
                 raise ValidationError("End date must be on or after the start date.")
+            preset = "custom"
         except ValidationError as exc:
             error, from_query, to_query = error or exc.message, "", ""
     elif month:
         try:
             first, last = parse_month(month)
             date_from, date_to = fmt_date(first), fmt_date(last)
+            from_query, to_query, preset = date_from, date_to, ""
         except ValidationError as exc:
             error, month = error or exc.message, ""
     # A tag (#eid, from a note's link or typed in the search) matches exactly: never #eid2026.
-    filter_tag = normal_tag(qp.get("tag", "")) or (normal_tag(q) if q.startswith("#") and " " not in q else "")
-    matched_ids = c.transactions.search_ids(q) if q and not (filter_tag and q.startswith("#")) else None
+    filter_tag = normal_tag(active_view["tag"] if active_view else qp.get("tag", "")) or (normal_tag(q) if q.startswith("#") and " " not in q else "")
+    matched_ids = c.transactions.search_ids(q) if q and q.casefold() != ("#" + filter_tag).casefold() else None
     if filter_tag:
         tagged = c.transactions.tag_transaction_ids(filter_tag)
         matched_ids = tagged if matched_ids is None else matched_ids & tagged
-    raw_category_id = qp.get("category_id", "")
+    raw_category_id = active_view["category_id"] if active_view else qp.get("category_id", "")
     filter_category = ""
     if str(raw_category_id).isdigit():
         category = c.categories.get(int(raw_category_id))
@@ -283,7 +308,8 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         if picked:
             investment_entry["instrument_label"] = f"{picked['name']} · {picked['ticker']}"
     keep = {k: v for k, v in (("q", q), ("tag", "" if q.startswith("#") else filter_tag), ("month", month),
-                              ("date_from", from_query), ("date_to", to_query)) if v}
+                              ("preset", preset), ("date_from", from_query), ("date_to", to_query),
+                              ("category_id", str(raw_category_id) if raw_category_id else "")) if v}
     page_base_qs = urlencode(keep)
     if page_number > 1:
         keep["page"] = page_number
@@ -310,7 +336,10 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         custody_present=any(custody_owners.values()),
         entry=entry or {"date": qp.get("date") or fmt_date(today()), "account_id": qp.get("new_acct", "")},
         edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {},
-        q=q, month=month, filter_category=filter_category, filter_tag=filter_tag, tag_flows=tag_flows, date_from=from_query, date_to=to_query, base_url=base_url, keep_qs=urlencode(keep),
+        q=q, month=month, preset=preset, active_view=active_view,
+        saved_views=c.saved_views.list(account_id), view_account_id=account_id or "",
+        filter_category=filter_category, filter_tag=filter_tag, tag_flows=tag_flows,
+        date_from=from_query, date_to=to_query, base_url=base_url, keep_qs=urlencode(keep),
         page_number=page_number, total_pages=total_pages, total_rows=total_rows, page_base_qs=page_base_qs,
         search_suggestions=c.counterparties.suggestions(q, limit=3) if q else [],
         post_url=(f"/accounts/{account_id}/register" if account_id else "/transactions/register"),

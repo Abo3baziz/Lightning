@@ -11,9 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from lightning.core.dates import parse_date
+from lightning.core.dates import now_iso, parse_date, today
 from lightning.core.errors import ValidationError
-from lightning.core.money import ZERO, from_e6, to_decimal
+from lightning.core.money import ZERO, from_e6, to_decimal, to_e6
 from lightning.database.connection import Database
 
 SMALL_SHARE = Decimal("0.01")   # a difference up to 1% of the bank balance is small...
@@ -43,6 +43,33 @@ class BalanceCheck:
 class ReconciliationService:
     def __init__(self, db: Database, categories=None, transactions=None):
         self.db, self.categories, self.transactions = db, categories, transactions
+
+    def checked_through(self, account_id: int):
+        return self.db.scalar("SELECT date FROM reconciled_through WHERE account_id=?", (account_id,))
+
+    def close(self, account_id: int, through: str, bank_balance):
+        day = parse_date(through)
+        if day > today():
+            raise ValidationError("Choose a date on or before today.", "date")
+        self.transactions.accounts.get(account_id)
+        with self.db.transaction(undo_label="Check account history"):
+            result = self.check(account_id, day.isoformat(), to_decimal(bank_balance, "balance"))
+            if not result.matches:
+                raise ValidationError("The balance changed. Check it against the bank again before closing.")
+            prior = self.checked_through(account_id)
+            if prior and prior >= day.isoformat():
+                raise ValidationError("This account is already checked through that date.")
+            self.db.execute("UPDATE ledger_entries SET cleared=1 WHERE account_id=? AND date<=? AND cleared=0 "
+                            "AND transaction_id IN (SELECT id FROM transactions WHERE status='POSTED')",
+                            (account_id, day.isoformat()))
+            self.db.execute("INSERT INTO reconciled_through(account_id,date,bank_balance_e6,checked_at) VALUES(?,?,?,?) "
+                            "ON CONFLICT(account_id) DO UPDATE SET date=excluded.date,bank_balance_e6=excluded.bank_balance_e6,checked_at=excluded.checked_at",
+                            (account_id, day.isoformat(), to_e6(result.bank_balance), now_iso()))
+            return result
+
+    def unlock(self, account_id: int):
+        with self.db.transaction(undo_label="Unlock account history"):
+            self.db.execute("DELETE FROM reconciled_through WHERE account_id=?", (account_id,))
 
     def balance(self, account_id: int, through: str) -> Decimal:
         """The account's cash on ``through``, every owner included: what the bank shows."""

@@ -571,6 +571,17 @@ document.addEventListener("submit", (event) => {
 });
 
 // Select rows, use the right-click menu, and soft-delete one or many transactions.
+const phoneMerge = document.getElementById("phone-merge-selected");
+if (phoneMerge) {
+  const boxes = [...document.querySelectorAll('.transaction-select[form="phone-bulk"]')];
+  const updateMerge = () => {
+    const ids = [...new Set(boxes.filter((box) => box.checked && !box.disabled).map((box) => box.value))];
+    phoneMerge.hidden = ids.length !== 2;
+    if (ids.length === 2) phoneMerge.href = `/transactions/merge?keep=${encodeURIComponent(ids[0])}&drop=${encodeURIComponent(ids[1])}`;
+  };
+  boxes.forEach((box) => box.addEventListener("change", updateMerge));
+  updateMerge();
+}
 const ledger = document.querySelector(".ledger");
 if (ledger) {
   const menu = document.getElementById("transaction-context-menu");
@@ -578,10 +589,12 @@ if (ledger) {
   const count = document.getElementById("selection-count");
   const selectAll = document.getElementById("select-visible");
   const visibleChecks = () => [...ledger.querySelectorAll(".transaction-select:not(:disabled)")];
-  const selectedIds = () => visibleChecks().filter((box) => box.checked).map((box) => box.value);
+  const selectedIds = () => [...new Set(visibleChecks().filter((box) => box.checked).map((box) => box.value))];
   const syncSelection = () => {
     const selected = selectedIds();
     if (tools) tools.hidden = selected.length === 0;
+    const merge = document.getElementById("merge-selected");
+    if (merge) merge.hidden = selected.length !== 2;
     if (count) count.textContent = t("{count} selected", {count: selected.length});
     if (selectAll) {
       selectAll.checked = visibleChecks().length > 0 && visibleChecks().every((box) => box.checked);
@@ -618,6 +631,10 @@ if (ledger) {
     syncSelection();
   });
   document.getElementById("delete-selected")?.addEventListener("click", () => deleteTransactions(selectedIds()));
+  document.getElementById("merge-selected")?.addEventListener("click", () => {
+    const ids = selectedIds();
+    if (ids.length === 2) location.href = `/transactions/merge?keep=${encodeURIComponent(ids[0])}&drop=${encodeURIComponent(ids[1])}`;
+  });
   // Bulk edit: the selected rows travel with the chosen category; the server keeps each row's
   // date, amount and counterparty and skips rows that cannot take the category.
   document.getElementById("bulk-category-form")?.addEventListener("submit", (event) => {

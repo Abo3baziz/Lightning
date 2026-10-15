@@ -174,18 +174,18 @@ class HealthService:
 
     def loans_a_month(self, day: date) -> Decimal:
         """Loan payments a month, counting only loans with payments still to make."""
-        return sum((per_year(item) / 12 for item in self.planning.items((PlanKind.LOAN,))
+        return sum((self.planning.amount_in_base(item, per_year(item) / 12, day) for item in self.planning.items((PlanKind.LOAN,))
                     if self.planning.loan_progress(item, day)["still_to_pay"] > 0), ZERO)
 
-    def bills_a_month(self) -> Decimal:
+    def bills_a_month(self, day: date | None = None) -> Decimal:
         """Bills and subscriptions a month: what Cash planning › Recurring totals."""
-        return sum((per_year(item) / 12 for item in self.planning.items((PlanKind.BILL, PlanKind.SUBSCRIPTION))), ZERO)
+        return sum((self.planning.amount_in_base(item, per_year(item) / 12, day or today()) for item in self.planning.items((PlanKind.BILL, PlanKind.SUBSCRIPTION))), ZERO)
 
     def at(self, day: date) -> Health:
         position = self.position.at(day, match_payments=False)
         owe = position.what_you_owe
         income = self.budgets.income_average(day.strftime("%Y-%m")).amount
-        loans, bills = self.loans_a_month(day), self.bills_a_month()
+        loans, bills = self.loans_a_month(day), self.bills_a_month(day)
         return Health(
             debt_to_net_worth=Ratio("debt_to_net_worth", owe, position.net_worth),
             debt_to_cash=Ratio("debt_to_cash", owe, position.cash_you_own),
@@ -280,7 +280,7 @@ class HealthService:
         text = f"Most you can plan this month is now {fmt(room, 0)}"
         if check.planned is not None:
             text += f"; this month's plan is {fmt(check.over_by, 0)} over it" if check.over_by else "; this month's plan fits"
-        fixed = self.bills_a_month() + self.loans_a_month(parse_month(month)[0])
+        fixed = self.bills_a_month(day) + self.loans_a_month(parse_month(month)[0])
         if fixed > room:
             text += f". Bills and loan payments alone come to {fmt(fixed, 0)} a month, more than that"
         return text + "."
@@ -295,7 +295,7 @@ class HealthService:
             return []
         start = parse_month(month)[0]
         left = (check.plan_saves if check.plan_saves is not None
-                else check.income - self.bills_a_month() - self.loans_a_month(start))
+                else check.income - self.bills_a_month(day) - self.loans_a_month(start))
         late = []
         for goal in sorted(self.budgets.reserve_goal_needs(month), key=lambda row: row["due_date"]):
             share = max(min(goal["amount"], left), ZERO)

@@ -26,6 +26,7 @@ class Database:
         self._key = bytearray(key) if key is not None else None
         self._owner = threading.current_thread() if self.encrypted else None
         self._closed = False
+        self.undo = None  # attached after startup migrations/seed; never active on read-only copies
         self.driver = sqlite3
         if self.encrypted:
             # A missing cipher driver is an error, never a plaintext fallback.
@@ -108,15 +109,19 @@ class Database:
 
     # -- transactions ------------------------------------------------------
     @contextmanager
-    def transaction(self) -> Iterator[sqlite3.Connection]:
+    def transaction(self, undo_label: str | None = None) -> Iterator[sqlite3.Connection]:
         conn = self.conn
         depth = self._local.depth
         savepoint = f"sp_{depth}"
         conn.execute("BEGIN IMMEDIATE" if depth == 0 else f"SAVEPOINT {savepoint}")
         self._local.depth = depth + 1
         try:
+            if depth == 0 and self.undo is not None:
+                self.undo.begin(conn, undo_label)
             yield conn
-        except BaseException:
+            if depth == 0 and self.undo is not None:
+                self.undo.finish(conn)
+        except BaseException as error:
             self._local.depth = depth
             if depth == 0:
                 conn.execute("ROLLBACK")
@@ -124,6 +129,9 @@ class Database:
                 conn.execute(f"ROLLBACK TO {savepoint}")
                 conn.execute(f"RELEASE {savepoint}")
 
+            if isinstance(error, self.IntegrityError) and "This month was checked against the bank" in str(error):
+                from lightning.core.errors import ValidationError
+                raise ValidationError("This month was checked against the bank. Unlock it first.") from error
             raise
         else:
             self._local.depth = depth
@@ -153,6 +161,11 @@ class Database:
 
     # -- helpers -----------------------------------------------------------
     def execute(self, sql: str, params: tuple | dict = ()) -> sqlite3.Cursor:
+        if self.undo is not None and getattr(self._local, "depth", 0) == 0:
+            from lightning.undo import recording_action
+            if recording_action() and sql.lstrip().split(None, 1)[0].upper() in {"INSERT", "UPDATE", "DELETE", "REPLACE"}:
+                with self.transaction():
+                    return self.conn.execute(sql, params)
         return self.conn.execute(sql, params)
 
     def one(self, sql: str, params: tuple | dict = ()) -> sqlite3.Row | None:

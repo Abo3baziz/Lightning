@@ -1,9 +1,10 @@
 """Planned items, their payments, and what you owe."""
 from __future__ import annotations
 
+import calendar
 from dataclasses import replace
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from lightning.core.dates import fmt_date, parse_date, parse_month, today
 from lightning.core.errors import NotFoundError, ValidationError
@@ -11,18 +12,14 @@ from lightning.core.memo import request_cached
 from lightning.core.money import ZERO, from_e6, to_decimal
 from lightning.database.connection import Database
 from lightning.database.settings import SettingsStore
+from lightning.fx import rate_for
 
 from .domain import (Frequency, Payment, PaymentStatus, PlanKind, PlannedItem, WeekendMove, WhatYouOwe, per_year)
 from .repository import PlanningRepository
 from .schedule import payment_dates, scheduled_dates
 
-# A posted transaction settles a scheduled payment when it lands within this many days of the
-# due date and its amount is within the tolerance (loans are fixed instalments).
+# New planned items start with the existing matching policy.
 MATCH_WINDOW_DAYS = 7
-SUGGESTION_WINDOW_DAYS = 45
-MATCH_TOLERANCE = {PlanKind.LOAN: Decimal("0.01")}
-DEFAULT_TOLERANCE = Decimal("0.10")
-SUGGESTION_TOLERANCE = Decimal("0.50")
 SUGGESTION_MINIMUM = Decimal("50")  # recurring amounts below this are not suggested
 LOAN_CATEGORY = "EXP.SYSTEM.LOANS"
 # Everyday spending repeats but belongs in the budget, not in Recurring (owner's UX plan, 2026-10-06).
@@ -40,6 +37,26 @@ class PlanningService:
         self.counterparties = counterparties
         self.transactions = transactions
 
+    def amount_in_base(self, payment_or_item: Payment | PlannedItem, amount: Decimal,
+                       day: date | str) -> Decimal:
+        """Value a native scheduled amount in profile currency at the rate known on ``day``."""
+        item = payment_or_item.item if isinstance(payment_or_item, Payment) else payment_or_item
+        base_currency = self.transactions.base_currency
+        currency = (self.accounts.get(item.account_id).currency if item.account_id is not None
+                    else base_currency)
+        requested_day = day if isinstance(day, date) else parse_date(day)
+        # A future schedule may use the latest rate we know today, never a rate added later.
+        on = fmt_date(min(requested_day, today()))
+        if currency == base_currency:
+            return to_decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        rate = rate_for(self.db, currency, base_currency, on)
+        if rate is None:
+            raise ValidationError(
+                f"No {currency} exchange rate to {base_currency} is available on {on}. "
+                "Add a rate before using this scheduled amount."
+            )
+        return (to_decimal(amount) * rate.rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
     # ------------------------------------------------------------------ items
     def items(self, kinds: tuple[PlanKind, ...] | None = None, active_only: bool = True) -> list[PlannedItem]:
         items = self.repo.items(active_only)
@@ -56,11 +73,55 @@ class PlanningService:
         with self.db.transaction():
             return self.repo.insert(clean)
 
+    def from_transaction(self, transaction_id: int) -> dict:
+        """Prefill a monthly plan from one posted cash transaction, using its account currency."""
+        txn = self.transactions.get(transaction_id)
+        if txn.is_void or txn.type.value not in {"IN", "OUT"}:
+            raise ValidationError("Only a posted cash income or expense can be turned into a plan.")
+        receipt_link = self.db.one(
+            "SELECT 1 FROM cd_interest_receipt_links WHERE transaction_id=? LIMIT 1", (transaction_id,))
+        if receipt_link:
+            raise ValidationError("A certificate interest receipt cannot be turned into a recurring plan.")
+        from lightning.core.ledger import Effect
+        expected_effect = Effect.INFLOW if txn.type.value == "IN" else Effect.OUTFLOW
+        lines = [line for line in txn.lines if line.owner_id is None and line.effect == expected_effect
+                 and self.accounts.get(line.account_id).account_type.value in {"BANK", "CASH", "BROKERAGE"}]
+        account_ids = {line.account_id for line in lines}
+        category_ids = {line.category_id for line in lines}
+        if not lines or len(account_ids) != 1 or len(category_ids) != 1:
+            raise ValidationError("Choose a single-account, single-category cash transaction to make a plan.")
+        source = lines[0]
+        account = self.accounts.get(source.account_id)
+        kind = PlanKind.INCOME if txn.type.value == "IN" else PlanKind.BILL
+        amount = sum((abs(line.quantity) for line in lines), ZERO)
+        name = (txn.counterparty or txn.description or ("Income" if kind == PlanKind.INCOME else "Bill")).strip()
+        source_day = parse_date(txn.date)
+        today_day = today()
+        month_day = source_day.day
+        year, month = today_day.year, today_day.month
+        while True:
+            candidate = date(year, month, min(month_day, calendar.monthrange(year, month)[1]))
+            if candidate > today_day:
+                break
+            month += 1
+            if month > 12:
+                year, month = year + 1, 1
+        values = {"kind": kind.value, "name": name, "amount": f"{amount:.2f}", "frequency": "MONTHLY",
+                  "interval_count": "1", "start_date": fmt_date(candidate), "end_date": "", "payment_count": "",
+                  "account_id": str(account.id), "category_id": str(source.category_id or ""),
+                  "counterparty": txn.counterparty or "", "principal": "", "notes": txn.notes,
+                  "weekend_move": "none", "month_day": str(month_day),
+                  "match_window_days": str(MATCH_WINDOW_DAYS),
+                  "match_tolerance_pct": "10"}
+        return {"values": values, "transaction": txn, "currency": account.currency}
+
     def is_installment_purchase(self, item_id: int) -> bool:
         return item_id in self.repo.installment_terms()
 
     def update(self, item_id: int, **values) -> None:
         old = self.get(item_id)
+        values.setdefault("match_window_days", old.match_window_days)
+        values.setdefault("match_tolerance_pct", old.match_tolerance_pct)
         clean = self._validate(values)
         if item_id in self.repo.installment_terms() and any(
                 clean[key] != getattr(old, key) for key in ("amount", "payment_count", "frequency", "interval_count")):
@@ -158,45 +219,52 @@ class PlanningService:
         return sorted(payments, key=lambda p: (p.due_date, p.item.name.casefold()))
 
     def match_payments(self, as_of: date | None = None) -> int:
-        """Link each due or near-due payment to the one posted transaction that clearly settles it."""
+        """Link only unambiguous one-to-one candidates under each item's saved policy."""
         if self.db.read_only:
             return 0  # a read-only copy shows payments as its home last settled them
         day = as_of or today()
         linked = self.repo.linked_transaction_ids()
+        possible: dict[tuple[int, str], tuple[PlannedItem, Payment, dict[int, dict]]] = {}
+        transaction_to_payments: dict[int, set[tuple[int, str]]] = {}
+        for item in self.items():
+            if not (item.category_id or item.counterparty_id):
+                continue
+            horizon = day + timedelta(days=item.match_window_days)
+            for payment in self.payments(item, horizon, day):
+                if payment.status not in (PaymentStatus.DUE, PaymentStatus.UPCOMING):
+                    continue
+                found = {c["id"]: c for c in self.candidates(payment, day) if c["id"] not in linked}
+                key = (item.id, payment.due_date)
+                possible[key] = (item, payment, found)
+                for txn_id in found:
+                    transaction_to_payments.setdefault(txn_id, set()).add(key)
+        settled = [(key, item, payment, next(iter(found.values())))
+                   for key, (item, payment, found) in possible.items()
+                   if len(found) == 1 and len(transaction_to_payments.get(next(iter(found)), ())) == 1]
         count = 0
         with self.db.transaction():
-            for item in self.items():
-                if not (item.category_id or item.counterparty_id):
-                    continue  # nothing to recognise a payment by; the user marks it paid
-                horizon = day + timedelta(days=MATCH_WINDOW_DAYS)
-                for payment in self.payments(item, horizon, day):
-                    if payment.status not in (PaymentStatus.DUE, PaymentStatus.UPCOMING):
-                        continue
-                    found = [c for c in self.candidates(payment, day) if c["id"] not in linked]
-                    if len(found) == 1:
-                        self.repo.settle(item.id, payment.due_date, "PAID", found[0]["id"], found[0]["amount"])
-                        linked.add(found[0]["id"])
-                        count += 1
+            for _, item, payment, candidate in settled:
+                self.repo.settle(item.id, payment.due_date, "PAID", candidate["id"], candidate["amount"])
+                linked.add(candidate["id"])
+                count += 1
         return count
 
     def candidates(self, payment: Payment, as_of: date | None = None, loose: bool = False) -> list[dict]:
-        """Transactions that could settle ``payment``; ``loose`` widens the search for manual linking."""
+        """Candidates inside the planned item's saved date, amount, account, and currency policy."""
         item, day = payment.item, as_of or today()
+        if not (item.category_id or item.counterparty_id):
+            return []
         expected = payment.still_owed if payment.outstanding else payment.amount
         due = date.fromisoformat(payment.due_date)
-        window = 31 if loose else MATCH_WINDOW_DAYS
+        window = item.match_window_days
+        currency = self.accounts.get(item.account_id).currency if item.account_id else self.transactions.base_currency
         rows = self.repo.candidates(item.is_income, item.account_id,
                                     None if loose else item.category_id,
                                     None if loose else item.counterparty_id,
                                     fmt_date(due - timedelta(days=window)),
-                                    fmt_date(min(due + timedelta(days=window), day)))
-        if loose:
-            # Wider window for manual linking, but only plausible rows: the same counterparty
-            # or category, or an amount within 10%. A 2,000 gift is not a 2,500 loan payment.
-            return [r for r in rows if abs(r["amount"] - expected) <= expected * DEFAULT_TOLERANCE
-                    or (item.counterparty_id and r["counterparty_id"] == item.counterparty_id)
-                    or (item.category_id and item.category_id in r["category_ids"])]
-        tolerance = MATCH_TOLERANCE.get(item.kind, DEFAULT_TOLERANCE)
+                                    fmt_date(min(due + timedelta(days=window), day)), currency,
+                                    require_all_identity=not loose)
+        tolerance = Decimal(item.match_tolerance_pct) / Decimal(100)
         return [r for r in rows if abs(r["amount"] - expected) <= expected * tolerance]
 
     def plausible_candidates(self, payment: Payment, as_of: date | None = None) -> list[dict]:
@@ -206,13 +274,16 @@ class PlanningService:
         if not (item.counterparty_id or item.category_id):
             return []
         due = date.fromisoformat(payment.due_date)
+        window = item.match_window_days
+        currency = self.accounts.get(item.account_id).currency if item.account_id else self.transactions.base_currency
         rows = self.repo.candidates(
             item.is_income, item.account_id, item.category_id, item.counterparty_id,
-            fmt_date(due - timedelta(days=SUGGESTION_WINDOW_DAYS)),
-            fmt_date(min(due + timedelta(days=SUGGESTION_WINDOW_DAYS), day)))
+            fmt_date(due - timedelta(days=window)),
+            fmt_date(min(due + timedelta(days=window), day)), currency)
         strict = {row["id"] for row in self.candidates(payment, day)}
+        tolerance = Decimal(item.match_tolerance_pct) / Decimal(100)
         return [row for row in rows if row["id"] not in strict
-                and abs(row["amount"] - expected) <= expected * SUGGESTION_TOLERANCE]
+                and abs(row["amount"] - expected) <= expected * tolerance]
 
     def linked_transaction_ids(self) -> set[int]:
         return self.repo.linked_transaction_ids()
@@ -228,14 +299,16 @@ class PlanningService:
             raise ValidationError("That date is not on this payment schedule.")
         if transaction_id in self.repo.linked_transaction_ids():
             raise ValidationError("That transaction already settles another payment.")
+        currency = self.accounts.get(item.account_id).currency if item.account_id else self.transactions.base_currency
         txn = self.repo.payment_transaction(transaction_id, item.is_income, item.account_id,
-                                           item.category_id, item.counterparty_id)
+                                           item.category_id, item.counterparty_id, currency)
         if not txn:
             raise ValidationError("Choose a posted, owned transaction for this account and payment.")
-        if abs((date.fromisoformat(txn["date"]) - due).days) > SUGGESTION_WINDOW_DAYS:
+        if abs((date.fromisoformat(txn["date"]) - due).days) > item.match_window_days:
             raise ValidationError("That transaction is too far from the scheduled payment date.")
         expected = scheduled.still_owed if scheduled.outstanding else scheduled.amount
-        if abs(txn["amount"] - expected) > expected * SUGGESTION_TOLERANCE:
+        tolerance = Decimal(item.match_tolerance_pct) / Decimal(100)
+        if abs(txn["amount"] - expected) > expected * tolerance:
             raise ValidationError("That transaction amount is too far from the planned payment.")
         with self.db.transaction():
             if item.kind == PlanKind.LOAN and scheduled.status == PaymentStatus.PAID and scheduled.outstanding:
@@ -355,15 +428,21 @@ class PlanningService:
         loans_left = ZERO
         for item in self.items((PlanKind.LOAN,)):
             # The schedule bounds itself (count or last date, extended by skips).
-            loans_left += sum((p.still_owed for p in self.payments(item, "2999-12-31", day)), ZERO)
-        return WhatYouOwe(bills_due=sum((p.still_owed for p in due), ZERO), loans_still_to_pay=loans_left,
-                          bills_due_items=due)
+            loans_left += sum((self.amount_in_base(p, p.still_owed, day)
+                               for p in self.payments(item, "2999-12-31", day)), ZERO)
+        loans_due = sum((self.amount_in_base(p, p.still_owed, day)
+                         for p in due if p.item.kind == PlanKind.LOAN), ZERO)
+        return WhatYouOwe(bills_due=sum((self.amount_in_base(p, p.still_owed, day)
+                                         for p in due), ZERO), loans_still_to_pay=loans_left,
+                          bills_due_items=due, loans_due_in_base=loans_due)
 
     @request_cached  # read by every budget line since bills plan their category too (2026-10-05)
     def income_a_month(self) -> Decimal | None:
         """Recurring income a month: what Cash planning › Recurring expects to come in. None without any."""
-        total = sum((per_year(item) / 12 for item in self.items((PlanKind.INCOME,))), ZERO)
-        return total.quantize(Decimal("0.01")) if total > 0 else None
+        day = today()
+        monthly = ((item, per_year(item) / 12) for item in self.items((PlanKind.INCOME,)))
+        total = sum((self.amount_in_base(item, amount, day) for item, amount in monthly if amount), ZERO)
+        return total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if total > 0 else None
 
     def loan_payments_by_category(self, month: str) -> dict[int, Decimal]:
         """Loan payments scheduled in a month (paid, due or upcoming; not skipped), by category."""
@@ -374,7 +453,8 @@ class PlanningService:
                 continue
             for p in self.payments(item, last):
                 if p.due_date >= fmt_date(first) and p.status != PaymentStatus.SKIPPED:
-                    out[item.category_id] = out.get(item.category_id, ZERO) + p.amount
+                    out[item.category_id] = out.get(item.category_id, ZERO) + self.amount_in_base(
+                        p, p.amount, p.due_date)
         loans = {item.id: item for item in self.items((PlanKind.LOAN,))}
         for row in self.repo.extra_payments(fmt_date(today())):
             item = loans.get(row["planned_item_id"])
@@ -398,7 +478,7 @@ class PlanningService:
                 if payment.due_date < fmt_date(first) or payment.status == PaymentStatus.SKIPPED:
                     continue
                 row = out.setdefault(item.category_id, {"amount": ZERO, "items": []})
-                row["amount"] += payment.amount
+                row["amount"] += self.amount_in_base(payment, payment.amount, payment.due_date)
                 row["items"].append(item.name)
         return out
 
@@ -474,11 +554,25 @@ class PlanningService:
             raise ValidationError("Choose what happens when a payment falls on a weekend.", "weekend_move") from None
         if frequency == Frequency.ONCE:
             weekend_move = WeekendMove.NONE  # a one-off payment keeps the date you chose
+        try:
+            match_window_days = int(str(values.get("match_window_days") or MATCH_WINDOW_DAYS))
+        except (ValueError, TypeError):
+            raise ValidationError("Choose a matching window from 0 to 31 days.", "match_window_days") from None
+        if not 0 <= match_window_days <= 31:
+            raise ValidationError("Choose a matching window from 0 to 31 days.", "match_window_days")
+        default_tolerance = 1 if kind == PlanKind.LOAN else 10
+        try:
+            match_tolerance_pct = int(str(values.get("match_tolerance_pct") or default_tolerance))
+        except (ValueError, TypeError):
+            raise ValidationError("Choose an amount tolerance from 0 to 25 percent.", "match_tolerance_pct") from None
+        if not 0 <= match_tolerance_pct <= 25:
+            raise ValidationError("Choose an amount tolerance from 0 to 25 percent.", "match_tolerance_pct")
         return {"kind": kind.value, "name": name, "amount": amount, "frequency": frequency.value,
                 "interval_count": interval, "start_date": start, "end_date": end, "payment_count": count,
                 "account_id": account_id, "category_id": category_id, "counterparty_id": counterparty_id,
                 "principal": principal, "notes": str(values.get("notes") or "").strip(),
-                "weekend_move": weekend_move.value, "month_day": self._month_day(values.get("month_day"), frequency)}
+                "weekend_move": weekend_move.value, "month_day": self._month_day(values.get("month_day"), frequency),
+                "match_window_days": match_window_days, "match_tolerance_pct": match_tolerance_pct}
 
     @staticmethod
     def _month_day(raw, frequency):

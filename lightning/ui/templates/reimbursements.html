@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Reimbursements'|tr(locale) }}{% endblock %}
+{% block heading %}<h1>{{ 'Reimbursements'|tr(locale) }}</h1>{% endblock %}
+{% block content %}
+<p class="muted">{{ 'Claims and receipts link existing transactions. Linking does not add income, expense, or cash.'|tr(locale) }}</p>
+{% if error %}<p class="flash error">{{ error|tr(locale) }}</p>{% endif %}
+
+<section class="card" aria-labelledby="new-claim-title">
+  <div class="section-head"><div><h2 id="new-claim-title">{{ 'Add an expense claim'|tr(locale) }}</h2></div></div>
+  {% if not expenses %}<p class="muted">{{ 'No posted owned expenses are currently available for a claim.'|tr(locale) }}</p>{% else %}
+  <form method="post" action="/reimbursements" class="stack">
+    <label>{{ 'Expense'|tr(locale) }}<select name="transaction_id" data-own-picker required>
+      <option value="">{{ 'Choose a posted expense'|tr(locale) }}</option>
+      {% for expense in expenses %}{% set txn = expense.transaction %}<option value="{{ txn.id }}" {{ 'selected' if values.transaction_id == txn.id|string }}>{{ txn.date }} · {{ txn.counterparty or txn.description or txn.ref }} · {{ expense.max_amount|money }} {{ base }}{% if expense.suggested %} · {{ 'Suggested category'|tr(locale) }}{% endif %}</option>{% endfor %}
+    </select></label>
+    <p class="muted small">{{ 'Category settings only suggest expenses. Claims cannot exceed the original owned expense. Link refunds or repayments explicitly so each receipt reduces the claim once.'|tr(locale) }}</p>
+    <div class="field-row">
+      <label>{{ 'Expected reimbursement'|tr(locale) }} ({{ base }})<input type="text" name="expected" value="{{ values.expected }}" inputmode="decimal" required></label>
+      <label>{{ 'Payer'|tr(locale) }}<select name="payer_id" data-own-picker><option value="">{{ 'Optional'|tr(locale) }}</option>{% for party in counterparties %}<option value="{{ party.id }}" {{ 'selected' if values.payer_id == party.id|string }}>{{ party.name }}</option>{% endfor %}</select></label>
+      <label>{{ 'Due date'|tr(locale) }}<input type="date" name="due_date" value="{{ values.due_date }}"></label>
+    </div>
+    <button class="btn primary">{{ 'Create claim'|tr(locale) }}</button>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+  {% endif %}
+</section>
+
+<section class="card data-panel" aria-labelledby="claims-title">
+  <div class="section-head"><div><h2 id="claims-title">{{ 'Expense claims'|tr(locale) }}</h2></div></div>
+  {% if not claims %}<p class="muted">{{ 'No reimbursement claims yet.'|tr(locale) }}</p>{% else %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{ 'Expense'|tr(locale) }}</th><th>{{ 'Payer'|tr(locale) }}</th><th>{{ 'Due date'|tr(locale) }}</th><th class="num">{{ 'Expected'|tr(locale) }}</th><th class="num">{{ 'Received'|tr(locale) }}</th><th class="num">{{ 'Outstanding'|tr(locale) }}</th><th>{{ 'Receipts'|tr(locale) }}</th><th></th></tr></thead>
+    <tbody>{% for claim in claims %}<tr>
+      <td>{% if claim.expense %}<a href="/transactions/{{ claim.expense.id }}">{{ claim.expense.ref }} · {{ claim.expense.date }}</a><small class="muted">{{ claim.expense.counterparty or claim.expense.description or 'Expense' }}</small>{% else %}{{ 'Expense unavailable'|tr(locale) }}{% endif %}</td>
+      <td>{{ claim.payer_name or '—' }}</td><td>{{ claim.due_date or '—' }}</td>
+      <td class="num">{{ claim.expected|money }} {{ base }}</td><td class="num">{{ claim.received|money }} {{ base }}</td><td class="num"><b>{{ claim.outstanding|money }} {{ base }}</b></td>
+      <td>{% for receipt in claim.receipts %}<div><a href="/transactions/{{ receipt.receipt_id }}">{{ receipt.ref or ('Receipt ' ~ receipt.receipt_id if receipt.receipt_id else 'Deleted receipt') }}</a> · {{ receipt.counted|money }} {{ base }}{% if receipt.issue %}<small class="muted">{{ receipt.issue|tr(locale) }}</small>{% endif %}<form method="post" action="/reimbursements/{{ claim.id }}/receipts/{{ receipt.id }}/unlink"><button class="btn small">{{ 'Unlink'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form></div>{% else %}<span class="muted">{{ 'No receipts linked'|tr(locale) }}</span>{% endfor %}</td>
+      <td>
+        {% if claim.issues %}<p class="notice">{% for issue in claim.issues %}{{ issue|tr(locale) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>{% endif %}
+        {% if receipts and claim.outstanding > 0 and not claim.issues %}<form method="post" action="/reimbursements/{{ claim.id }}/receipts" class="stack">
+          <label>{{ 'Link a receipt'|tr(locale) }}<select name="receipt_id" data-own-picker required><option value="">{{ 'Choose an owned inflow'|tr(locale) }}</option>{% for receipt in receipts %}{% set txn = receipt.transaction %}<option value="{{ txn.id }}">{{ txn.date }} · {{ txn.counterparty or txn.description or txn.ref }} · {{ receipt.amount|money }} {{ base }}</option>{% endfor %}</select></label>
+          <label>{{ 'Receipt amount'|tr(locale) }} ({{ base }})<input type="text" name="amount" inputmode="decimal" value="{{ claim.outstanding|money(False, 2) }}" required></label>
+          <button class="btn small primary">{{ 'Link receipt'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+        </form>{% endif %}
+        <form method="post" action="/reimbursements/{{ claim.id }}/delete" data-confirm-delete="{{ 'Delete this claim and its receipt links?'|tr(locale) }}"><button class="btn small danger">{{ 'Delete claim'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
+      </td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}

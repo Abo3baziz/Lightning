@@ -31,8 +31,8 @@ def _plural(count: int, one: str, many: str) -> str:
 
 # Needs you groups its items by what they are about (feedback ticket 84): one row per group on the Overview,
 # and each group opens its own page. First match on the item's link wins; the order is the order shown.
-GROUPS = (("payments", "Bills and payments", ("/plan/items/", "/gameya/")),
-          ("activity", "Activity to sort out", ("/sms", "/accounts/", "/transactions")),
+GROUPS = (("payments", "Bills and payments", ("/plan/items/", "/gameya/", "/deposits/")),
+          ("activity", "Activity to sort out", ("/sms", "/accounts/", "/transactions", "/activity", "/reimbursements")),
           ("budget", "Budget and saving", ("/budget", "/financial-health")),
           ("cash", "Cash and goals", ("/plan",)),
           ("prices", "Prices and valuations", ("/investments/", "/settings")))
@@ -95,6 +95,34 @@ class ReviewInbox:
                           "href": f"/plan/items/{payment.item.id}/pay?due={payment.due_date}&back=%2F",
                           "popup": True, "action": "Mark paid", "priority": 1})
         items.extend(c.gameya.attention(on))  # an instalment or payout past its date and not recorded
+        for changed in c.db.all(
+                "SELECT i.id,i.name,i.amount_e6,i.account_id,p.amount_e6 AS paid_e6,p.due_date "
+                "FROM planned_items i JOIN planned_payments p ON p.planned_item_id=i.id "
+                "WHERE i.active=1 AND i.kind IN ('BILL','SUBSCRIPTION') AND p.status='PAID' "
+                "AND p.amount_e6<>i.amount_e6 AND p.amount_e6>0 AND p.created_at>i.updated_at "
+                "AND p.due_date BETWEEN date(?,'-45 days') AND ? AND p.due_date=(SELECT MAX(q.due_date) "
+                "FROM planned_payments q WHERE q.planned_item_id=i.id AND q.status='PAID' AND q.due_date<=?)",
+                (on.isoformat(), on.isoformat(), on.isoformat())):
+            from lightning.core.money import from_e6
+            currency = c.accounts.get(changed["account_id"]).currency if changed["account_id"] else c.base_currency
+            items.append({"label": f"{changed['name']} was paid at a different amount",
+                          "detail": f"Latest payment {fmt(from_e6(changed['paid_e6']))} {currency}; "
+                                    f"planned {fmt(from_e6(changed['amount_e6']))}. Review future payments.",
+                          "href": f"/plan/items/{changed['id']}/edit", "priority": 2})
+        if getattr(c, "deposit_receipts", None) is not None:
+            for issue in c.deposit_receipts.attention(on):
+                certificate = c.deposits.certificate(issue["certificate_id"])
+                account = c.accounts.get(certificate.terms.account_id)
+                items.append({"label": "Certificate interest needs review",
+                              "detail": f"{certificate.terms.name} · {issue['event_date']} · "
+                                        f"{fmt(issue['remaining'])} {account.currency} still unmatched.",
+                              "href": f"/deposits/{account.id}#interest-receipts", "priority": 1})
+        if getattr(c, "reimbursements", None) is not None:
+            for claim in c.reimbursements.list_claims():
+                if claim["issues"] or (claim["outstanding"] and claim["due_date"] and claim["due_date"] <= on.isoformat()):
+                    items.append({"label": "Reimbursement needs review",
+                                  "detail": f"{fmt(claim['outstanding'])} {c.base_currency} outstanding.",
+                                  "href": "/reimbursements", "priority": 1})
         forecast = c.forecaster.forecast(on)
         # A dated daily forecast takes precedence over its monthly summary: the summary can hide which
         # day or account runs short, and would duplicate a more useful warning.

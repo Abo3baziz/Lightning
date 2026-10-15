@@ -135,15 +135,15 @@ Every other follow-up (net worth breakdown, what I owe, spend until payday, due 
 |---|---|
 | Why did net worth change: saving, prices or new money? | Partial: no wealth-change bridge (M3.2) |
 | Can I afford this purchase now? | Partial: no "what if I buy it" check |
-| A merchant or a few categories I care about | Missing: no saved watchlist |
+| A merchant or a few categories I care about | Built locally: named live-date register views, matching report and export |
 | A refund: did my spending go down? | Partial: it lowers the category in the month the refund arrives, not the purchase month (Mohab 13) |
-| Work spending my employer owes me back | Partial: nothing lists what is unreimbursed |
+| Work spending my employer owes me back | Built locally: explicit claims and partial receipt/refund links list outstanding amounts |
 | What about next month's plan? | Partial: rules repeat; a future month cannot be opened |
-| Where should the rest of my income go? | Missing: no "ready to assign" view |
+| Where should the rest of my income go? | Built locally: optional funded payday preview using actual cash, with reserve top-ups |
 | Have I actually set aside the goal's monthly amount? | Partial: nothing asks him to assign it |
 | I paid from the emergency fund: what now? | Partial: nothing reminds him to refill (Mohab 14) |
 | Pay the loan off early | Missing: no lump-sum payment |
-| When does my certificate mature? | Partial: legacy account-level terms not converted; no bank reconciliation |
+| When does my certificate mature? | Portfolio dates and explicit interest receipt reconciliation built; legacy account-level conversion remains |
 | How are my dollar savings and US stocks doing? | Built in v1.1; open: bank-imported pairs across currencies, Europe and GCC listings |
 | No pay this month: does the average fall? | Known gap: zero-income months are skipped by the average (Mohab 27) |
 | Was I paid my raise? | Partial: the scheduled payment stays Due until linked by hand |
@@ -208,7 +208,7 @@ Evidence, and what users of the Egyptian apps love and hate, are in [Competition
 | 7 | Watchlists, shared household, receipts | Simplifi, Monarch, Lunch Money. |
 | 8 | Guided first setup | Done 2026-10-03 for the Overview ("Get set up", dismissible with Done with setup and reopenable from Settings); import from other apps is project #11. |
 
-Bank sync and bill negotiation are not adopted: local CSV stays the foundation. "Safe to spend" must always say which obligations and income it includes. Certificate projections use an actual/365 estimate, are never posted, and interest from the bank is not yet reconciled against them.
+Bank sync and bill negotiation are not adopted: local CSV stays the foundation. "Safe to spend" must always say which obligations and income it includes. Certificate projections use an actual/365 estimate, are never posted, and bank interest is reconciled only through explicit existing-receipt links, never assumed received.
 
 <a id="ux-plan-guideline-36"></a>
 ## 8. UX plan (guideline 3.6)
@@ -237,13 +237,13 @@ Ideas added 2026-10-05 unless dated; each names its source app (evidence: [Compe
 | 16 | US stocks | Monarch, Copilot | Built (v1.1), see 18 |
 | 2 | Arabic version | Say, Masarifi | Built in the app, PC and phone (CHANGELOG 2026-10-12/13); Hijri dates not built |
 | 3 | Financial health | NetTrack, WalletHub | Built 2026-10-05, no score by design |
-| 4 | Undo and redo | Actual Budget | Proposal: [undo.md](proposals/undo.md) |
-| 5 | Rules with conditions | Actual Budget | Built 2026-10-06. Open: suggest a rule from what you file; rename rule |
-| 6 | Layered import match, locked checked month, merge | Actual Budget | Proposals: [import_matching](proposals/import_matching.md), [month_lock](proposals/month_lock.md), [merge_transactions](proposals/merge_transactions.md) |
+| 4 | Undo and redo | Actual Budget | Built locally: 20 session undo/redo groups; Architecture › Action history and checked accounts |
+| 5 | Rules with conditions | Actual Budget | Built; repeated correction offers and selected past-row preview added locally. Open: rename rule |
+| 6 | Layered import match, locked checked month, merge | Actual Budget | Built locally: multi-source provenance, checked-history protection and fingerprinted cash merge; import window remains 3 days |
 | 7 | Weekend-aware schedules | Actual Budget | Built 2026-10-06. Open: public holidays |
 | 8 | Fill this month | Actual Budget | Built 2026-10-05 |
 | 9 | Entry helpers (sums, Ctrl-K, privacy mode, #tags) | Actual Budget | Built 2026-10-05 |
-| 10 | Age of Money, spending calendar, one saved filter | Actual Budget | Not started |
+| 10 | Age of Money, spending calendar, one saved filter | Actual Budget | Saved views/report/export built locally; other analytics not started |
 | 11 | Move in from Wallet, Money Manager, Masareef exports | Say reviews | Not started |
 | 12 | Deeper investments (splits, lots, reinvested dividends, time-weighted return) | Quicken, GnuCash | Proposals: [investment_*](proposals/), [bonus_shares_and_splits](proposals/bonus_shares_and_splits.md) |
 | 13 | Silver, property, vehicles | Qershnat | Not started |
@@ -260,17 +260,17 @@ Reviewed 2026-10-13. Detail of each build is in the CHANGELOG; claims and next s
 |---|---|---|
 | M0–M1 Foundation, cash accounts | Shipped | — |
 | B Budget | Shipped | Change one category without the full grid |
-| M2 Reports and corrections | Partial | Month close ([month_lock](proposals/month_lock.md)) |
+| M2 Reports and corrections | Partial | Checked-history close/undo/merge built locally; behavioural acceptance remains |
 | M3 Manual investments | Shipped | — |
 | M3.1 Instrument catalogue | Partial | Coverage and identifier quality |
 | M3.2 Wealth history | Partial | Wealth-change bridge; owned-only XIRR |
 | M4 Market data and FX | v1.1 built: price files, foreign cash, Convert, FX positions, US stocks | **High priority:** live verification/licensed source for Europe and GCC shares (#18); matching bank-imported pairs across currencies |
-| M6 Deposits and gold | Partial | CD portfolios built; next: ordinary-PC acceptance, legacy conversion, statement reconciliation, local gold costs and buyback |
-| M7 Planning and imports | Partial | CSV import, Cash planning, linking statement rows built. Next: reminders; PDF and Excel (#17) |
+| M6 Deposits and gold | Partial | CD portfolios built; next: ordinary-PC acceptance, legacy conversion, local gold costs and buyback; interest receipt links built locally |
+| M7 Planning and imports | Partial | CSV import, Cash planning, linking statement rows built. Optional reminders and weekly review built locally; PDF and Excel (#17) remain |
 | Search | Partial | Built: pages, actions, records, tags, Ctrl-K. Next: scoped pickers, alias history, ranking |
 | Multiple devices | M1 and M2 built, in owner review; M3 (CIB and NBE SMS) built | Owner: more bank samples, Google Play SMS declaration. Open: discovery instead of typing the address, prefetch while typing the password, periodic recovery copies, two-PC fault gate, power-loss evidence. [Plan](proposals/multiple_devices.md#15-implementation-work-packages) |
 | Paired apps 1.0.0-beta.1 | Tester beta published | Ordinary-PC recovery/fault acceptance, legacy import, native file pickers, unresolved-evidence repair |
 | v1.1 | Merged, not released | Owner bumps to 1.1.0 and builds ([v1_1_presentable.md](proposals/v1_1_presentable.md) §5–6) |
 | In-app updates (Windows) | Planned for later | **Update** button: check `Lightning-downloads`, verify signature, helper swaps folders, keeps the old for rollback; profiles untouched; refuse during an unfinished lend. Android updates come from Google Play. |
 
-**Next up:** reminders.
+**Owner-approved smarter workflows (2026-10-15):** all five roadmap stages are implemented locally, including dated cash warnings, undo/review/provenance/protection, reserve/bill/CD/reimbursement links, optional cash funding, saved views and reminders/weekly completion. Syntax/template/manifest checks only; automated and native behavioural acceptance remain outstanding. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.

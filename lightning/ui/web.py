@@ -348,6 +348,9 @@ def _template_response(request, name, status_code, c, locale, total, owned_total
             "session_token": getattr(request.state, "session_token", ""),
             "category_groups": c.categories.select_groups,
             "prices_running": live_prices.running(c),
+            "action_history": c.undo.available() if c.undo else {},
+            "checked_history": c.reconciliation.checked_through(context["account"].id)
+                if getattr(context.get("account"), "id", None) else None,
             **context,
         },
         status_code=status_code,
@@ -381,11 +384,35 @@ class RequestCache:
         if current is None:
             return await self.app(scope, receive, send)
         with request_cache(current.db):
-            await self.app(scope, receive, send)
+            path = scope.get("path", "")
+            roots = {"accounts", "transactions", "plan", "loans", "reserves", "budget", "rules", "categories",
+                     "counterparties", "imports", "bank-imports", "sms", "investments", "deposits", "gameya",
+                     "zakat", "activity", "payday", "views", "review", "reminders", "reimbursements",
+                     "setup", "physical-items", "settings", "people"}
+            if scope.get("method") == "POST" and path.strip("/").split("/")[0] in roots:
+                from lightning.undo import user_action
+                labels = {"accounts": "Account changes", "transactions": "Transaction changes", "plan": "Payment plan changes",
+                          "reserves": "Reserve changes", "budget": "Budget changes", "imports": "Statement import",
+                          "bank-imports": "Statement import", "sms": "SMS review", "rules": "Rule changes"}
+                with user_action(labels.get(path.strip("/").split("/")[0], "Saved changes")):
+                    status = 500
+                    async def action_send(message):
+                        nonlocal status
+                        if message["type"] == "http.response.start":
+                            status = message["status"]
+                        await send(message)
+                    await self.app(scope, receive, action_send)
+                    # Settlement links belong to the action that recorded or
+                    # changed the cash, rather than a later read-only page visit.
+                    if (status < 400 and getattr(self.state, "container", None) is current
+                            and not current.db.closed and not current.db.read_only):
+                        current.planning.match_payments(today())
+            else:
+                await self.app(scope, receive, send)
 
 
 def create_app(c: Container | None = None) -> FastAPI:
-    from .routes import accounts, bank_imports, birdview, budget, categories, counterparties, dashboard, deposits, exports, financial_health, gameya, integrity, investments, physical_items, planning, reserves, rules, search, settings, sms, transactions, zakat
+    from .routes import accounts, activity, bank_imports, birdview, budget, categories, counterparties, dashboard, deposits, exports, financial_health, gameya, history, integrity, investments, merge, payday, physical_items, planning, reimbursements, reserves, rules, search, settings, sms, transactions, weekly, zakat
 
     app = FastAPI(title="Lightning", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.container = c
@@ -437,8 +464,14 @@ def create_app(c: Container | None = None) -> FastAPI:
         return JSONResponse({"value": format(value.normalize(), "f")})
 
     app.mount("/static", StaticFiles(directory=str(UI_DIR / "static")), name="static")
-    for module in (dashboard, financial_health, accounts, deposits, gameya, bank_imports, birdview, transactions, budget, investments, physical_items, planning, reserves, integrity, counterparties, categories, rules, settings, search, exports, sms, zakat):
+    for module in (dashboard, financial_health, accounts, deposits, gameya, bank_imports, birdview, transactions, budget, investments, physical_items, planning, payday, reimbursements, reserves, history, activity, merge, weekly, integrity, counterparties, categories, rules, settings, search, exports, sms, zakat):
         app.include_router(module.router)
+
+    @app.exception_handler(ValidationError)
+    async def invalid_request(request: Request, exc: ValidationError):
+        if request.url.path.endswith(".json"):
+            return JSONResponse({"error": exc.message}, status_code=422)
+        return render(request, "validation_error.html", status_code=422, message=exc.message)
 
     @app.exception_handler(NotFoundError)
     async def not_found(request: Request, exc: NotFoundError):

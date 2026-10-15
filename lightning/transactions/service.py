@@ -52,6 +52,16 @@ class TransactionService:
         self.audit = audit
         self.base_currency = base_currency
 
+    def merge_preview(self, keep_id: int, drop_id: int):
+        """Describe a duplicate merge; the confirmation fingerprint must be submitted to merge."""
+        from .merge import MergeService
+        return MergeService(self).preview(keep_id, drop_id)
+
+    def merge(self, keep_id: int, drop_id: int, fingerprint: str):
+        """Merge a selected duplicate pair after a fresh preview was confirmed."""
+        from .merge import MergeService
+        return MergeService(self).merge(keep_id, drop_id, fingerprint)
+
     # ======================================================================
     # Recording
     # ======================================================================

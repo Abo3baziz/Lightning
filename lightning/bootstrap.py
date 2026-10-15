@@ -43,6 +43,11 @@ from lightning.reserves import CashReserveService
 from lightning.reevaluations import ReevaluationService
 from lightning.transactions.service import TransactionService
 from lightning.workflows.accounts import AccountWorkflows
+from lightning.undo import UndoService
+from lightning.saved_views import SavedViewService
+from lightning.reimbursements import ReimbursementService
+from lightning.planning.funding import CashFundingService
+from lightning.deposits.receipts import DepositReceiptService
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
@@ -81,6 +86,11 @@ class Container:
     health: HealthService
     zakat: ZakatService
     backup_dir: Path | None = None
+    undo: UndoService | None = None
+    saved_views: SavedViewService | None = None
+    reimbursements: ReimbursementService | None = None
+    funding: CashFundingService | None = None
+    deposit_receipts: DepositReceiptService | None = None
 
     @property
     def base_currency(self) -> str:
@@ -184,11 +194,13 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
     deposits = DepositService(db, accounts, assets, transactions, gameya)
     position = PositionService(reporting, assets, investments, money_from_others, reserves, planning, deposits)
     forecaster = CashForecaster(planning, reporting, reserves, budgets, categories, position, deposits)
+    deposit_receipts = DepositReceiptService(db, deposits, transactions, accounts, reporting)
+    forecaster.deposit_receipts = deposit_receipts
     budgets.reserve_goal_needs = forecaster.goal_needs
     health = HealthService(planning, position, budgets)
     forecaster.savings_rate = lambda: health.limit_values()["savings_rate"] or Decimal(0)
     zakat = ZakatService(db, position, reporting, assets, categories, physical_items, audit, gameya)
-    return Container(
+    result = Container(
         db=db,
         data_dir=data_dir,
         settings=settings,
@@ -220,4 +232,59 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
         health=health,
         zakat=zakat,
         backup_dir=backup_dir,
+        saved_views=SavedViewService(db, categories, transactions, reporting),
+        reimbursements=ReimbursementService(db),
+        funding=CashFundingService(db, budgets, reporting, reserves, planning, categories, settings),
+        deposit_receipts=deposit_receipts,
     )
+    if not read_only:
+        result.undo = UndoService(db, audit)
+        db.undo = result.undo
+        def validate_history(records):
+            import json
+            from types import SimpleNamespace
+            from lightning.core.ledger import validate_posting
+            ids = set()
+            affected, days = {}, []
+            for record in records:
+                if record['table_name'] not in {'transactions', 'ledger_entries'}:
+                    continue
+                for key in ('before_json', 'after_json'):
+                    row = json.loads(record[key]) if record[key] else {}
+                    value = row.get('transaction_id') if record['table_name'] == 'ledger_entries' else row.get('id')
+                    if value is not None:
+                        ids.add(value)
+                    if record['table_name'] == 'ledger_entries' and row:
+                        affected[(row['account_id'], row['asset_id'], row.get('owner_id'))] = row
+                        days.append(row['date'])
+            lines = []
+            for txn_id in ids:
+                txn = transactions.repo.get(txn_id)
+                if txn and not txn.is_void:
+                    validate_posting(txn.lines)
+                    lines.extend(txn.lines)
+            if lines:
+                transactions._check_holdings(lines)
+            surviving, owner_keys = [], set()
+            for (account_id, asset_id, owner_id), row in affected.items():
+                if not db.scalar("SELECT 1 FROM financial_assets WHERE id=?", (asset_id,)):
+                    continue
+                if not db.scalar("SELECT 1 FROM accounts WHERE id=?", (account_id,)):
+                    continue
+                surviving.append(SimpleNamespace(account_id=account_id, asset_id=asset_id))
+                asset = assets.get_asset(asset_id)
+                if not asset.is_cash or owner_id is not None:
+                    owner_keys.add((account_id, asset_id, owner_id))
+                if owner_id is not None or accounts.get(account_id).account_type.value == 'BROKERAGE':
+                    owner_keys.add((account_id, asset_id, None))
+            if surviving:
+                transactions._check_holdings(surviving)
+            if owner_keys:
+                transactions._validate_owner_balances([], min(days), extra_keys=owner_keys, ignore_before_day=True)
+            from lightning.core.errors import ValidationError
+            from lightning.core.money import from_e6
+            for checked in db.all("SELECT * FROM reconciled_through"):
+                if result.reconciliation.balance(checked["account_id"], checked["date"]) != from_e6(checked["bank_balance_e6"]):
+                    raise ValidationError("The balance changed. Check it against the bank again before closing.")
+        result.undo.validate = validate_history
+    return result

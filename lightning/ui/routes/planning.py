@@ -24,7 +24,8 @@ from . import reserves as reserve_routes
 router = APIRouter(prefix="/plan")
 
 FIELDS = ("kind", "name", "amount", "frequency", "interval_count", "start_date", "end_date", "payment_count",
-          "account_id", "category_id", "counterparty", "principal", "notes", "weekend_move")
+          "account_id", "category_id", "counterparty", "principal", "notes", "weekend_move",
+          "match_window_days", "match_tolerance_pct")
 TABS = (("plan", "Plan", "/plan"), ("recurring", "Recurring", "/plan/recurring"),
         ("loans", "Loans", "/plan/loans"), ("reserves", "Reserves", "/plan/reserves"))
 
@@ -54,7 +55,7 @@ def _row(c, item, labels, as_of, linked):
     last = next((p for p in reversed(payments) if p.status == PaymentStatus.PAID), None)
     review_next = bool(upcoming and upcoming.status == PaymentStatus.UPCOMING and any(
         candidate["id"] not in linked for candidate in c.planning.plausible_candidates(upcoming, as_of)))
-    per_year = _per_year(item)
+    per_year = c.planning.amount_in_base(item, _per_year(item), as_of)
     recent = fmt_date(as_of - timedelta(days=62))
     skipped = [p for p in payments if p.status == PaymentStatus.SKIPPED and p.due_date >= recent]
     reserve_links = c.reserves.links_for_transaction(last.transaction_id) if last and last.transaction_id else []
@@ -208,7 +209,7 @@ async def loans_page(request: Request):
     notes = [n for n in (keynotes.loans_summary(loans),) if n]
     return render(request, "planning/loans.html", tabs=TABS, plan_tab="loans", loans=loans, notes=notes,
                   debt_tiles=_debt_tiles(c.health.at(day), fmt_date(day)),
-                  still_to_pay=sum((l["progress"]["still_to_pay"] for l in loans), ZERO), as_of=fmt_date(day))
+                  still_to_pay=c.planning.what_you_owe(day).loans_still_to_pay, as_of=fmt_date(day))
 
 
 @router.get("/reserves")
@@ -285,20 +286,66 @@ async def early_payment(request: Request, item_id: int):
 
 
 def _item_form(request: Request, c, values: dict, item=None, error: str = "", error_field: str = "",
-               status_code: int = 200, back: str = "/plan/recurring"):
+               status_code: int = 200, back: str = "/plan/recurring", form_action: str | None = None,
+               promotion=None):
     kind = values.get("kind") or PlanKind.BILL.value
     movement = Movement.INFLOW if kind == PlanKind.INCOME.value else Movement.OUTFLOW
-    kinds = [(PlanKind.LOAN.value, "Loan or installment plan")] if kind == PlanKind.LOAN.value else [
+    kinds = ([(kind, KIND_LABELS[PlanKind(kind)])] if promotion else
+             [(PlanKind.LOAN.value, "Loan or installment plan")] if kind == PlanKind.LOAN.value else [
         (k.value, KIND_LABELS[k]) for k in RECURRING_KINDS]
+             )
+    accounts = _paying_accounts(c)
+    selected_account = next((a for a in accounts if str(a.id) == str(values.get("account_id", ""))), None)
     return render(request, "planning/item_form.html", status_code=status_code, values=values, item=item,
                   has_history=bool(item) and c.planning.has_history(item.id),
                   installment=bool(item) and c.planning.is_installment_purchase(item.id),
                   kinds=kinds, is_loan=kind == PlanKind.LOAN.value,
                   frequencies=[(f.value, FREQUENCY_LABELS[f]) for f in Frequency],
                   weekend_moves=[(m.value, WEEKEND_MOVE_LABELS[m]) for m in WeekendMove],
-                  accounts=_paying_accounts(c),
+                  accounts=accounts,
                   categories=_category_options(c, movement), counterparties=c.counterparties.list_active(),
-                  error=error, error_field=error_field, back=back)
+                  error=error, error_field=error_field, back=back, form_action=form_action,
+                  promotion=promotion, promotion_currency=promotion["currency"] if promotion else None,
+                  amount_currency=promotion["currency"] if promotion else (selected_account.currency if selected_account else c.transactions.base_currency))
+
+
+@router.get("/from-transaction/{txn_id:int}")
+async def promote_transaction_form(request: Request, txn_id: int):
+    c = container(request)
+    try:
+        source = c.planning.from_transaction(txn_id)
+    except LightningError as exc:
+        return redirect(f"/transactions/{txn_id}", exc.message)
+    return _item_form(request, c, source["values"],
+                      back=f"/transactions/{txn_id}", form_action=f"/plan/from-transaction/{txn_id}",
+                      promotion=source)
+
+
+@router.post("/from-transaction/{txn_id:int}")
+async def promote_transaction(request: Request, txn_id: int):
+    c = container(request)
+    try:
+        source = c.planning.from_transaction(txn_id)
+    except LightningError as exc:
+        return redirect(f"/transactions/{txn_id}", exc.message)
+    form = await request.form()
+    values = _form_values(form)
+    back = f"/transactions/{txn_id}"
+    if values["kind"] != source["values"]["kind"]:
+        return _item_form(request, c, values, error="Keep the transaction's income or bill type.",
+                          error_field="kind", status_code=400, back=back,
+                          form_action=f"/plan/from-transaction/{txn_id}", promotion=source)
+    try:
+        item_id = c.planning.create(**_save_values(c, values))
+    except LightningError as exc:
+        return _item_form(request, c, values, error=exc.message, error_field=exc.field or "", status_code=400,
+                          back=back, form_action=f"/plan/from-transaction/{txn_id}", promotion=source)
+    message = f"{values['name']} added from {source['transaction'].ref}."
+    if str(form.get("past_due", "paid")) == "paid":
+        moved = c.planning.start_after_paid(item_id)
+        if moved:
+            message += f" Already paid, so the next one is due {moved}."
+    return redirect("/plan/recurring", " ".join(x for x in (message, c.health.commitments_note(values["kind"])) if x))
 
 
 @router.get("/items/new")
@@ -311,6 +358,8 @@ async def new_item(request: Request):
     values["interval_count"] = values["interval_count"] or "1"
     values["start_date"] = values["start_date"] or fmt_date(today())
     values["weekend_move"] = values["weekend_move"] or "none"  # a date moves only when you choose it
+    values["match_window_days"] = values["match_window_days"] or "7"
+    values["match_tolerance_pct"] = values["match_tolerance_pct"] or ("1" if values["kind"] == "LOAN" else "10")
     if values["kind"] == "LOAN" and not values["category_id"]:
         try:
             values["category_id"] = str(c.categories.get_by_code(LOAN_CATEGORY).id)
@@ -349,7 +398,9 @@ async def edit_item(request: Request, item_id: int):
               "payment_count": str(item.payment_count or ""), "account_id": str(item.account_id or ""),
               "category_id": str(item.category_id or ""), "counterparty": party,
               "principal": f"{item.principal:.2f}" if item.principal else "", "notes": item.notes,
-              "weekend_move": item.weekend_move.value}
+              "weekend_move": item.weekend_move.value,
+              "match_window_days": str(item.match_window_days),
+              "match_tolerance_pct": str(item.match_tolerance_pct)}
     back = "/plan/loans" if item.kind == PlanKind.LOAN else "/plan/recurring"
     return _item_form(request, c, values, item=item, back=back)
 
@@ -410,9 +461,10 @@ async def pay_form(request: Request, item_id: int, error: str = ""):
     exact = c.planning.candidates(payment)
     others = c.planning.plausible_candidates(payment)
     linked = c.planning.linked_transaction_ids()
+    currency = c.accounts.get(item.account_id).currency if item.account_id else c.transactions.base_currency
     return render(request, "planning/pay.html", item=item, payment=payment,
                   exact=[r for r in exact if r["id"] not in linked], others=[r for r in others if r["id"] not in linked][:8],
-                  accounts=_paying_accounts(c),
+                  accounts=_paying_accounts(c), currency=currency,
                   back=str(request.query_params.get("back", "/plan")), today=fmt_date(today()), error=error)
 
 

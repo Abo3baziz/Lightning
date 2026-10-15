@@ -11,6 +11,10 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-15 · Codex: added session undo/redo, checked bank-history protection, multi-source import provenance, safe duplicate merge and combined activity review on PC/phone.
+- 2026-10-15 · Codex: connected partial reserves, configurable bill matching and transaction-to-plan setup, certificate receipt reconciliation and explicit partial reimbursement claims.
+- 2026-10-15 · Codex: added optional funded payday assignments, reusable saved views/report/export, rule correction offers, selected bulk preview, weekly review and opt-in native reminders. Local implementation; automated/native behavioural acceptance outstanding.
+
 - 2026-10-15 · Codex: Cash planning and Needs you now flag dated scheduled-cash shortages, including an underfunded payment account when total cash is sufficient. PC and phone show account links and explicit FX/unassigned-account limits; monthly free-cash estimates remain separate.
 
 - 2026-10-15 · Codex: refreshed Actual Budget comparison from current code/docs; recorded cash-timing, multi-source import and partial-reserve workflow findings. Measured 18 sample-data pages; runtime behaviour unchanged.

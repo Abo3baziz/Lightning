@@ -20,6 +20,7 @@
   <div class="overview-inline-list">{% for g in attention_groups %}<a class="overview-action-row" href="{{ g.href }}"{% if g.popup %} data-popup-open{% endif %}><span><b>{% if g.count > 1 %}{{ g.label|tr(locale) }} · {{ g.count }}{% else %}{{ g.label }}{% endif %}</b><small>{{ g.detail }}</small></span><span>{{ g.action }}</span></a>{% endfor %}</div>
 </details>
 {% else %}<div class="card needs-you is-empty"><span class="needs-you-dot" aria-hidden="true"></span><b>{{ "Nothing needs you today"|tr(locale) }}</b></div>{% endif %}
+<p class="actions"><a class="quiet-link" href="/review">{{ 'Weekly review'|tr(locale) }}</a></p>
 {{ stat_tiles(stats, base) }}
 {% set period_query = request.url.query %}
 <div class="overview-stack">

@@ -1,0 +1,14 @@
+{% extends "phone/base.html" %}
+{% block title %}{{ 'Review activity'|tr(locale) }}{% endblock %}
+{% block heading %}<h1>{{ 'Review activity'|tr(locale) }}</h1><p class="muted">{{ 'Recent posted cash transactions and the plans or reserves linked to them.'|tr(locale) }}</p>{% endblock %}
+{% block content %}
+<section class="card phone-card">
+  {% if rows %}{% for row in rows %}{% set txn = row.txn %}
+  <a class="phone-row" href="/activity/{{ txn.id }}">
+    <span><b>{{ txn.counterparty or txn.description or txn.ref }}</b>
+      <small>{{ txn.date }} · {{ row.account_names|join(', ') }}{% if row.category_names %} · {{ row.category_names|join(', ') }}{% endif %}</small>
+      {% if row.planned_links or row.reserve_links or row.claim %}<small>{% if row.planned_links %}{{ 'Bill linked'|tr(locale) }}{% endif %}{% if row.reserve_links %} · {{ 'Reserve linked'|tr(locale) }}{% endif %}{% if row.claim %} · {{ 'Reimbursement claim'|tr(locale) }}{% endif %}</small>{% endif %}
+    </span><b class="num {{ 'neg' if txn.type.value == 'OUT' else 'pos' }}">{{ row.amount|money }} {{ row.currency }}</b>
+  </a>{% endfor %}{% else %}<p class="muted">{{ 'No recent posted, owned cash transactions to review.'|tr(locale) }}</p>{% endif %}
+</section>
+{% endblock %}

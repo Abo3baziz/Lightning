@@ -3,6 +3,8 @@
 {% block heading %}<div class="acct-title"><h1>Check {{ account.name }}</h1></div><div class="muted small">{{ "What does your bank say? Type the balance it shows."|tr(locale) }}</div>{% endblock %}
 {% block top_actions %}<a class="btn small" href="/accounts/{{ account.id }}">{{ "Back to account"|tr(locale) }}</a>{% endblock %}
 {% block content %}
+{% if checked_through %}<section class="card"><h2>{{ 'Checked history'|tr(locale) }}</h2><p>{{ 'Protected through {date}'|tr(locale, date=checked_through) }}</p>
+<form method="post" action="/accounts/{{ account.id }}/reconcile/unlock"><input type="hidden" name="__session" value="{{ session_token }}"><button class="btn" type="submit">{{ 'Unlock for corrections'|tr(locale) }}</button></form></section>{% endif %}
 <section class="card reconcile-summary">
   <form method="get" action="/accounts/{{ account.id }}/reconcile" class="reconcile-controls">
     <label>On <small class="muted">{{ "the date it shows"|tr(locale) }}</small><input type="text" placeholder="yyyy-mm-dd" inputmode="numeric" autocomplete="off" data-smart-date name="date" value="{{ through }}" required></label>
@@ -19,7 +21,12 @@
 {% if check %}<section class="card reconcile-result">
   {% if check.matches %}
   <h2>{{ "It matches"|tr(locale) }}</h2>
-  <p>{{ account.name }} matches your bank on {{ check.through }}. Nothing to do.</p>
+  <p>{{ account.name }} matches your bank on {{ check.through }}.</p>
+  {% if not checked_through or check.through > checked_through %}<form method="post" action="/accounts/{{ account.id }}/reconcile/close">
+    <input type="hidden" name="__session" value="{{ session_token }}"><input type="hidden" name="date" value="{{ check.through }}"><input type="hidden" name="balance" value="{{ balance_input }}">
+    <p>{{ 'Protect these checked rows from edits and backdated entries. Unlock them here when a correction is needed.'|tr(locale) }}</p>
+    <button class="btn primary" type="submit">{{ 'Confirm checked history'|tr(locale) }}</button>
+  </form>{% endif %}
   {% elif check.small %}
   <h2>{{ "A small difference"|tr(locale) }}</h2>
   <p>Lightning is {{ check.difference|abs|money }} {{ account.currency }} {{ 'below' if check.difference > 0 else 'above' }} your bank, within the {{ check.limit|money }} that counts as small (1% of the balance, at least 100).</p>

@@ -3,14 +3,125 @@
 from __future__ import annotations
 
 import importlib.metadata
+import json
+import os
+import re
 import threading
-from urllib.parse import urlsplit
+from datetime import date
+from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 from lightning import DISPLAY_VERSION
 
 _PYWEBVIEW_VERSION = "6.2.1"
 _SMOKE_TIMEOUT = 20.0
 _STARTUP_TIMEOUT = 30.0
+_REMINDER_SCRIPT = (
+    "window.__lightningReminderResult=null;"
+    "fetch('/reminders/due.json',{credentials:'same-origin',cache:'no-store'})"
+    ".then(r=>{if(!r.ok)throw Error();return r.json()})"
+    ".then(v=>window.__lightningReminderResult=JSON.stringify(v))"
+    ".catch(()=>window.__lightningReminderResult='')"
+)
+
+
+def _safe_reminder_href(value: object, origin: str, allowed_origin: tuple[str, str, int]) -> str | None:
+    href = str(value or "")
+    if not href.startswith("/") or href.startswith("//") or "\\" in href:
+        return None
+    target = urljoin(origin.rstrip("/") + "/", href)
+    return target if _allowed_navigation(target, allowed_origin) else None
+
+
+def _reminder_prefs_path() -> Path:
+    root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    return root / "Lightning" / "native-reminders.json"
+
+
+def _read_reminder_prefs(path: Path) -> dict[str, str]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        seen = data.get("seen", {}) if isinstance(data, dict) else {}
+        return {str(key): str(value) for key, value in seen.items()
+                if isinstance(key, str) and isinstance(value, str)} if isinstance(seen, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def _write_reminder_prefs(path: Path, seen: dict[str, str]) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"seen": seen}, separators=(",", ":")), encoding="utf-8")
+        temporary.replace(path)
+    except OSError:
+        pass
+
+
+def _native_reminder_loop(window, origin: str, allowed_origin: tuple[str, str, int], ready,
+                          closed: threading.Event, native_state: dict) -> None:
+    """Poll through the active WebView session and send in-process Windows notification balloons."""
+    try:
+        path = _reminder_prefs_path()
+        seen = _read_reminder_prefs(path)
+        while not closed.is_set():
+            if ready.wait(1):
+                try:
+                    window.run_js(_REMINDER_SCRIPT)
+                    deadline = __import__("time").monotonic() + 5
+                    payload = ""
+                    while __import__("time").monotonic() < deadline and not closed.is_set():
+                        value = window.evaluate_js("window.__lightningReminderResult||''")
+                        if value:
+                            payload = str(value)
+                            break
+                        closed.wait(0.15)
+                    data = json.loads(payload) if payload else {}
+                    if data.get("enabled") is True and isinstance(data.get("items"), list):
+                        today = date.today().isoformat()
+                        seen = {key: value for key, value in seen.items() if value == today}
+                        for item in data["items"]:
+                            if not isinstance(item, dict):
+                                continue
+                            item_id = str(item.get("id", ""))
+                            href = _safe_reminder_href(item.get("href"), origin, allowed_origin)
+                            label = " ".join(str(item.get("label", "")).split())[:63]
+                            detail = " ".join(str(item.get("detail", "")).split())[:63]
+                            if not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", item_id) or not label or not href or seen.get(item_id) == today:
+                                continue
+                            icon, native = native_state.get("icon"), window.native
+                            if icon is None or native is None:
+                                break
+                            from System import Action
+
+                            native_state["href"] = href
+                            text = (label if not detail else f"{label} · {detail}")[:63]
+                            native.BeginInvoke(Action(lambda: _show_balloon(icon, text, closed)))
+                            seen[item_id] = today
+                            _write_reminder_prefs(path, seen)
+                            break  # keep one balloon active so its click target cannot be confused with another
+                except Exception:
+                    # Native reminders are optional. Session or notification failures never affect the financial UI.
+                    pass
+            closed.wait(60)
+    except Exception:
+        # pywebview's in-process Windows Forms API can be unavailable on a host; in-app reminders remain available.
+        pass
+
+
+def _show_balloon(icon, text: str, closed: threading.Event) -> None:
+    if closed.is_set():
+        return
+    try:
+        from System.Windows.Forms import ToolTipIcon
+
+        icon.Visible = True
+        icon.BalloonTipTitle = "Lightning"
+        icon.BalloonTipText = text
+        icon.BalloonTipIcon = ToolTipIcon.Info
+        icon.ShowBalloonTip(5000)
+    except Exception:
+        pass
 
 
 def _origin(value: str) -> tuple[str, str, int]:
@@ -83,6 +194,7 @@ def run_window(url: str, origin: str, *, smoke: bool = False, diagnostics: dict 
         webview.settings["REMOTE_DEBUGGING_PORT"] = None
 
         state: dict[str, object] = {"guard": False, "failure": None, "rejected": threading.Event()}
+        reminder_native: dict[str, object] = {"icon": None, "href": None}
         app_ready = threading.Event()
         smoke_done = threading.Event()
         window_closed = threading.Event()
@@ -106,8 +218,44 @@ def run_window(url: str, origin: str, *, smoke: bool = False, diagnostics: dict 
                     except Exception:
                         pass
 
+        def install_reminder_icon() -> None:
+            try:
+                from System.Drawing import SystemIcons
+                from System.Windows.Forms import NotifyIcon
+
+                icon = NotifyIcon()
+                icon.Icon = SystemIcons.Information
+                icon.Text = "Lightning reminders"
+                reminder_native["icon"] = icon
+
+                def open_link(*_args) -> None:
+                    href = reminder_native.get("href")
+                    if isinstance(href, str) and _allowed_navigation(href, allowed_origin) and not window_closed.is_set():
+                        try:
+                            window.load_url(href)
+                        except Exception:
+                            pass
+
+                icon.BalloonTipClicked += open_link
+            except Exception:
+                # Windows notifications can be unavailable while the in-app reminder list still works.
+                reminder_native["icon"] = None
+
+        def close_window(*_args) -> None:
+            window_closed.set()
+            smoke_done.set()
+            icon = reminder_native.get("icon")
+            if icon is not None:
+                try:
+                    icon.Visible = False
+                    icon.Dispose()
+                except Exception:
+                    pass
+
         def before_show(*_args) -> None:
             diagnostics["stage"] = "native-window"
+            if profile_mode and not smoke:
+                install_reminder_icon()
             try:
                 if webview.renderer != "edgechromium":
                     raise RuntimeError("WebView2 renderer was not selected")
@@ -171,7 +319,12 @@ def run_window(url: str, origin: str, *, smoke: bool = False, diagnostics: dict 
 
         window.events.initialized += require_edgechromium
         window.events.before_show += before_show
-        window.events.closed += lambda *_args: (window_closed.set(), smoke_done.set())
+        window.events.closed += close_window
+
+        if profile_mode and not smoke:
+            threading.Thread(target=_native_reminder_loop,
+                             args=(window, origin, allowed_origin, app_ready, window_closed, reminder_native),
+                             name="lightning-native-reminders", daemon=True).start()
 
         if smoke:
             def monitor_smoke() -> None:

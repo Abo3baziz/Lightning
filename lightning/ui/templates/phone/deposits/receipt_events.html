@@ -1,0 +1,30 @@
+<section id="interest-receipts" class="card phone-card phone-flat-rows" aria-labelledby="interest-receipts-title">
+  <h2 id="interest-receipts-title">{{ 'Expected interest receipts'|tr(locale) }}</h2>
+  <p class="phone-note">{{ 'Match interest already paid into a bank account. Receipts remain ordinary transactions; confirmation never posts another entry.'|tr(locale) }}</p>
+  {% if interest_receipts %}
+    {% for event in interest_receipts %}
+    <article class="cd-interest-receipt">
+      <h3>{{ event.certificate_name }} · {{ event.event_date }}</h3>
+      <p>{{ 'Expected'|tr(locale) }} {{ event.expected|money }} {{ account.currency }} · {{ 'Confirmed'|tr(locale) }} {{ event.received|money }} · {{ 'Remaining'|tr(locale) }} {{ event.remaining|money }}</p>
+      {% for receipt in event.receipts %}
+      <div class="phone-row"><span>{{ receipt.date }} · {{ receipt.ref }} · {{ receipt.amount|money }} {{ account.currency }}</span>
+        <form class="phone-form" method="post" action="/deposits/{{ account.id }}/certificates/{{ event.certificate_id }}/interest/{{ event.event_date }}/remove"><input type="hidden" name="transaction_id" value="{{ receipt.transaction_id }}"><button class="btn small">{{ 'Remove match'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
+      </div>
+      {% endfor %}
+      {% for issue in event.attention %}
+      <div class="error" role="alert">{{ 'Needs attention'|tr(locale) }} · {{ issue.reason }}
+        <form class="phone-form" method="post" action="/deposits/{{ account.id }}/certificates/{{ event.certificate_id }}/interest/{{ event.event_date }}/remove"><input type="hidden" name="transaction_id" value="{{ issue.transaction_id }}"><button class="btn small">{{ 'Remove outdated match'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
+      </div>
+      {% endfor %}
+      {% if event.remaining > 0 and event.candidates %}
+      <form class="phone-form" method="post" action="/deposits/{{ account.id }}/certificates/{{ event.certificate_id }}/interest/{{ event.event_date }}/confirm" class="stack">
+        <fieldset><legend>{{ 'Select one or more posted bank receipts'|tr(locale) }}</legend>
+          {% for receipt in event.candidates %}<label class="phone-row"><input type="checkbox" name="transaction_ids" value="{{ receipt.id }}"><span>{{ receipt.date }} · {{ receipt.ref }} · {{ receipt.description or 'Money in' }} · {{ receipt.amount|money }} {{ account.currency }}</span></label>{% endfor %}
+        </fieldset>
+        <button class="btn primary">{{ 'Confirm selected receipts'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+      </form>
+      {% elif event.remaining > 0 %}<p class="phone-note">{{ 'No unassigned posted bank receipts in the payout account.'|tr(locale) }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  {% else %}<p class="empty">{{ 'No past scheduled interest payouts.'|tr(locale) }}</p>{% endif %}
+</section>

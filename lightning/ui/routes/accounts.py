@@ -386,7 +386,25 @@ def _bank_check_page(request, c, account_id: int, through: str, raw_balance: str
     dated = len(through) == 10 and through[4] == "-"
     return render(request, "accounts/reconcile.html", account=account, through=through, balance_input=raw_balance,
                   lightning_balance=c.reconciliation.balance(account_id, through) if dated else None,
-                  check=check, error=error, month_start=through[:8] + "01" if dated else "", status_code=status_code)
+                  check=check, checked_through=c.reconciliation.checked_through(account_id), error=error,
+                  month_start=through[:8] + "01" if dated else "", status_code=status_code)
+
+
+@router.post("/{account_id:int}/reconcile/close")
+async def close_checked_history(request: Request, account_id: int):
+    c = container(request)
+    form = await request.form()
+    try:
+        c.reconciliation.close(account_id, str(form.get("date", "")), str(form.get("balance", "")))
+    except LightningError as exc:
+        return redirect(f"/accounts/{account_id}/reconcile", exc.message)
+    return redirect(f"/accounts/{account_id}/reconcile", "Checked history is now protected. Unlock it before making corrections.")
+
+
+@router.post("/{account_id:int}/reconcile/unlock")
+async def unlock_checked_history(request: Request, account_id: int):
+    container(request).reconciliation.unlock(account_id)
+    return redirect(f"/accounts/{account_id}/reconcile", "Checked history unlocked.")
 
 
 @router.get("/{account_id:int}/reconcile")

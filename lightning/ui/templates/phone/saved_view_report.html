@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }}{% endblock %}
+{% block heading %}<h1>{{ view.name }}</h1><p><bdi>{{ report.date_from }}</bdi> – <bdi>{{ report.date_to }}</bdi></p>{% endblock %}
+{% block content %}
+<section class="card phone-card"><h2>{{ 'Summary'|tr(locale) }}</h2><div class="phone-rows">
+<div class="phone-row"><span>{{ 'Transactions'|tr(locale) }}</span><b>{{ report.count }}</b></div>
+<div class="phone-row"><span>{{ fig.money_in.label }}</span><b>{{ report.money_in|money(places=0) }} {{ base }}</b></div>
+<div class="phone-row"><span>{{ fig.money_out.label }}</span><b>{{ report.money_out|money(places=0) }} {{ base }}</b></div></div>
+<div class="actions"><a class="btn" href="{{ export_url }}">{{ 'Download matching CSV'|tr(locale) }}</a><a class="btn" href="{{ register_url }}?saved_view={{ view.id }}">{{ 'Open register'|tr(locale) }}</a></div></section>
+<section class="phone-section"><h2>{{ 'Matching transactions'|tr(locale) }}</h2>{% for row in report.rows %}
+<a class="phone-row" href="/transactions/{{ row.txn_id }}"><span>{{ row.counterparty or row.description or row.account_label }}<small><bdi>{{ row.date }}</bdi> · {{ row.account_label }} · {{ row.category_label }}</small></span><b>{{ row.amount|amount_role('row', True) }} {{ row.currency }}</b></a>
+{% else %}<p>{{ 'Nothing matches this saved view.'|tr(locale) }}</p>{% endfor %}</section>
+{% endblock %}

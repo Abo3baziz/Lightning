@@ -216,6 +216,55 @@ async def all_accounts(request: Request):
     return register.page(request, None)
 
 
+def _view_scope(c, form_or_query):
+    raw = str(form_or_query.get("account_id", "") or "").strip()
+    if not raw:
+        return None
+    if not raw.isdigit() or int(raw) < 1:
+        raise ValidationError("Choose a valid account.")
+    return c.accounts.get(int(raw)).id
+
+
+@router.post("/transactions/views")
+async def save_register_view(request: Request):
+    c = container(request)
+    form = await request.form()
+    try:
+        scope = _view_scope(c, form)
+        view_id = c.saved_views.save(str(form.get("name", "")), dict(form), scope)
+    except LightningError as exc:
+        return redirect(f"/accounts/{form.get('account_id')}" if str(form.get("account_id", "")).isdigit()
+                        else "/transactions", exc.message)
+    target = f"/accounts/{scope}" if scope else "/transactions"
+    return redirect(f"{target}?saved_view={view_id}", "Saved view.")
+
+
+@router.post("/transactions/views/{view_id:int}/delete")
+async def delete_register_view(request: Request, view_id: int):
+    c = container(request)
+    form = await request.form()
+    try:
+        scope = _view_scope(c, form)
+        c.saved_views.delete(view_id, scope)
+    except LightningError as exc:
+        return redirect(f"/accounts/{scope}" if 'scope' in locals() and scope else "/transactions", exc.message)
+    return redirect(f"/accounts/{scope}" if scope else "/transactions", "Deleted saved view.")
+
+
+@router.get("/transactions/views/{view_id:int}/report")
+async def saved_register_view_report(request: Request, view_id: int):
+    c = container(request)
+    try:
+        scope = _view_scope(c, request.query_params)
+        view = c.saved_views.get(view_id, scope)
+        report = c.saved_views.report(view)
+    except LightningError as exc:
+        return redirect("/transactions", exc.message)
+    return render(request, "saved_view_report.html", view=view, report=report,
+                  export_url=f"/exports/views/{view_id}" + (f"?account_id={scope}" if scope else ""),
+                  register_url=f"/accounts/{scope}" if scope else "/transactions")
+
+
 @router.get("/transactions/deleted")
 async def deleted_transactions(request: Request):
     c = container(request)
@@ -351,12 +400,10 @@ async def link_transaction_reserve(request: Request, txn_id: int):
         if action != "link":
             raise LightningError("Choose a valid reserve action.")
         c.reserves.set_expense_link(reserve_id, txn_id, str(form.get("amount", "")))
-        if form.get("complete") == "1" and c.reserves.get(reserve_id)["status"] == "ACTIVE":
-            c.reserves.complete(reserve_id)
     except (ValueError, LightningError) as exc:
         msg = exc.message if isinstance(exc, LightningError) else "Choose a reserve."
         return redirect(_back(request, f"/transactions/{txn_id}"), msg)
-    return redirect(_back(request, f"/transactions/{txn_id}"), "Payment matched and reserve completed." if form.get("complete") == "1" else "Assigned this payment to its reserve.")
+    return redirect(_back(request, f"/transactions/{txn_id}"), "Assigned this payment to its reserve.")
 
 
 @router.post("/transactions/{txn_id:int}/void")

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Merge duplicate transactions{% endblock %}
+{% block heading %}<h1>Merge duplicate transactions</h1>{% endblock %}
+{% block content %}
+{% if error %}<div class="flash error" role="alert">{{ error|tr(locale) }}</div>{% endif %}
+{% if not preview %}
+<section class="card">
+  <p>Choose the two entries you confirmed are the same payment or transfer. The kept entry stays in the ledger.</p>
+  <p>{{ 'Select two transactions in the register, then choose Merge selected.'|tr(locale) }}</p><a class="btn" href="/transactions?select=1">{{ 'Open register'|tr(locale) }}</a>
+</section>
+{% else %}
+<section class="card">
+  <h2>Kept entry · {{ preview.keep.ref }}</h2>
+  <p class="muted">{{ preview.keep.date }} · {{ preview.keep.type_label|tr(locale) }} · {{ preview.keep.description or preview.keep.counterparty or 'Transaction' }}</p>
+  <p class="num">{{ keep_summary.amount|abs|money }} {{ keep_summary.currency }}{% if preview.keep.counterparty %} · {{ preview.keep.counterparty }}{% endif %}</p>
+  <p>Accounts: {{ keep_accounts|join(', ') }}</p>
+</section>
+<section class="card">
+  <h2>Will be merged · {{ preview.drop.ref }}</h2>
+  <p class="muted">{{ preview.drop.date }} · {{ preview.drop.type_label|tr(locale) }} · {{ preview.drop.description or preview.drop.counterparty or 'Transaction' }}</p>
+  <p class="num">{{ drop_summary.amount|abs|money }} {{ drop_summary.currency }}{% if preview.drop.counterparty %} · {{ preview.drop.counterparty }}{% endif %}</p>
+  <p>Accounts: {{ drop_accounts|join(', ') }}</p>
+  <p>The duplicate will be voided with a reason pointing to {{ preview.keep.ref }}. Its imported source records, and safe unique plan or reserve links, will move to the kept entry. The duplicate’s cash effect is removed once; no new payment is posted.</p>
+</section>
+<section class="card">
+  <h2>Before you confirm</h2>
+  <p>Confirm these are the same real-world entry. The merge keeps the kept entry’s date and ledger lines. Blank counterparty, category, and notes are filled from the duplicate.</p>
+  <form method="post" action="/transactions/merge" class="actions" data-confirm-delete="Merge {{ preview.drop.ref }} into {{ preview.keep.ref }}? The duplicate will be voided; its entry and source records remain in history.">
+    <input type="hidden" name="keep_id" value="{{ preview.keep.id }}">
+    <input type="hidden" name="drop_id" value="{{ preview.drop.id }}">
+    <input type="hidden" name="fingerprint" value="{{ preview.fingerprint }}">
+    <button class="btn danger">Merge {{ preview.drop.ref }} into {{ preview.keep.ref }}</button>
+    <a class="btn" href="/transactions/{{ preview.keep.id }}">Cancel</a>
+    <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}">
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% if action_history and (action_history.undo or action_history.redo) %}
+<div class="actions" aria-label="{{ 'Action history'|tr(locale) }}">
+{% for operation in ('undo', 'redo') %}{% set step = action_history.get(operation) %}{% if step %}
+<form method="post" action="/history/{{ operation }}">
+  <input type="hidden" name="__session" value="{{ session_token|default('') }}">
+  <input type="hidden" name="group_id" value="{{ step.id }}">
+  <input type="hidden" name="back" value="{{ path }}">
+  <button class="btn small" type="submit">{{ ('Undo' if operation == 'undo' else 'Redo')|tr(locale) }} · {{ step.label|tr(locale) }}</button>
+</form>
+{% endif %}{% endfor %}
+</div>
+{% endif %}

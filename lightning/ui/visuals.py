@@ -520,7 +520,7 @@ def cash_plan(c, forecast, day: date) -> dict:
     for item in c.planning.items((PlanKind.LOAN,)):
         progress = c.planning.loan_progress(item, day)
         if progress["still_to_pay"] > 0:
-            loans.append({"label": item.name, "value": progress["still_to_pay"],
+            loans.append({"label": item.name, "value": c.planning.amount_in_base(item, progress["still_to_pay"], day),
                           "note": f"ends {progress['last_date']}" if progress["last_date"] else ""})
     loans.sort(key=lambda r: -r["value"])
     if len(loans) > 4:

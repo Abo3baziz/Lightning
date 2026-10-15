@@ -41,7 +41,7 @@ public final class SyncService extends Service {
             startForeground(1, notification(note));
         }
         handler.removeCallbacksAndMessages(null);
-        handler.postDelayed(this::check, 60_000);
+        handler.post(this::check);
         return START_NOT_STICKY;
     }
 
@@ -54,7 +54,9 @@ public final class SyncService extends Service {
             } catch (Throwable error) {
                 note = "";
             }
-            String text = note;
+            ReminderNotifications.PollResult reminders = ReminderNotifications.check(
+                    this, MainActivity.reminderOrigin, MainActivity.reminderCookie);
+            String text = !note.isEmpty() ? note : (reminders.enabled ? "Reminders are on" : "");
             handler.post(() -> {
                 if (text.isEmpty()) {
                     stopSelf();

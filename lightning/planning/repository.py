@@ -9,7 +9,8 @@ from lightning.database.connection import Database
 from .domain import Frequency, PlanKind, PlannedItem, WeekendMove
 
 _COLUMNS = ("kind", "name", "amount_e6", "frequency", "interval_count", "start_date", "end_date",
-            "payment_count", "account_id", "category_id", "counterparty_id", "principal_e6", "notes", "weekend_move", "month_day")
+            "payment_count", "account_id", "category_id", "counterparty_id", "principal_e6", "notes", "weekend_move", "month_day",
+            "match_window_days", "match_tolerance_pct")
 
 
 def _item(row) -> PlannedItem:
@@ -20,7 +21,8 @@ def _item(row) -> PlannedItem:
         account_id=row["account_id"], category_id=row["category_id"], counterparty_id=row["counterparty_id"],
         principal=from_e6(row["principal_e6"]) if row["principal_e6"] is not None else None,
         active=bool(row["active"]), notes=row["notes"],
-        weekend_move=WeekendMove(row["weekend_move"]), month_day=row["month_day"])
+        weekend_move=WeekendMove(row["weekend_move"]), month_day=row["month_day"],
+        match_window_days=row["match_window_days"], match_tolerance_pct=row["match_tolerance_pct"])
 
 
 class PlanningRepository:
@@ -121,10 +123,14 @@ class PlanningRepository:
         self.db.execute("INSERT INTO installment_purchases VALUES (?,?,?,?)", (item_id, to_e6(price), to_e6(fee), count))
 
     def candidates(self, incoming: bool, account_id: int | None, category_id: int | None,
-                   counterparty_id: int | None, date_from: str, date_to: str) -> list[dict]:
+                   counterparty_id: int | None, date_from: str, date_to: str, currency: str,
+                   require_all_identity: bool = False) -> list[dict]:
         """Posted, owned money-in or money-out transactions that could settle a payment."""
         effect = "INFLOW" if incoming else "OUTFLOW"
         where = ["t.status='POSTED'", "l.effect=?", "l.owner_id IS NULL", "t.date BETWEEN ? AND ?"]
+        where.append("l.asset_id IN (SELECT id FROM financial_assets WHERE is_cash=1)")
+        where.append("(t.type='IN' AND l.quantity_e6>0)" if incoming else
+                     "((t.type='OUT' OR (t.type='ADJ' AND t.description LIKE 'Ownership: expense paid by %')) AND l.quantity_e6<0)")
         params: list = [effect, date_from, date_to]
         if account_id:
             where.append("l.account_id=?"); params.append(account_id)
@@ -132,24 +138,30 @@ class PlanningRepository:
         if counterparty_id:
             match.append("t.counterparty_id=?"); params.append(counterparty_id)
         if category_id:
-            match.append("l.category_id=?"); params.append(category_id)
+            match.append("EXISTS (SELECT 1 FROM ledger_entries m WHERE m.transaction_id=t.id "
+                         "AND m.effect=l.effect AND m.owner_id IS NULL AND m.category_id=?)")
+            params.append(category_id)
         if match:
-            where.append("(" + " OR ".join(match) + ")")
+            where.append("(" + (" AND " if require_all_identity and len(match) > 1 else " OR ").join(match) + ")")
+        where.append("a.currency=?")
+        params.append(currency)
         rows = self.db.all(
             "SELECT t.id,t.ref,t.date,t.counterparty,t.counterparty_id,GROUP_CONCAT(l.category_id) category_ids,"
-            "SUM(ABS(l.amount_base_e6)) amount_e6 FROM transactions t "
-            "JOIN ledger_entries l ON l.transaction_id=t.id WHERE " + " AND ".join(where) +
+            "SUM(ABS(l.quantity_e6)) amount_e6 FROM transactions t "
+            "JOIN ledger_entries l ON l.transaction_id=t.id JOIN accounts a ON a.id=l.account_id WHERE " + " AND ".join(where) +
             " GROUP BY t.id ORDER BY t.date,t.id", tuple(params))
         return [dict(row) | {"amount": from_e6(row["amount_e6"]),
                              "category_ids": {int(x) for x in (row["category_ids"] or "").split(",") if x}}
                 for row in rows]
 
     def payment_transaction(self, transaction_id: int, incoming: bool, account_id: int | None,
-                            category_id: int | None, counterparty_id: int | None) -> dict | None:
+                            category_id: int | None, counterparty_id: int | None, currency: str) -> dict | None:
         """Read a posted, owned transaction that is valid for an explicit payment link."""
         effect = "INFLOW" if incoming else "OUTFLOW"
         doc_type = "IN" if incoming else "OUT"
         where = ["t.id=?", "t.status='POSTED'", "l.effect=?", "l.owner_id IS NULL"]
+        where.append("l.asset_id IN (SELECT id FROM financial_assets WHERE is_cash=1)")
+        where.append("l.quantity_e6>0" if incoming else "l.quantity_e6<0")
         params: list = [transaction_id, effect]
         if incoming:
             where.append("t.type='IN'")
@@ -160,19 +172,22 @@ class PlanningRepository:
         if account_id:
             where.append("l.account_id=?")
             params.append(account_id)
+        where.append("a.currency=?")
+        params.append(currency)
         identity = []
         if counterparty_id:
             identity.append("t.counterparty_id=?")
             params.append(counterparty_id)
         if category_id:
-            identity.append("l.category_id=?")
+            identity.append("EXISTS (SELECT 1 FROM ledger_entries m WHERE m.transaction_id=t.id "
+                            "AND m.effect=l.effect AND m.owner_id IS NULL AND m.category_id=?)")
             params.append(category_id)
         if not identity:
             return None
         where.append("(" + " OR ".join(identity) + ")")
         row = self.db.one(
-            "SELECT t.id,t.date,SUM(ABS(l.amount_base_e6)) amount_e6 FROM transactions t "
-            "JOIN ledger_entries l ON l.transaction_id=t.id WHERE " + " AND ".join(where) + " GROUP BY t.id",
+            "SELECT t.id,t.date,SUM(ABS(l.quantity_e6)) amount_e6 FROM transactions t "
+            "JOIN ledger_entries l ON l.transaction_id=t.id JOIN accounts a ON a.id=l.account_id WHERE " + " AND ".join(where) + " GROUP BY t.id",
             tuple(params))
         return dict(row) | {"amount": from_e6(row["amount_e6"])} if row else None
 
@@ -193,4 +208,5 @@ class PlanningRepository:
                 values["interval_count"], values["start_date"], values.get("end_date"), values.get("payment_count"),
                 values.get("account_id"), values.get("category_id"), values.get("counterparty_id"),
                 to_e6(values["principal"]) if values.get("principal") is not None else None,
-                values.get("notes", ""), values.get("weekend_move", "none"), values.get("month_day"))
+                values.get("notes", ""), values.get("weekend_move", "none"), values.get("month_day"),
+                values["match_window_days"], values["match_tolerance_pct"])

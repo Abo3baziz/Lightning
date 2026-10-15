@@ -82,7 +82,7 @@ Ranked by harm to trust, then by how often a user meets it.
 
 **X-13 · Visual · P3 — Two-line names wrap to three.** "Commercial International Bank (COMI)", "Gold pound (from grandma)" wrap three lines in Biggest holdings; Allocation legend wraps "Total · 70% of what you own". Use the short name (ticker or nickname) in charts and the full name in tables.
 
-**X-14 · Flow · P3 — Undo.** Every edit is still final. Build [undo.md](undo.md); the most painful today are a wrong bulk category and a wrong import.
+**X-14 · Flow · P3 — Undo.** Built locally 2026-10-15: edits, imports and grouped reviews use session undo/redo. Read Architecture › Action history and checked accounts. Behavioural acceptance remains outstanding.
 
 ## 3. First run and profiles
 

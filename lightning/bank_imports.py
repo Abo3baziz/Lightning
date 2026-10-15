@@ -305,19 +305,26 @@ class BankImportService:
                 "JOIN transactions t ON t.id=r.transaction_id AND t.status='POSTED' "
                 "WHERE b.account_id=? AND r.bank_reference=? AND b.id<>? AND r.status IN ('POSTED','LINKED') LIMIT 1",
                 (batch["account_id"], row["bank_reference"], batch_id))))
+            file_digest = batch["file_hash"].split("#", 1)[0]
+            repeat_import = bool(self.db.scalar(
+                "SELECT 1 FROM bank_import_rows r JOIN bank_import_batches b ON b.id=r.batch_id "
+                "WHERE b.account_id=? AND b.id<>? AND (b.file_hash=? OR b.file_hash LIKE ?) "
+                "AND r.row_number=? AND r.status<>'REVIEW' LIMIT 1",
+                (batch["account_id"], batch_id, file_digest, file_digest + "#%", row["row_number"])))
             if row["bank_reference"]:
                 seen_refs.add(row["bank_reference"])
             cp = self.counterparties.resolve(parsed["Counterparty"])
             parsed["_counterparty_id"] = cp["id"] if cp else None
             parsed["_suggestions"] = self.counterparties.suggestions(parsed["Counterparty"])
             parsed["_reference_duplicate"] = ref_duplicate
+            parsed["_repeat_import"] = repeat_import
             parsed["_pending_elsewhere"] = pending_elsewhere.get((parsed.get("Date"), parsed.get("Amount")), "")
             parsed["_similarity_warning"] = (self._similarity_warning(batch["account_id"], parsed)
                 or amount_dates.get((parsed["Date"], parsed["Amount"]), 0) > 1 or bool(parsed["_pending_elsewhere"]))
             parsed["_voided_earlier"] = not ref_duplicate and self._voided_earlier(batch["account_id"], batch_id,
                                                                                 row["bank_reference"], parsed)
-            parsed["_link_candidates"] = ([] if ref_duplicate or row["status"] != "REVIEW"
-                                          else self._link_candidates(batch["account_id"], parsed))
+            parsed["_link_candidates"] = ([] if ref_duplicate or repeat_import or row["status"] != "REVIEW"
+                                          else self._link_candidates(batch["account_id"], parsed, batch["id"]))
             parsed["_internal"] = is_internal(parsed["Category"])
             outcome = self._rules_outcome(batch["account_id"], parsed, cp)
             parsed["_category_id"] = None if parsed["_internal"] else self._category_for(parsed, cp, outcome)
@@ -341,7 +348,7 @@ class BankImportService:
             # Keep the canonical owner ready in the form: the user may choose
             # the custody category during review rather than in the CSV.
             parsed["_whom"] = cp["name"] if cp and cp["active"] else ""
-            parsed["_possible_duplicate"] = bool(ref_duplicate or parsed["_similarity_warning"]
+            parsed["_possible_duplicate"] = bool(ref_duplicate or repeat_import or parsed["_similarity_warning"]
                                                  or parsed["_voided_earlier"] or parsed["_link_candidates"])
             parsed["_ready"] = bool(not parsed.get("_errors") and not parsed["_possible_duplicate"]
                                     and not parsed["_suggestions"] and not parsed["_needs_account"]
@@ -354,33 +361,43 @@ class BankImportService:
         claimed = set()
         for parsed in result:
             free = [c for c in parsed["_link_candidates"] if c["id"] not in claimed]
-            if free:
+            # A single candidate can be a useful default. When more than one
+            # transaction fits, require the reviewer to choose explicitly.
+            if len(parsed["_link_candidates"]) == 1 and free and not free[0].get("source_count"):
                 parsed["_default_match"] = f"link:{free[0]['id']}"
                 claimed.add(free[0]["id"])
             else:
                 parsed["_default_match"] = "skip" if parsed["_possible_duplicate"] else "new"
         return batch, result
 
-    def _link_candidates(self, account_id: int, parsed: dict) -> list[dict]:
-        """Posted transactions this statement row may already stand for: the same signed amount on
-        this account within LINK_WINDOW_DAYS, not already backed by an imported row. Closest date first.
-        Amount and date alone only suggest a match; the user confirms it in the review."""
+    def _link_candidates(self, account_id: int, parsed: dict, batch_id: int | None = None) -> list[dict]:
+        """Posted transactions this source row may already stand for: the same signed amount on
+        this account within LINK_WINDOW_DAYS. Existing source rows from other batches are evidence,
+        not a reason to hide the transaction. A transaction can be linked at most once per batch.
+        Amount and date only suggest a match; the user confirms it in the review."""
         if parsed.get("_errors"):
             return []
         amount_e6 = int(Decimal(parsed["Amount"]) * 1_000_000)
         rows = self.db.all(
-            "SELECT t.id,t.date,t.type,t.counterparty,t.notes FROM transactions t "
+            "SELECT t.id,t.date,t.type,t.counterparty,t.notes, "
+            "(SELECT COUNT(*) FROM bank_import_rows r WHERE r.transaction_id=t.id AND r.account_id=? "
+            "AND r.status IN ('POSTED','LINKED')) AS source_count, "
+            "(SELECT GROUP_CONCAT(DISTINCT b.file_name) FROM bank_import_rows r "
+            "JOIN bank_import_batches b ON b.id=r.batch_id WHERE r.transaction_id=t.id AND r.account_id=? "
+            "AND r.status IN ('POSTED','LINKED')) AS source_files FROM transactions t "
             "JOIN ledger_entries l ON l.transaction_id=t.id AND l.account_id=? "
             "WHERE t.status='POSTED' AND julianday(t.date) BETWEEN julianday(?)-? AND julianday(?)+? "
-            "AND NOT EXISTS (SELECT 1 FROM bank_import_rows r WHERE r.transaction_id=t.id "
-            "AND r.account_id=? AND r.status IN ('POSTED','LINKED')) "
+            "AND (? IS NULL OR NOT EXISTS (SELECT 1 FROM bank_import_rows r "
+            "WHERE r.transaction_id=t.id AND r.account_id=? AND r.batch_id=? "
+            "AND r.status IN ('POSTED','LINKED'))) "
             "GROUP BY t.id HAVING SUM(l.amount_e6)=? "
             "ORDER BY abs(julianday(t.date)-julianday(?)), t.id",
-            (account_id, parsed["Date"], LINK_WINDOW_DAYS, parsed["Date"], LINK_WINDOW_DAYS,
-             account_id, amount_e6, parsed["Date"]))
+            (account_id, account_id, account_id, parsed["Date"], LINK_WINDOW_DAYS, parsed["Date"],
+             LINK_WINDOW_DAYS, batch_id, account_id, batch_id, amount_e6, parsed["Date"]))
         return [{"id": r["id"], "date": r["date"], "type": r["type"],
                  "counterparty": r["counterparty"] or "", "notes": r["notes"] or "",
-                 "amount": parsed["Amount"]} for r in rows]
+                 "amount": parsed["Amount"], "source_count": r["source_count"],
+                 "source_files": r["source_files"] or ""} for r in rows]
 
     def _voided_earlier(self, account_id: int, batch_id: int, reference: str | None, parsed: dict) -> bool:
         """An earlier import of this row was voided: importing it again must not quietly bring it back."""
@@ -594,6 +611,14 @@ class BankImportService:
                         except LightningError as exc:
                             errors[int(row_id)] = exc.message
                         continue
+                    checked = self.db.scalar("SELECT date FROM reconciled_through WHERE account_id=?", (batch["account_id"],))
+                    try:
+                        effective_date = _date(str(decision.get("date", row["Date"])))
+                    except ValueError:
+                        effective_date = None
+                    if checked and effective_date and effective_date <= checked:
+                        self.db.execute("UPDATE bank_import_rows SET status='SKIPPED' WHERE id=?", (row_id,))
+                        continue
                     self._pending_created = None
                     try:
                         with self.db.transaction():
@@ -627,9 +652,10 @@ class BankImportService:
             raise ValidationError(f"CSV row {row['_line']}: that entry no longer matches this row; "
                                   "choose again or post it as new.", "match")
         if self.db.scalar("SELECT 1 FROM bank_import_rows WHERE transaction_id=? AND account_id=? "
-                          "AND status IN ('POSTED','LINKED')", (txn_id, row["_account_id"])):
+                          "AND batch_id=(SELECT batch_id FROM bank_import_rows WHERE id=?) "
+                          "AND status IN ('POSTED','LINKED')", (txn_id, row["_account_id"], row_id)):
             raise ValidationError(f"CSV row {row['_line']}: another statement row is already linked to that "
-                                  "entry. Post this one as new if it is a second payment.", "match")
+                                  "entry in this import. Post this one as new if it is a second payment.", "match")
         self.db.execute("UPDATE bank_import_rows SET status='LINKED',transaction_id=? WHERE id=?",
                         (txn_id, row_id))
 

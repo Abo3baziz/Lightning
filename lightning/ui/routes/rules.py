@@ -40,7 +40,7 @@ async def rules_page(request: Request):
 async def new_rule(request: Request):
     c = container(request)
     values = c.rules.form_values()
-    for key in ("counterparty", "category_id"):
+    for key in FIELDS:
         values[key] = str(request.query_params.get(key, "") or values[key])
     return _form(request, c, values)
 
@@ -92,13 +92,22 @@ async def past_matches(request: Request, rule_id: int):
     if not changes:
         return redirect("/rules", request.query_params.get("msg", "") or "Rule saved.")
     return render(request, "rules/past.html", rule=rule, words=c.rules.describe(rule), changes=changes[:PAST_SHOWN],
-                  total=len(changes), more=max(len(changes) - PAST_SHOWN, 0))
+                  total=len(changes), more=max(len(changes) - PAST_SHOWN, 0), fingerprint=c.rules.past_token(rule_id, changes))
 
 
 @router.post("/{rule_id:int}/apply")
 async def apply_to_past(request: Request, rule_id: int):
     c = container(request)
-    count, token = c.rules.apply_past(rule_id)
+    form = await request.form()
+    selected = form.getlist("transaction_id")
+    if not selected:
+        return redirect(f"/rules/{rule_id}/past", "No selected transactions to change.")
+    try:
+        if len(selected) > 1000 or any(not str(value).isdigit() for value in selected):
+            raise ValueError
+        count, token = c.rules.apply_past(rule_id, {int(value) for value in selected}, str(form.get("fingerprint", "")))
+    except (LightningError, ValueError) as exc:
+        return redirect(f"/rules/{rule_id}/past", getattr(exc, "message", "Choose valid transactions."))
     if not count:
         return redirect("/rules", "Nothing in the past to change.")
     return redirect(f"/rules?undo={token}", f"{count} past transaction{'s' if count != 1 else ''} refiled.")

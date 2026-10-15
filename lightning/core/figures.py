@@ -42,6 +42,15 @@ class Figure:
 
 
 _TABLE = [
+    ("cash_available_to_assign", "Cash available to assign",
+     "Actual owned liquid cash left after reserves, funded spending and bills due outside those funds. Missing FX makes it unavailable; expected income never contributes.",
+     "Owned liquid cash − Effective reserves − Funded spending left − Unfunded bills due"),
+    ("funded_spending_left", "Funded spending left",
+     "This month's assigned category cash after owned spending and refunds, floored at zero. Unused funding does not carry automatically.",
+     "max(Assigned category amount − Owned spending, 0)"),
+    ("reimbursement_outstanding", "Outstanding reimbursement",
+     "The eligible amount claimed for an owned expense that valid explicitly linked repayments or refunds have not covered. A claim is not cash before receipt.",
+     "max(Eligible claimed amount − Valid linked receipts, 0)"),
     # ------------------------------------------------------------ position (a date)
     ("in_your_accounts", "In your accounts", "Everything in your accounts, including what you hold for other people.",
      "What you own + Held for others"),
@@ -217,6 +226,9 @@ P, WYO, CF, BL = ("lightning.planning.position.Position", "lightning.planning.do
                   "lightning.reporting.service.CashFlow", "lightning.budgeting.domain.BudgetLine")
 INV, FC = "lightning.investments.report", "lightning.planning.forecast.CashForecaster"
 _SOURCES = {
+    "cash_available_to_assign": (BOTH, "lightning.planning.funding.CashFundingService.preview"),
+    "funded_spending_left": (BOTH, "lightning.planning.funding.CashFundingService.preview"),
+    "reimbursement_outstanding": (BOTH, "lightning.reimbursements.ReimbursementService._claim_summary"),
     "in_your_accounts": (LEDGER, f"{P}.in_your_accounts"),
     "held_for_others": (LEDGER, "lightning.reporting.service.ReportingService.money_from_others_total"),
     "what_you_own": (LEDGER, "lightning.reporting.service.ReportingService.net_worth"),

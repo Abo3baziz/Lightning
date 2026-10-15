@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import secrets
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from decimal import Decimal
 
 from lightning.categories.domain import Direction, Movement
@@ -170,7 +170,12 @@ class RuleService:
         target = self.categories.get(rule.category_id)
         rules = self.repo.rules()
         out = []
+        locked = {row["transaction_id"] for row in self.db.all(
+            "SELECT DISTINCT le.transaction_id FROM ledger_entries le JOIN reconciled_through r "
+            "ON r.account_id=le.account_id WHERE le.date<=r.date")}
         for row in self.repo.single_category_history():
+            if row["id"] in locked:
+                continue
             if row["category_id"] == rule.category_id:
                 continue
             wanted = Direction.IN if row["type"] == "IN" else Direction.OUT
@@ -187,18 +192,29 @@ class RuleService:
                                   row["amount"], current.name))
         return out
 
-    def apply_past(self, rule_id: int) -> tuple[int, str]:
-        """Refile every past transaction ``past`` lists under the rule's category, together; the old
-        categories are kept so one undo puts them back. Returns (how many changed, the undo token)."""
-        rule = self.get(rule_id)
-        changes = self.past(rule_id)
-        if not changes:
-            return 0, ""
-        old = {}
-        for change in changes:
-            txn = self.transactions.get(change.id)
-            old[str(change.id)] = next(line.category_id for line in txn.lines if line.category_id)
-        with self.db.transaction():
+    def past_token(self, rule_id, changes=None):
+        from hashlib import sha256
+        data = {"rule": asdict(self.get(rule_id)),
+                "changes": [asdict(change) for change in (self.past(rule_id) if changes is None else changes)]}
+        return sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
+
+    def apply_past(self, rule_id: int, selected_ids=None, fingerprint=None) -> tuple[int, str]:
+        with self.db.transaction(undo_label="Apply rule to selected activity"):
+            rule = self.get(rule_id)
+            changes = self.past(rule_id)
+            if fingerprint is not None and fingerprint != self.past_token(rule_id, changes):
+                raise ValidationError("The rule preview changed. Review it again before applying.")
+            if selected_ids is not None:
+                chosen = set(selected_ids)
+                if chosen - {change.id for change in changes}:
+                    raise ValidationError("The rule preview changed. Review it again before applying.")
+                changes = [change for change in changes if change.id in chosen]
+            if not changes:
+                return 0, ""
+            old = {}
+            for change in changes:
+                txn = self.transactions.get(change.id)
+                old[str(change.id)] = next(line.category_id for line in txn.lines if line.category_id)
             changed, _ = self.transactions.set_category([c.id for c in changes], rule.category_id)
             token = secrets.token_hex(8)
             self.settings.set(UNDO_KEY, json.dumps({"token": token, "rule_id": rule_id,

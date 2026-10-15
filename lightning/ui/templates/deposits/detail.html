@@ -49,6 +49,8 @@
   {% else %}<p class="empty">{{ 'No certificates in this portfolio yet. Add one below.'|tr(locale) }}</p>{% endif %}
 </section>
 
+{% block receipt_reconciliation %}{% include "deposits/receipt_events.html" %}{% endblock %}
+
 <section class="card" style="margin-top:16px">
   <h2>{{ 'Buy a certificate'|tr(locale) }}</h2>
   {% if not account.institution %}<p class="error">{{ 'Set this portfolio account’s Institution to the bank name before adding CDs.'|tr(locale) }} <a href="/accounts/{{ account.id }}/edit">{{ 'Edit account'|tr(locale) }}</a>.</p>{% endif %}

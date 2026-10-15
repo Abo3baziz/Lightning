@@ -62,7 +62,7 @@ _I = {  # tab icons
 
 SECTIONS: tuple[Section, ...] = (
     Section("overview", "Overview", "overview", (
-        Tab("summary", "Summary", "/", _I["summary"], ("=/", "=/birdview", "/explain", "/birdview/class"),
+        Tab("summary", "Summary", "/", _I["summary"], ("=/", "=/birdview", "/explain", "/birdview/class", "/review", "/activity", "/reimbursements"),
             settings=("valuations", "assets-valuations"), gear="/settings?section=valuations", gear_label="Sale factors"),
         Tab("spending", "Spending", "/birdview/expenses", _I["spending"], ("/birdview/expenses",)),
         Tab("health", "Health", "/financial-health", _I["health"], ("/financial-health",),
@@ -70,12 +70,12 @@ SECTIONS: tuple[Section, ...] = (
         Tab("currencies", "Currencies", "/accounts/currencies", _I["currencies"], ("=/accounts/currencies",)),
     )),
     Section("budget", "Budget", "budget", (
-        Tab("budget", "Budget", "/budget", _I["budget"], ("/budget",), settings=("budget",),
+        Tab("budget", "Budget", "/budget", _I["budget"], ("/budget", "/payday"), settings=("budget",),
             gear="/settings?section=budget", gear_label="Budget settings"),
     )),
     Section("plan", "Cash planning", "cash", (
         Tab("plan", "Plan", "/plan", _I["plan"], ("=/plan", "/plan/items")),
-        Tab("recurring", "Recurring", "/plan/recurring", _I["recurring"], ("/plan/recurring", "/setup/salary")),
+        Tab("recurring", "Recurring", "/plan/recurring", _I["recurring"], ("/plan/recurring", "/setup/salary", "/plan/from-transaction")),
         Tab("loans", "Loans", "/plan/loans", _I["loans"], ("/plan/loans", "/plan/purchases")),
         Tab("reserves", "Reserves", "/plan/reserves", _I["reserves"], ("/plan/reserves", "/reserves")),
     )),

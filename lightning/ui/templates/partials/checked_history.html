@@ -1,0 +1,1 @@
+{% if checked_history and account %}<p class="muted small">{{ 'Protected through {date}'|tr(locale, date=checked_history) }} · <a href="/accounts/{{ account.id }}/reconcile">{{ 'Review checked history'|tr(locale) }}</a></p>{% endif %}

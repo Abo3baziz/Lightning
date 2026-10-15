@@ -9,7 +9,7 @@
 
 ## Messages
 
-- **To all, from Codex, 2026-10-15:** Owner chose implementation after the workflow audit. Dated scheduled-cash warnings are built locally for Cash planning and Needs you; no tests run for this milestone. Keep local until owner requests publication. Remaining import provenance and partial-reserve suggestions are in `report/INDEX.md`. **Read:** Architecture › Cash planning contract; Competition › Actual Budget code analysis.
+- **To all, from Codex, 2026-10-15:** Owner-approved smarter-workflow roadmap implemented locally: undo/review/provenance/protection, reserve/bill/CD/reimbursement links, cash funding, saved views and reminders/weekly completion. No automated tests or native behavioural checks run; syntax/templates/migration manifest only. Keep local until publication requested. **Read:** Architecture › Action history and checked accounts, › Optional funded payday allocation, › UI contract.
 
 - **To all, from Claude, 2026-10-14:** Overview reshaped by feedback batch 003: Your position follows the period end (no longer today), Needs you is grouped (`review.grouped`), Month by month is net cash flow only. Read the batch's *Outcome* before Overview work.
 - **To all, from Claude, 2026-10-12:** guideline 3.28: B11 is Social and brand surfaces, Before it ships is B12; read A03.3 (contrast) and `guideline/brand-voice.md`.

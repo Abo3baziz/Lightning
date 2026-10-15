@@ -8,6 +8,8 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
@@ -24,9 +26,20 @@ import java.io.ByteArrayInputStream;
 
 /** Lightning on the phone: the shared pages in a WebView locked to this phone's own server (task 04c rules). */
 public final class MainActivity extends Activity {
+    static volatile Uri reminderOrigin;
+    static volatile String reminderCookie;
+    static volatile boolean reminderEnabled;
     private WebView web;
     private Uri origin;
     private boolean openSms;  // a message was shared in before the pages were ready
+    private String pendingReminderHref;
+    private final Handler reminderHandler = new Handler(Looper.getMainLooper());
+    private final Runnable reminderPoll = new Runnable() {
+        @Override public void run() {
+            checkReminders();
+            reminderHandler.postDelayed(this, 60_000);
+        }
+    };
 
     static void fitSystemBars(View view) {
         if (Build.VERSION.SDK_INT >= 30) {
@@ -52,6 +65,7 @@ public final class MainActivity extends Activity {
         SmsBridge.activity = this;
         BiometricBridge.activity = this;
         takeShare(getIntent());
+        queueReminder(getIntent());
         WebView.setWebContentsDebuggingEnabled(false);
         FrameLayout frame = new FrameLayout(this);
         fitSystemBars(frame);
@@ -80,7 +94,9 @@ public final class MainActivity extends Activity {
     }
 
     private void show(FrameLayout frame, String url) {
-        origin = Uri.parse(url);
+        Uri launch = Uri.parse(url);
+        origin = launch.buildUpon().encodedPath("/").clearQuery().fragment(null).build();
+        reminderOrigin = origin;
         web = new WebView(this);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -103,10 +119,20 @@ public final class MainActivity extends Activity {
                 return new WebResourceResponse("text/plain", "utf-8", 403, "Forbidden", null,
                         new ByteArrayInputStream(new byte[0]));
             }
+
+            @Override
+            public void onPageFinished(WebView view, String finishedUrl) {
+                if (ours(Uri.parse(finishedUrl))) checkReminders();
+            }
         });
         frame.removeAllViews();
         frame.addView(web);
         web.loadUrl(url);
+        if (pendingReminderHref != null) {
+            String href = pendingReminderHref;
+            pendingReminderHref = null;
+            web.postDelayed(() -> openReminder(href), 1000);
+        }
         if (openSms) {
             openSms = false;
             web.postDelayed(() -> web.loadUrl(origin.buildUpon().path("/sms").build().toString()), 1500);
@@ -128,6 +154,8 @@ public final class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         takeShare(intent);
+        String href = intent.getStringExtra("reminder_href");
+        if (href != null) openReminder(href);
     }
 
     @Override
@@ -148,16 +176,21 @@ public final class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         stopService(new Intent(this, SyncService.class));
+        reminderHandler.removeCallbacks(reminderPoll);
+        reminderHandler.postDelayed(reminderPoll, 5_000);
     }
 
     @Override
     protected void onStop() {
+        reminderHandler.removeCallbacks(reminderPoll);
         super.onStop();
         new Thread(() -> {
             try {
                 String note = Python.getInstance().getModule("lightning_android").callAttr("background_note").toString();
-                if (!note.isEmpty()) {
-                    Intent intent = new Intent(this, SyncService.class).putExtra("note", note);
+                String cookie = reminderCookie;
+                if (!note.isEmpty() || (reminderEnabled && cookie != null && !cookie.isEmpty())) {
+                    Intent intent = new Intent(this, SyncService.class)
+                            .putExtra("note", note.isEmpty() ? "Checking enabled reminders" : note);
                     if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
                     else startService(intent);
                 }
@@ -165,5 +198,35 @@ public final class MainActivity extends Activity {
                 // Without the service the PC hands back the next time Lightning is open here.
             }
         }, "lightning-background").start();
+    }
+
+    private void checkReminders() {
+        if (web == null || origin == null || !ours(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) return;
+        String cookie = CookieManager.getInstance().getCookie(origin.toString());
+        reminderCookie = cookie;
+        if (cookie == null || cookie.isEmpty()) return;
+        Uri currentOrigin = origin;
+        new Thread(() -> {
+            ReminderNotifications.PollResult result = ReminderNotifications.check(this, currentOrigin, cookie);
+            reminderEnabled = result.enabled;
+        }, "lightning-reminders").start();
+    }
+
+    private void queueReminder(Intent intent) {
+        if (intent == null) return;
+        String href = intent.getStringExtra("reminder_href");
+        if (href != null) pendingReminderHref = href;
+    }
+
+    private void openReminder(String href) {
+        Uri target = ReminderNotifications.safeHrefForActivity(href);
+        if (target == null) return;
+        if (web == null || origin == null) {
+            pendingReminderHref = href;
+            return;
+        }
+        Uri full = origin.buildUpon().encodedPath(target.getEncodedPath())
+                .encodedQuery(target.getEncodedQuery()).fragment(null).build();
+        if (ours(full)) web.loadUrl(full.toString());
     }
 }

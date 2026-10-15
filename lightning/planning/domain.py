@@ -69,6 +69,8 @@ class PlannedItem:
     notes: str
     weekend_move: WeekendMove = WeekendMove.NONE
     month_day: int | None = None
+    match_window_days: int = 7
+    match_tolerance_pct: int = 10
 
     @property
     def is_income(self) -> bool:
@@ -123,6 +125,7 @@ class WhatYouOwe:
     bills_due: Decimal              # unpaid bills, subscriptions and loan payments dated on or before as-of
     loans_still_to_pay: Decimal     # every unpaid loan payment, due or upcoming
     bills_due_items: list[Payment] = field(default_factory=list)
+    loans_due_in_base: Decimal | None = None
 
     @property
     def other_bills_due_items(self) -> list[Payment]:
@@ -132,7 +135,8 @@ class WhatYouOwe:
     @property
     def other_bills_due(self) -> Decimal:
         """Bills due that are not loan payments (those are already in loans still to pay)."""
-        return self.bills_due - sum((p.still_owed for p in self.bills_due_items if p.item.kind == PlanKind.LOAN), ZERO)
+        return self.bills_due - (self.loans_due_in_base if self.loans_due_in_base is not None else
+                                 sum((p.still_owed for p in self.bills_due_items if p.item.kind == PlanKind.LOAN), ZERO))
 
     @property
     def total(self) -> Decimal:

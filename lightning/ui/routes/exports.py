@@ -8,6 +8,7 @@ from io import StringIO
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
+from lightning.core.errors import LightningError
 from ..web import container, render
 
 router = APIRouter(prefix="/exports")
@@ -114,3 +115,26 @@ async def reevaluations(request: Request):
                 "account", "asset_id", "asset", "owner_id", "held_for", "units", "price", "value_base",
                 "return_base", "currency", "base_currency", "price_source", "needs_price", "journal_transaction_id",
                 "journal_reference"), rows)
+
+
+@router.get("/views/{view_id:int}")
+async def saved_view(request: Request, view_id: int):
+    c = container(request)
+    try:
+        raw_scope = request.query_params.get("account_id", "").strip()
+        if raw_scope and (not raw_scope.isdigit() or int(raw_scope) < 1):
+            raise ValueError("Choose a valid account.")
+        scope = c.accounts.get(int(raw_scope)).id if raw_scope else None
+        view = c.saved_views.get(view_id, scope)
+        report = c.saved_views.report(view)
+    except LightningError as exc:
+        return Response(exc.message, status_code=404, media_type="text/plain")
+    except ValueError as exc:
+        return Response(str(exc), status_code=400, media_type="text/plain")
+    rows = [tuple(_safe_text(value) for value in
+                  (row.date, row.ref, row.type, row.account_label, row.counterparty or row.description,
+                   row.category_label, row.notes, str(row.amount), row.currency, str(row.amount_base)))
+            for row in report["rows"]]
+    return _csv(f"lightning-view-{view_id}.csv",
+                ("date", "reference", "type", "account", "counterparty", "category", "notes",
+                 "amount", "currency", "amount_base"), rows)

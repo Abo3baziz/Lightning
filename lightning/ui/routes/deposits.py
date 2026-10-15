@@ -50,10 +50,22 @@ def _page(request: Request, account_id: int, values=None, error="", status_code=
         legacy = c.deposits.get(account_id)
     except NotFoundError:
         legacy = None
+    interest_receipts = c.deposit_receipts.expected_past(account_id)
+    candidate_cache = {}
+    for occurrence in interest_receipts:
+        destination_id = occurrence["destination_account_id"]
+        if occurrence["remaining"] > 0:
+            if destination_id not in candidate_cache:
+                candidate_cache[destination_id] = c.deposit_receipts.candidates(
+                    occurrence["certificate_id"], occurrence["event_date"])
+            occurrence["candidates"] = candidate_cache[destination_id]
+        else:
+            occurrence["candidates"] = []
     return render(request, "deposits/detail.html", status_code=status_code, account=account,
                   certificates=certificates, values=values or _values(), error=error,
                   liquid_accounts=liquid, liquid_by_id=liquid_by_id, sale_factor=factor, legacy=legacy,
-                  legacy_cash=c.deposits.legacy_cash_balance(account_id), today_iso=fmt_date(today()))
+                  legacy_cash=c.deposits.legacy_cash_balance(account_id), today_iso=fmt_date(today()),
+                  interest_receipts=interest_receipts)
 
 
 @router.get("/{account_id:int}")
@@ -120,6 +132,37 @@ async def redeem(request: Request, account_id: int, certificate_id: int):
         message = exc.message if isinstance(exc, LightningError) else "Choose a valid destination account."
         return _page(request, account_id, error=message, status_code=400)
     return redirect(f"/deposits/{account_id}", f"Recorded actual CD redemption · {txn.ref}.")
+
+
+@router.post("/{account_id:int}/certificates/{certificate_id:int}/interest/{event_date}/confirm")
+async def confirm_interest_receipts(request: Request, account_id: int, certificate_id: int, event_date: str):
+    c = container(request)
+    form = await request.form()
+    try:
+        cert = c.deposits.certificate(certificate_id)
+        if cert.terms.account_id != account_id:
+            raise NotFoundError("Certificate not found in this portfolio.")
+        result = c.deposit_receipts.confirm(certificate_id, event_date, form.getlist("transaction_ids"), today())
+    except (LightningError, ValueError) as exc:
+        message = exc.message if isinstance(exc, LightningError) else "Choose valid bank receipts."
+        return _page(request, account_id, error=message, status_code=400)
+    return redirect(f"/deposits/{account_id}",
+                    f"Matched {len(result['receipts'])} bank receipt(s); {result['remaining']} remains expected.")
+
+
+@router.post("/{account_id:int}/certificates/{certificate_id:int}/interest/{event_date}/remove")
+async def remove_interest_receipt(request: Request, account_id: int, certificate_id: int, event_date: str):
+    c = container(request)
+    form = await request.form()
+    try:
+        cert = c.deposits.certificate(certificate_id)
+        if cert.terms.account_id != account_id:
+            raise NotFoundError("Certificate not found in this portfolio.")
+        c.deposit_receipts.remove(certificate_id, event_date, form.get("transaction_id"))
+    except (LightningError, ValueError) as exc:
+        message = exc.message if isinstance(exc, LightningError) else "Choose a valid bank receipt."
+        return _page(request, account_id, error=message, status_code=400)
+    return redirect(f"/deposits/{account_id}", "Removed the receipt confirmation.")
 
 
 @router.post("/{account_id:int}/legacy-cash")
