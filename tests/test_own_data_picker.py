@@ -98,7 +98,7 @@ def test_remaining_own_data_selects_use_type_and_pick():
         "register.html": [
             'name="account_id" required class=',
             'data-own-picker',
-            'list="counterparty-options" data-own-suggestions',
+            'list="owner-options" data-own-suggestions',
         ],
     }
     for name, markers in expectations.items():

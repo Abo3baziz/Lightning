@@ -101,6 +101,7 @@ def _lists(request: Request) -> dict:
         "category_choices": categories,
         "account_options": [a.name for a in accounts],
         "counterparty_options": counterparty_options,
+        "owner_options": [row["name"] for row in c.counterparties.list_people()],
         "counterparty_categories": counterparty_categories,
         "accounts": accounts,
     }
@@ -584,10 +585,7 @@ def _custody_owner(c, values: dict, category) -> str | None:
     if not category or category.code != "EXP.SYSTEM.CUSTODY":
         return None
     name = values.get("whom", "").strip()
-    party = c.counterparties.resolve(name)
-    if not party:
-        raise ValidationError("Choose a saved Counterparty in Whom. Add a new person from the Counterparties tab first.",
-                              "whom")
+    party = c.counterparties.get(c.counterparties.ensure_person(name))
     if not party["active"]:
         raise ValidationError("That Counterparty is archived. Activate it before using it as Whom.", "whom")
     return party["name"]
@@ -599,8 +597,8 @@ def _transfer_custody_owner(c, values: dict) -> str | None:
     if name.casefold() in {"self", "me", "my money", "my own money"}:
         return None
     if name:
-        party = c.counterparties.resolve(name)
-        if not party or not party["active"]:
+        party = c.counterparties.get(c.counterparties.ensure_person(name))
+        if not party["active"]:
             raise ValidationError("Choose an active saved Counterparty in Whom.", "whom")
         return party["name"]
     return None

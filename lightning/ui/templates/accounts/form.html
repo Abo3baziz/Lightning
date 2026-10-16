@@ -5,15 +5,14 @@
 {% block content %}
 <form method="post" class="card" style="max-width:760px" data-popup-return="response">
   <div class="form-grid">
-    {{ field('name', 'Name', values, error_field, placeholder='e.g. CIB Current', attrs='required autofocus') }}
     <div class="field {{ 'has-error' if error_field == 'institution' }}">
       <label for="institution">{{ 'Institution'|tr(locale) }}</label>
-      <input id="institution" name="institution" value="{{ values.institution }}" list="institution-options" data-own-suggestions data-allow-add data-tile-well placeholder="{{ 'e.g. CIB'|tr(locale) }}" autocomplete="off">
+      <input id="institution" name="institution" autofocus value="{{ values.institution }}" list="institution-options" data-own-suggestions data-allow-add data-tile-well placeholder="{{ 'e.g. CIB'|tr(locale) }}" autocomplete="off">
       <datalist id="institution-options">{% for o in institution_options %}<option value="{{ o.value }}" data-label="{{ o.label }}" data-search="{{ o.arabic }}" data-group="{{ o.group }}" data-mono="{{ o.mono }}" data-logo="{{ o.logo }}">{% endfor %}</datalist>
     </div>
     <div class="field {{ 'has-error' if error_field == 'account_type' }}">
       <label for="account_type">{{ 'Type'|tr(locale) }}</label>
-      <select id="account_type" name="account_type" data-groups='{{ groups|tojson }}'>
+      <select id="account_type" name="account_type" data-groups='{{ groups|tojson }}' data-institution-hints='{{ institution_hints|tojson }}'>
         {% for value, label in types %}<option value="{{ value }}" {{ 'selected' if values.account_type == value }}>{{ label|tr(locale) }}</option>{% endfor %}
       </select>
     </div>
@@ -24,6 +23,7 @@
       {% if account %}<div class="help">{{ "An account's currency cannot be changed after it is created."|tr(locale) }}</div>{% else %}<div class="help">{{ 'Only your currencies are listed.'|tr(locale) }} <a href="/settings?section=currencies">{{ 'Add one in Settings, under Currencies.'|tr(locale) }}</a></div>{% endif %}
       {% if error_field == 'currency' %}<small class="error">{{ error }}</small>{% endif %}
     </div>
+    {{ field('name', 'Name', values, error_field, placeholder='e.g. CIB Current', attrs='required') }}
   </div>
   <section class="soft-section" id="opening-balance-section" {% if values.account_type in ('DEPOSIT', 'GAMEYA') %}hidden style="display:none"{% endif %}>
     <h2>{{ 'Starting balance'|tr(locale) }}</h2>
@@ -40,6 +40,14 @@
           <button class="btn small date-picker-button" type="button" data-open-date-picker="opening_balance_date" aria-label="Choose date">▦</button>
         </span>
       </div>
+    </div>
+  </section>
+  <div class="field" id="account-type-guidance" data-account-type="{{ values.account_type }}">
+    <div class="help" id="account-type-help"></div>
+  </div>
+  <details class="form-more" id="account-more"{{ ' open' if values.owner_id or values.notes or error_field in ('owner_id', 'notes') }}>
+    <summary>{{ 'More'|tr(locale) }}</summary>
+    <div class="form-grid">
       <div class="field {{ 'has-error' if error_field == 'owner_id' }}">
         <label for="owner_id">{{ 'Held for'|tr(locale) }}</label>
         <select id="owner_id" name="owner_id" data-own-picker><option value="">{{ 'You'|tr(locale) }}</option>
@@ -47,15 +55,12 @@
         </select>
         <small class="muted">{{ 'Leave blank if you own this starting balance.'|tr(locale) }}</small>
       </div>
+      <div class="field wide">
+        <label for="notes">{{ 'Notes'|tr(locale) }}</label>
+        <textarea id="notes" name="notes" rows="2">{{ values.notes }}</textarea>
+      </div>
     </div>
-  </section>
-  <div class="field" id="account-type-guidance" data-account-type="{{ values.account_type }}">
-    <div class="help" id="account-type-help"></div>
-  </div>
-  <div class="field wide">
-    <label for="notes">{{ 'Notes'|tr(locale) }}</label>
-    <textarea id="notes" name="notes" rows="2">{{ values.notes }}</textarea>
-  </div>
+  </details>
   <div class="actions" style="margin-top:16px">
     <button class="btn primary">{{ 'Save' if account else 'Add account' }}</button>
     <a class="btn" href="{{ '/accounts/' ~ account.id if account else '/accounts' }}">{{ 'Cancel'|tr(locale) }}</a>
@@ -91,6 +96,33 @@
   };
   type.addEventListener('change', syncBalance);
   syncBalance();
+  // Institution first: its kind (decided in Python, sent as data) sets the Type, and the Name is suggested.
+  const institution = document.getElementById('institution');
+  const nameInput = document.getElementById('name');
+  const currency = document.getElementById('currency');
+  let hints = {};
+  try { hints = JSON.parse(type.dataset.institutionHints || '{}'); } catch (e) { hints = {}; }
+  const autoTypes = new Set(['BANK', 'BROKERAGE', 'CASH']);
+  let suggested = '';
+  const applyInstitution = () => {
+    const hint = hints[institution.value];
+    if (!hint) return;
+    if (hint.type && autoTypes.has(type.value) && type.value !== hint.type) {
+      type.value = hint.type;
+      type.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    if (nameInput && (!nameInput.value.trim() || nameInput.value === suggested)) {
+      suggested = hint.short + ' \u00b7 ' + (currency ? currency.value : '');
+      nameInput.value = suggested;
+    }
+  };
+  if (institution) {
+    institution.addEventListener('change', applyInstitution);
+    institution.addEventListener('input', applyInstitution);
+  }
+  if (currency) currency.addEventListener('change', () => {
+    if (nameInput && suggested && nameInput.value === suggested) applyInstitution();
+  });
 })();
 </script>
 {% endblock %}

@@ -19,6 +19,9 @@ from lightning.database.connection import Database
 
 CSV_FILE = Path(__file__).with_name("institutions.csv")
 LOGO_URL = "/static/institutions/"
+# What picking an institution of each kind says about the account (AccountType values). A kind not listed
+# (a fintech, a post office) leaves the type as it is.
+KIND_TO_ACCOUNT_TYPE = {"bank": "BANK", "broker": "BROKERAGE", "wallet": "CASH"}
 
 
 @dataclass(frozen=True)
@@ -31,6 +34,8 @@ class Institution:
     logo: str = ""      # a file in ui/static/institutions, or empty (monogram)
     code: str = ""
     custom: bool = False
+    markets: tuple[str, ...] = ()   # brokers only: the price packs they trade (lightning/market/packs.py ids)
+    home_currency: str = ""         # brokers only: the currency the account is usually held in
 
     @property
     def label(self) -> str:
@@ -64,7 +69,9 @@ def builtin() -> tuple[Institution, ...]:
     with CSV_FILE.open(encoding="utf-8", newline="") as handle:
         return tuple(Institution(code=row["code"], name=row["name"], short_name=row["short_name"],
                                  arabic_name=row["arabic_name"], kind=row["kind"], website=row["website"],
-                                 logo=row["logo"]) for row in csv.DictReader(handle))
+                                 logo=row["logo"], markets=tuple((row.get("markets") or "").split()),
+                                 home_currency=(row.get("home_currency") or "").strip().upper())
+                     for row in csv.DictReader(handle))
 
 
 @lru_cache(maxsize=1)
@@ -124,6 +131,17 @@ class InstitutionService:
         self.db.execute("INSERT INTO institutions(name, short_name, normalized_name, created_at) VALUES(?,?,?,?)",
                         (name, None, normalize(name), now_iso()))
         return Institution(name=name, custom=True)
+
+    def form_hints(self) -> dict[str, dict[str, str]]:
+        """For the Add account form: each picker value -> the account type its kind implies and the short name
+        used to suggest the account's name. The browser only applies this; the mapping lives here."""
+        hints: dict[str, dict[str, str]] = {}
+        for option in self.options():
+            found = self.match(option["value"])
+            if found is None:
+                continue
+            hints[option["value"]] = {"type": KIND_TO_ACCOUNT_TYPE.get(found.kind, ""), "short": found.label}
+        return hints
 
     def used_before(self) -> list[str]:
         """Names already on this profile's accounts, most used first."""

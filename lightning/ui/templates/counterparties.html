@@ -10,6 +10,9 @@
   <p class="muted small">{{ "Use one saved name across transactions. You can set a suggested category; each transaction can still use a different one."|tr(locale) }}</p>
   <form method="post" action="/counterparties" class="stack">
     <label>{{ 'Name'|tr(locale) }}<input type="text" name="name" value="{{ entered_name or '' }}" placeholder="e.g. Talabat" required></label>
+    <label>{{ 'Person or business'|tr(locale) }} <span class="muted small">{{ "(optional)"|tr(locale) }}</span>
+      <select name="kind" data-own-picker><option value="">{{ "Not set"|tr(locale) }}</option><option value="PERSON">{{ "Person"|tr(locale) }}</option><option value="BUSINESS">{{ "Business"|tr(locale) }}</option></select>
+    </label>
     <label>{{ 'Suggested category'|tr(locale) }} <span class="muted small">{{ "(optional)"|tr(locale) }}</span>
       <select name="default_category_id" data-own-picker><option value="">{{ "No default"|tr(locale) }}</option>
         {% from "partials/macros.html" import category_options %}{{ category_options(category_groups(categories), entered_category_id) }}
@@ -65,6 +68,10 @@
       <option value="">{{ ('Learned: ' ~ learned_label.split(' › ')[-1]) if learned_label else 'No default' }}</option>{% from "partials/macros.html" import category_options %}{{ category_options(category_groups(categories), party.default_category_id or '') }}
     </select>{% if learned_label and not party.default_category_id %}<small class="muted learned-note">{{ learned.count }} of the last {{ learned.total }}</small>{% endif %}</td>
     <td data-label="{{ 'Actions'|tr(locale) }}"><div class="counterparty-actions">
+      <form method="post" action="/counterparties" class="counterparty-kind" aria-label="{{ 'Person or business'|tr(locale) }}"><input type="hidden" name="counterparty_id" value="{{ party.id }}">
+        <button class="btn small {{ 'primary' if party.kind == 'PERSON' }}" name="counterparty_action" value="kind:PERSON" aria-pressed="{{ 'true' if party.kind == 'PERSON' else 'false' }}">{{ 'Person'|tr(locale) }}</button>
+        <button class="btn small {{ 'primary' if party.kind == 'BUSINESS' }}" name="counterparty_action" value="kind:BUSINESS" aria-pressed="{{ 'true' if party.kind == 'BUSINESS' else 'false' }}">{{ 'Business'|tr(locale) }}</button>
+      <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
       {% if not party.active %}<form method="post" action="/counterparties"><input type="hidden" name="counterparty_id" value="{{ party.id }}"><button class="btn small" name="counterparty_action" value="activate">{{ "Activate"|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% endif %}
       <form method="post" action="/counterparties" data-counterparty-delete><input type="hidden" name="counterparty_id" value="{{ party.id }}"><button class="cat-icon is-danger" name="counterparty_action" value="delete" title="Delete" aria-label="Delete {{ party.name }}"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
     </div></td></tr>{% endfor %}

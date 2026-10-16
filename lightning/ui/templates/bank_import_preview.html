@@ -20,7 +20,7 @@
 {% else %}
 {% set cat_groups = category_groups(categories|map(attribute='id')|list) %}
 <datalist id="import-parties">{% for a in account_choices %}<option value="{{ a.name }}" data-pick="account:{{ a.id }}" data-group="Your accounts" data-label="{{ 'Account'|tr(locale) }}">{% endfor %}{% for cp in counterparties %}<option value="{{ cp.name }}" data-pick="counterparty:{{ cp.id }}" data-group="People and businesses">{% endfor %}</datalist>
-<datalist id="import-owners"><option value="{{ 'You'|tr(locale) }}" data-pick="self">{% for cp in counterparties %}<option value="{{ cp.name }}" data-pick="counterparty:{{ cp.id }}">{% endfor %}</datalist>
+<datalist id="import-owners"><option value="{{ 'You'|tr(locale) }}" data-pick="self">{% for cp in owners %}<option value="{{ cp.name }}" data-pick="counterparty:{{ cp.id }}">{% endfor %}</datalist>
 <form method="post" action="/accounts/{{ account.id }}/import/{{ batch.id }}/confirm" id="import-review-form"><section class="card import-review">
   <div class="card-heading"><div><h2>{{ rows|length }} row{{ 's' if rows|length != 1 }} · {{ groups|length }} name{{ 's' if groups|length != 1 }}</h2></div><button class="btn primary">{{ 'Post ready rows'|tr(locale) }}</button></div>
   <div class="import-chips" role="group" aria-label="{{ 'Show'|tr(locale) }}">
