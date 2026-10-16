@@ -188,11 +188,15 @@ def _trade_choices(c, account, positions) -> list[dict]:
         """One line when a foreign listing cannot be paid for yet: its currency needs an account and a rate."""
         if currency == c.base_currency:
             return ""
-        missing = [what for ok, what in ((currency in accounts_in, f"a {currency} account"),
+        broker = account.account_type == AccountType.BROKERAGE  # a broker holds it in a pocket (2026-10-16)
+        missing = [what for ok, what in ((broker or currency in accounts_in, f"a {currency} account"),
                                          (c.reporting.valuer.fx(currency, fmt_date(today())) is not None,
                                           f"a {currency} rate")) if not ok]
         if missing:
             return translate(f"Priced in {currency}: add {' and '.join(missing)} first.", c.settings.get("locale") or "en")
+        if account.currency != currency and broker:
+            return translate(f"Priced in {currency}: held in this broker's {currency} pocket.",
+                             c.settings.get("locale") or "en")
         if account.currency != currency:
             return translate(f"Priced in {currency}: buy it from a {currency} account.", c.settings.get("locale") or "en")
         return ""
@@ -344,6 +348,12 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         account_held_value = account_value - account_owned_value
         if account.account_type == AccountType.BROKERAGE:
             account_asset_breakdown = c.reporting.account_asset_class_breakdown(account.id, today())
+        # One row per broker: its currency pockets add to the page's total and holdings (owner 2026-10-16).
+        for pocket in c.accounts.pockets(account.id):
+            holdings = list(holdings) + list(c.investments.portfolio(fmt_date(today()), pocket.id).open)
+            account_value += c.reporting.account_value(pocket.id, today())
+            account_owned_value += c.reporting.owned_account_value(pocket.id, today())
+        account_held_value = account_value - account_owned_value
     can_invest = bool(account and account.account_type in INVESTMENT_ACCOUNT_TYPES)
     trade_choices = _trade_choices(c, account, holdings)
     investment_entry = investment_entry or {"date": fmt_date(today()), "instrument_key": "", "units": "",
@@ -366,6 +376,8 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         request, "register.html", status_code=status_code,
         account=account,
         account_spendable=account.counts_as_spendable(c.base_currency) if account else None,
+        pocket_cash=_pocket_cash(c, account),
+        broker=c.accounts.broker_of(account) if account and account.parent_id else None,
         today=fmt_date(today()),
         account_balance=c.reporting.account_balance(account.id, today()) if account else None,
         manual_asset_value=OtherAssetValuationRepository(c.db).latest(account.id, fmt_date(today())) if account and account.account_type == AccountType.OTHER_ASSET else None,
@@ -611,7 +623,7 @@ async def create_investment_entry(request: Request, account_id: int):
     form = await request.form()
     values = {key: str(form.get(key, "")).strip() for key in
               ("date", "instrument_key", "trade_action", "units", "total", "dividend_basis", "unit_price", "price_basis", "fees",
-               "fees_included", "cash_account_id", "notes", "whom")}
+               "fees_included", "cash_account_id", "notes", "whom", "paid_from")}
     values["instrument_label"] = str(form.get("instrument_label", ""))
     values["is_others"] = "1" if (form.get("is_others") or values.get("whom")) else ""
     try:
@@ -660,7 +672,7 @@ async def create_investment_entry(request: Request, account_id: int):
                                                        currency=ticker_row.get("currency", ""))
             else:
                 raise ValidationError("Choose an investment from the results.", "instrument")
-            if asset.currency != account.currency:
+            if asset.currency != account.currency and account.account_type != AccountType.BROKERAGE:
                 raise ValidationError(f"{asset.name} is priced in {asset.currency}; this account is in {account.currency}. "
                                       f"Use a {asset.currency} account.", "instrument")
             owner = None
@@ -704,6 +716,15 @@ async def create_investment_entry(request: Request, account_id: int):
                     dividend_amount = (dividend_amount * held_units).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                 txn = c.investments.dividend(values["date"], account.id, asset.id, dividend_amount,
                                              values["notes"], owner_id=owner_id)
+            elif units > ZERO and values["paid_from"] and asset.currency != c.accounts.broker_of(account).currency:
+                # Convert, then buy (owner decision 2026-10-16): the broker's own cash pays, the pocket buys.
+                if not total and unit_price:
+                    total = str(units * to_decimal(unit_price, "unit_price"))
+                if not total:
+                    raise ValidationError(f"Enter the total in {asset.currency}.", "total")
+                txn = c.investments.buy_converting(values["date"], account.id, asset.id, units, total,
+                                                   values["paid_from"], notes=values["notes"], fees=values["fees"],
+                                                   fees_included=values["fees_included"] != "0", owner_id=owner_id)
             elif units > ZERO:
                 basis = values["price_basis"]
                 if basis == "unit_price" or (unit_price and not total):
@@ -737,7 +758,8 @@ async def create_investment_entry(request: Request, account_id: int):
                                                    fees=values["fees"], fees_included=values["fees_included"] != "0",
                                                    cash_account_id=cash_account_id,
                                                    notes=values["notes"], owner_id=owner_id)
-            c.money_from_others.sync_investment(txn.id, txn.date, owner, account.id, asset.id, signed_units)
+            held_in = next((line.account_id for line in txn.lines if line.asset_id == asset.id), account.id)  # a pocket
+            c.money_from_others.sync_investment(txn.id, txn.date, owner, held_in, asset.id, signed_units)
             if owner:
                 cash_line = next((line for line in txn.lines if c.assets.get_asset(line.asset_id).is_cash), None)
                 if cash_line:
@@ -756,3 +778,13 @@ def _native_value(c, account, value):
         return None
     rate = c.reporting.valuer.fx(account.currency, fmt_date(today()))
     return value / rate.rate if rate and rate.rate else None
+
+
+def _pocket_cash(c, account):
+    """A broker's cash in each currency it holds, its own first (one row per broker, owner 2026-10-16)."""
+    if not account or account.account_type != AccountType.BROKERAGE or account.parent_id:
+        return []
+    pockets = c.accounts.pockets(account.id)
+    if not pockets:
+        return []
+    return [{"id": a.id, "currency": a.currency, "cash": c.reporting.account_balance(a.id, today())} for a in [account, *pockets]]

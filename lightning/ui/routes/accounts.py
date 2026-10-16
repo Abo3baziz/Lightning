@@ -62,6 +62,16 @@ async def list_accounts(request: Request):
                 balance = owned = None
                 has_unavailable = True
         rows.append((account, balance, owned, c.transactions.count_for_account(account.id)))
+    # One row per broker (owner decision 2026-10-16): each currency pocket adds to its broker's row.
+    by_id = {row[0].id: i for i, row in enumerate(rows)}
+    for account, balance, owned, count in [row for row in rows if row[0].parent_id]:
+        i = by_id.get(account.parent_id)
+        if i is None:
+            continue
+        parent, p_balance, p_owned, p_count = rows[i]
+        add = lambda a, b: None if a is None or b is None else a + b  # noqa: E731
+        rows[i] = (parent, add(p_balance, balance), add(p_owned, owned), p_count + count)
+    rows = [row for row in rows if not row[0].parent_id or row[0].parent_id not in by_id]
     net_worth = c.reporting.net_worth(today())
     gross_total = (None if has_unavailable else
                    sum((row[1] for row in rows if row[0].active), start=0))
@@ -530,6 +540,18 @@ async def deactivate(request: Request, account_id: int):
     except LightningError as exc:
         return redirect(f"/accounts/{account_id}", exc.message)
     return redirect(f"/accounts/{account.id}", f"{account.label} is now inactive.")
+
+
+@router.post("/{account_id:int}/pockets")
+async def add_pocket(request: Request, account_id: int):
+    """Add a currency to a broker: a cash pocket shown inside the broker's one row (owner decision 2026-10-16)."""
+    c = container(request)
+    form = await request.form()
+    try:
+        pocket = c.accounts.add_pocket(account_id, str(form.get("currency", "")))
+    except LightningError as exc:
+        return redirect(f"/accounts/{account_id}", exc.message)
+    return redirect(f"/accounts/{account_id}", f"{c.accounts.get(account_id).name} now holds {pocket.currency}.")
 
 
 @router.post("/{account_id:int}/spendable")

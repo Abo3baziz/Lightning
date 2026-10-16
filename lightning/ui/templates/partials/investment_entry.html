@@ -60,6 +60,9 @@
           {% for a in cash_accounts %}<option value="{{ a.id }}" {{ 'selected' if investment_entry.get('cash_account_id') == a.id|string }}>{{ a.name }} · {{ a.currency }}</option>{% endfor %}
         </select>
       </div>{% endif %}
+      {% if account.account_type.value == 'BROKERAGE' %}<details class="field investment-paid-from"{% if investment_entry.get('paid_from') %} open{% endif %}><summary>{{ 'Paid in another currency'|tr(locale) }}</summary>
+        <label for="investment-paid-from">{{ 'You paid ({currency})'|tr(locale, currency=(broker or account).currency) }}</label>
+        <input id="investment-paid-from" type="text" inputmode="decimal" name="paid_from" value="{{ investment_entry.get('paid_from', '') }}" placeholder="{{ 'Optional'|tr(locale) }}"></details>{% endif %}
       <div class="field">
         <label for="investment-notes">{{ 'Notes'|tr(locale) }}</label>
         <input id="investment-notes" type="text" name="notes" value="{{ investment_entry.get('notes', '') }}" placeholder="{{ 'Optional'|tr(locale) }}">

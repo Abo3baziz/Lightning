@@ -172,6 +172,53 @@ class AccountService:
             self.repo.update(updated)
         return self.get(account_id), (new_code != current.code or name != current.name)
 
+    # ------------------------------------------------------------------ broker currency pockets
+    def pockets(self, broker_id: int) -> list[Account]:
+        """A broker's pockets in other currencies (its own currency is the broker account itself)."""
+        return [a for a in self.list() if a.parent_id == broker_id]
+
+    def broker_of(self, account: Account) -> Account:
+        """The broker account a pocket belongs to; any other account is its own broker."""
+        return self.get(account.parent_id) if account.parent_id else account
+
+    def pocket_for(self, account: Account, currency: str, create: bool = False) -> Account | None:
+        """The account of this broker that holds ``currency``: the broker itself in its own currency, else a pocket
+        (made on demand when ``create``). None when it has none and ``create`` is off."""
+        broker = self.broker_of(account)
+        currency = (currency or "").strip().upper()
+        if broker.currency == currency:
+            return broker
+        found = next((p for p in self.pockets(broker.id) if p.currency == currency), None)
+        if found or not create:
+            return found
+        return self.add_pocket(broker.id, currency)
+
+    def add_pocket(self, broker_id: int, currency: str) -> Account:
+        """Add a currency to a broker: a child brokerage account named "<broker> · <CUR>", one row per broker on
+        screen (owner decision 2026-10-16). No margin: a pocket never goes below zero (ledger rules)."""
+        broker = self.get(broker_id)
+        currency = (currency or "").strip().upper()
+        if broker.account_type != AccountType.BROKERAGE or broker.parent_id:
+            raise ValidationError("Only a brokerage account can hold other currencies.", "currency")
+        if currency == broker.currency or any(p.currency == currency for p in self.pockets(broker.id)):
+            raise ConflictError(f"{broker.label} already holds {currency}.", "currency")
+        from lightning.database.currencies import CurrencyRegistry
+        from lightning.market.iso import RATED_CURRENCIES
+        if currency not in RATED_CURRENCIES | {self.base_currency}:
+            raise ValidationError(f"{currency} has no exchange rate source; choose another currency.", "currency")
+        CurrencyRegistry(self.db).register(currency)
+        name = f"{broker.name} · {currency}"
+        code = self.unique_code(broker.institution, broker.name, AccountType.BROKERAGE, currency)
+        pocket = Account(
+            id=0, code=code, name=name, institution=broker.institution, account_type=AccountType.BROKERAGE,
+            currency=currency, cash_class_id=self._cash_class_id(AccountType.BROKERAGE),
+            opening_date=broker.opening_date, is_system=False, last4=None, active=True,
+            sort_order=self.repo.next_sort_order(), notes="", parent_id=broker.id,
+        )
+        with self.db.transaction():
+            new_id = self.repo.insert(pocket)
+        return self.get(new_id)
+
     def set_spendable(self, account_id: int, choice: bool | None) -> Account:
         """Count this account's cash as spendable (True), keep it apart (False) or follow the default (None)."""
         current = self.get(account_id)

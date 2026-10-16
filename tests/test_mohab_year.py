@@ -1514,9 +1514,10 @@ def test_a_nasdaq_etf_is_bought_with_dollars_in_a_dollar_account(mohab):
 
 def test_the_buy_form_says_what_a_us_listing_needs_and_refuses_the_wrong_account(mohab):
     assert notes_exchange(mohab.notes["etf_in_pounds_choice"]) == ("Nasdaq", "USD")
-    assert "buy it from a USD account" in mohab.notes["etf_in_pounds_choice"]["note"]
+    assert "held in this broker's USD pocket" in mohab.notes["etf_in_pounds_choice"]["note"]
     assert mohab.notes["etf_in_dollars_choice"]["note"] == ""
-    assert mohab.notes["etf_in_pounds"].shows("is priced in USD; this account is in EGP")
+    # One row per broker (2026-10-16): an EGP broker can hold a USD pocket, but it has no dollars yet.
+    assert mohab.notes["etf_in_pounds"].shows("is priced in USD;", "has no USD cash for it")
 
 
 def notes_exchange(choice):

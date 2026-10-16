@@ -194,6 +194,42 @@ class InvestmentService:
     # ======================================================================
     # Recording
     # ======================================================================
+    # ------------------------------------------------------------------ broker pockets
+    def route(self, account_id, asset_id, cash_account_id=None) -> tuple[int, int | None]:
+        """One row per broker (owner decision 2026-10-16): a listing in another currency than the broker's is held
+        in that currency's pocket, made on demand, and paid from the same pocket unless another account pays."""
+        if account_id in (None, "") or asset_id in (None, ""):
+            return account_id, cash_account_id
+        account = self.accounts.get(int(account_id))
+        asset = self.assets.get_asset(int(asset_id))
+        if account.account_type != AccountType.BROKERAGE or asset.is_cash or asset.currency == account.currency:
+            return account_id, cash_account_id
+        pocket = self.accounts.pocket_for(account, asset.currency, create=True)
+        broker = self.accounts.broker_of(account)
+        same_broker = {broker.id, *(p.id for p in self.accounts.pockets(broker.id))}
+        if cash_account_id in (None, "", 0) or int(cash_account_id) in same_broker:
+            cash_account_id = None
+        return pocket.id, cash_account_id
+
+    def buy_converting(self, date: str, account_id: int, asset_id: int, quantity, total, paid, from_account_id=None,
+                       notes: str = "", fees="0", fees_included=True, owner_id: int | None = None) -> Transaction:
+        """Convert, then buy (owner decision 2026-10-16): ``paid`` leaves the broker's own cash (or another account)
+        and becomes ``total`` in the listing's currency pocket, then the buy spends it. Two linked documents in one
+        step: a conversion with its executed rate and spread, and an ordinary buy. No margin: nothing is borrowed."""
+        holding_id, _ = self.route(account_id, asset_id)
+        pocket = self.accounts.get(int(holding_id))
+        source = self.accounts.require_usable(int(from_account_id) if from_account_id not in (None, "") else
+                                              self.accounts.broker_of(pocket).id, "cash_account")
+        if source.currency == pocket.currency:
+            raise ValidationError(f"{source.label} is already in {pocket.currency}; record an ordinary buy.",
+                                  "cash_account")
+        asset = self.assets.get_asset(int(asset_id))
+        with self.db.transaction():
+            self.transactions.record_conversion(date, source.id, pocket.id, paid, total,
+                                                notes=f"For {asset.name}")
+            return self.buy_total(date, pocket.id, asset_id, quantity, total, None, notes, fees, fees_included,
+                                  owner_id)
+
     def buy(self, date: str, account_id: int, asset_id: int, quantity, price, fees="0",
             cash_account_id: int | None = None, notes: str = "", owner_id: int | None = None) -> Transaction:
         """Buy units: cash leaves the paying account, the holding grows at cost (fees included)."""
@@ -221,6 +257,7 @@ class InvestmentService:
     def dividend(self, date: str, account_id: int, asset_id: int, amount, notes: str = "",
                  owner_id: int | None = None) -> Transaction:
         """A cash dividend from an investment, received into the account (money in: Investment Income)."""
+        account_id, _ = self.route(account_id, asset_id)
         account = self.accounts.require_usable(account_id)
         if account.account_type != AccountType.BROKERAGE:
             raise ValidationError("Dividends can only be recorded in a brokerage account.", "account")
@@ -249,6 +286,7 @@ class InvestmentService:
     def add_holding(self, account_id: int, asset_id: int, quantity, total_cost, date: str | None = None,
                     notes: str = "", owner_id: int | None = None) -> Transaction:
         """Units you already owned when you started tracking, with what you paid for them in total."""
+        account_id, _ = self.route(account_id, asset_id)
         account = self._holding_account(account_id)
         asset = self._investment(asset_id)
         self._validate_asset_account(account, asset)
@@ -444,6 +482,26 @@ class InvestmentService:
     # ======================================================================
     def _trade(self, kind, date, account_id, asset_id, quantity, price, fees, cash_account_id, notes, total=None,
                total_fees="0", fees_included=True, owner_id=None):
+        # One step: a pocket made for this trade is undone with it when the trade is refused.
+        with self.db.transaction():
+            asked = account_id
+            account_id, cash_account_id = self.route(account_id, asset_id, cash_account_id)
+            try:
+                return self._trade_in(kind, date, account_id, asset_id, quantity, price, fees, cash_account_id, notes,
+                                      total, total_fees, fees_included, owner_id)
+            except ValidationError as error:
+                if kind != DocType.BUY or account_id == asked or cash_account_id is not None:
+                    raise
+                pocket, broker = self.accounts.get(int(account_id)), self.accounts.get(int(asked))
+                asset = self.assets.get_asset(int(asset_id))
+                home = self.accounts.broker_of(broker)
+                raise ValidationError(
+                    f"{asset.name} is priced in {asset.currency}; {home.label} has no {asset.currency} cash for it. "
+                    f"Enter what you paid in {home.currency} under Paid in another currency, or move "
+                    f"{asset.currency} in first.", "instrument") from error
+
+    def _trade_in(self, kind, date, account_id, asset_id, quantity, price, fees, cash_account_id, notes, total=None,
+                  total_fees="0", fees_included=True, owner_id=None):
         lines, counterparty = self._trade_lines(kind, account_id, asset_id, quantity, price, fees, cash_account_id,
                                                 total, total_fees, fees_included, on=date)
         if owner_id is not None:

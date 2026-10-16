@@ -808,9 +808,15 @@ class ReportingService:
         """Gross active-account balances, owned net worth, and accounts grouped by kind."""
         nw = self.net_worth(as_of)
         groups: dict[str, Group] = {}
+        # One row per broker (owner decision 2026-10-16): a currency pocket adds to its broker's row.
+        pocket_values: dict[int, Decimal] = {}
         for account, value in nw.by_account:
-            if not account.active:
+            if account.active and account.parent_id:
+                pocket_values[account.parent_id] = pocket_values.get(account.parent_id, ZERO) + value
+        for account, value in nw.by_account:
+            if not account.active or account.parent_id:
                 continue
+            value += pocket_values.get(account.id, ZERO)
             name = SIDEBAR_GROUPS[account.account_type]
             group = groups.setdefault(name, Group(name, name, ZERO))
             group.value += value
