@@ -322,5 +322,6 @@ class CashAdapter:
                     quantity=from_e6(line["quantity_e6"]), unit_price=from_e6(line["unit_price_e6"]),
                     amount=from_e6(line["amount_e6"]), fx_rate=from_e6(line["fx_rate_e6"]),
                     amount_base=from_e6(line["amount_base_e6"]), effect=Effect(line["effect"]),
-                    category_id=line["category_id"], memo=line["memo"], is_cash=True, owner_id=line["owner_id"])
-                    for line in self.db.all("SELECT * FROM ledger_entries WHERE transaction_id=? ORDER BY line_no", (txn_id,))])
+                    category_id=line["category_id"], memo=line["memo"], is_cash=bool(line["is_cash"]), owner_id=line["owner_id"])
+                    for line in self.db.all("SELECT l.*,a.is_cash FROM ledger_entries l JOIN financial_assets a ON a.id=l.asset_id "
+                                            "WHERE l.transaction_id=? ORDER BY l.line_no", (txn_id,))])

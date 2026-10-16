@@ -3,7 +3,7 @@ from .spec import AMOUNT, DATE, FLAG, LONG, TEXT, Command, choice, optional, ref
 
 TABLES = ("asset_classes", "financial_assets", "accounts", "categories")
 
-ACCOUNT_TYPES = choice("BANK", "CASH", "CASH_AT_HAND")
+ACCOUNT_TYPES = choice("BANK", "CASH", "CASH_AT_HAND", "BROKERAGE", "DEPOSIT", "GAMEYA", "PHYSICAL_ASSET")
 COMMANDS = {
     "accounts.open": Command("account_flows.open_account", dict(
         name=TEXT, account_type=ACCOUNT_TYPES, opening_date=DATE, opening_balance=AMOUNT, institution=TEXT,
