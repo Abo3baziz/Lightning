@@ -89,3 +89,12 @@ def test_a_budget_that_pushes_safe_to_spend_below_zero_points_to_the_budget(c, s
     assert c.forecaster.forecast(today()).safe_to_spend < Decimal(0)
     page = TestClient(create_app(c)).get("/plan").text
     assert "Adjust your budget" in page and 'href="/budget"' in page
+
+
+def test_answering_the_bulk_edit_question_is_not_leaving_the_row():
+    """Ticket 96: 'Change N selected rows?' opens over the row being edited; clicking its buttons must not count as
+    leaving the row (that re-submitted the edit and stacked a second question, so mass editing never applied)."""
+    js = (ROOT / "lightning/ui/static/app.js").read_text(encoding="utf-8")
+    leaving = js[js.index('document.addEventListener("pointerdown"'):]
+    leaving = leaving[:leaving.index("}, true);")]
+    assert 'event.target.closest("dialog") || document.querySelector("dialog[open]")' in leaving

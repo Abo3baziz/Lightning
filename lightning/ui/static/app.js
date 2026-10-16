@@ -720,6 +720,8 @@ document.addEventListener("click", (e) => {
 document.addEventListener("pointerdown", (event) => {
   const row = document.querySelector("tr.editing[data-txn]");
   if (!row || row.contains(event.target) || event.target.closest(".date-popup, .counterparty-results, .category-results")) return;
+  // A question open over the row ("Change 2 selected rows?") is answered, not treated as leaving the row (ticket 96).
+  if (event.target.closest("dialog") || document.querySelector("dialog[open]")) return;
   const form = document.getElementById("f-edit");
   if (!form || form.dataset.submitting === "true" || !form.checkValidity()) return;
   event.preventDefault();
