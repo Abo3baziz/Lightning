@@ -491,5 +491,22 @@ def create_app(c: Container | None = None) -> FastAPI:
             return JSONResponse({"pending": exc.message}, status_code=202)
         return RedirectResponse(f"{back}?{urlencode({'msg': exc.message})}", status_code=303)
 
+    async def not_covered(request: Request, exc: Exception):
+        """A write the journal does not cover reaches the connection guard: say so instead of failing."""
+        from lightning.sync.journal.proxy import JournalServices
+        if not isinstance(request.app.state.container, JournalServices) or "not authorized" not in str(exc):
+            raise exc
+        message = "This is not available on a synchronized profile yet."
+        if request.url.path.endswith(".json"):
+            return JSONResponse({"error": message}, status_code=409)
+        back = urlsplit(request.headers.get("referer", "")).path
+        if not back.startswith("/") or back.startswith("//"):
+            back = "/"
+        return RedirectResponse(f"{back}?{urlencode({'msg': message})}", status_code=303)
+
+    import sqlite3
+    for error in {sqlite3.DatabaseError, getattr(getattr(getattr(c, "db", None), "driver", None), "DatabaseError", sqlite3.DatabaseError)}:
+        app.add_exception_handler(error, not_covered)
+
     app.add_middleware(RequestCache, state=app.state)  # outermost, so every page and middleware shares it
     return app
