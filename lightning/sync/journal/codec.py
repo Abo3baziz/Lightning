@@ -100,7 +100,7 @@ def proposal(value):
     uuid(value["generation"])
     uuid(value["record"])
     origin(value["origin"])
-    if type(value["kind"]) is not str or value["kind"] not in {"dummy.add", "dummy.edit", "dummy.delete"}:
+    if type(value["kind"]) is not str or value["kind"] not in {"dummy.add", "dummy.edit", "dummy.delete", "transaction.add", "transaction.edit", "transaction.delete"}:
         raise JournalError("Unsupported entry kind; update the device or home")
     if type(value["kind_version"]) is not int or value["kind_version"] != 1:
         raise JournalError("Unsupported entry version; update the device or home")
@@ -118,12 +118,12 @@ def proposal(value):
     if (type(groups) is not dict or type(bases) is not dict or len(groups) > 16
             or set(groups) != set(bases) or any(not GROUP.fullmatch(k) for k in groups)):
         raise JournalError("Invalid field groups")
-    if value["kind"] != "dummy.delete" and not groups:
+    if not value["kind"].endswith(".delete") and not groups:
         raise JournalError("An addition or edit needs field groups")
     for base in bases.values():
         if base is not None:
             hash_value(base)
-    if value["kind"] == "dummy.add" and any(base is not None for base in bases.values()):
+    if value["kind"].endswith(".add") and any(base is not None for base in bases.values()):
         raise JournalError("An addition cannot have existing base tokens")
     dependencies = value["dependencies"]
     if type(dependencies) is not list or len(dependencies) > 32:

@@ -54,6 +54,12 @@ class JournalHome:
                 raise JournalError("Origin is not currently trusted")
             authenticate(envelope, member["public_key"])
             proposal(body)
+            if body["kind"].startswith("transaction.") and self.store.adapter is None:
+                raise JournalError("Unsupported financial adapter")
+            if self.store.adapter is not None and not body["kind"].startswith("transaction."):
+                raise JournalError("Unsupported financial entry kind")
+            if self.store.adapter is not None and not body["kind"].endswith(".delete"):
+                self.store.adapter.validate_groups(body["groups"], complete=body["kind"].endswith(".add"))
             self.store._scope(body)
             self.store._check_cursor(body["cursor"])
             payload_hash = digest(body)
@@ -91,8 +97,8 @@ class JournalHome:
                     if result[0] == "wait":
                         continue
                     if result[0] == "review":
-                        self.db.execute("UPDATE journal_inbox SET status='review',reason='conflict',review_token=? WHERE proposal_id=?",
-                                        (self._review_token(row), row["proposal_id"]))
+                        self.db.execute("UPDATE journal_inbox SET status='review',reason=?,review_token=? WHERE proposal_id=?",
+                                        (result[1], self._review_token(row), row["proposal_id"]))
                         continue
                     wire = self._finish(row, *result)
                 # Nothing escapes the transaction before it is durably committed.
@@ -108,14 +114,15 @@ class JournalHome:
             row = self.db.one("SELECT status FROM journal_inbox WHERE proposal_id=?", (origin_id(dependency),))
             if row is not None and row[0] == "rejected":
                 return "rejected", "dependency-rejected", []
-            if row is None or row[0] != "accepted":
+            if row is None or row[0] not in {"accepted", "accepted-as-existing"}:
                 return "wait", "dependency", []
             commit = self._decision(origin_id(dependency))
-            dependencies.extend(unpack(commit)["body"]["effects"])
+            for effect in unpack(commit)["body"]["effects"]:
+                dependencies.append(effect | {"record": effect["alias"]} if "alias" in effect else effect)
         current = self.store.record(body["record"])
         if current and current["deleted"]:
             return "rejected", "deleted", []
-        if body["kind"] == "dummy.add":
+        if body["kind"].endswith(".add"):
             if current:
                 return "rejected", "record-exists", []
             if any(value is not None for value in body["bases"].values()):
@@ -129,32 +136,51 @@ class JournalHome:
             for group, base in bases.items():
                 if base is None:
                     inherited = {effect["tokens"][group] for effect in dependencies
-                                 if effect["record"] == body["record"] and group in effect["tokens"]}
+                                 if self.store.resolve(effect["record"]) == self.store.resolve(body["record"]) and group in effect["tokens"]}
                     if len(inherited) > 1:
                         return "review", "conflict", []
                     if inherited:
                         bases[group] = inherited.pop()
             if not force:
-                if body["kind"] == "dummy.delete" and set(bases) != set(tokens):
+                if body["kind"].endswith(".delete") and set(bases) != set(tokens):
                     return "review", "conflict", []
                 if any(tokens.get(group) != token for group, token in bases.items()):
                     return "review", "conflict", []
-        if body["kind"] == "dummy.delete":
-            effect = dict(record=body["record"], groups={}, tokens={}, deleted=True)
+        if body["kind"].endswith(".delete"):
+            effect = dict(record=current["record"] if current else body["record"], groups={}, tokens={}, deleted=True)
         else:
             groups.update(body["groups"])
             for group in body["groups"]:
                 tokens[group] = digest(dict(proposal=digest(body), group=group))
-            effect = dict(record=body["record"], groups=groups, tokens=tokens, deleted=False)
+            effect = dict(record=current["record"] if current else body["record"], groups=groups, tokens=tokens, deleted=False)
         if len(effect["groups"]) > 16:
             return "rejected", "group-limit", []
         if len(canonical(effect)) > 48 * 1024:
             return "rejected", "effect-too-large", []
+        if not force and self.store.adapter is not None and body["kind"].endswith(".add"):
+            matches = self.store.adapter.matches(body)
+            if matches:
+                if matches[0]["proven"]:
+                    return "accepted-as-existing", "existing", [dict(record=body["record"], groups={}, tokens=matches[0]["tokens"], deleted=False, alias=matches[0]["record"])]
+                return "review", "possible-duplicate", []
         return "accepted", "accepted", [effect]
 
     def _finish(self, row, outcome, reason, effects):
-        if outcome not in {"accepted", "rejected"}:
+        if outcome not in {"accepted", "accepted-as-existing", "rejected"}:
             raise JournalError("Only terminal decisions advance origin progress")
+        if effects and self.store.adapter is not None and outcome == "accepted":
+            from lightning.core.errors import ValidationError
+            try:
+                with self.db.transaction():
+                    domain = self.store.adapter.confirm(unpack(bytes(row["wire"]))["body"], effects[0])
+                    effects[0]["domain"] = domain
+                    if len(canonical(effects[0])) > 48 * 1024:
+                        raise ValidationError("The confirmed action exceeds the effect limit")
+            except ValidationError:
+                outcome, reason, effects = "rejected", "financial-validation", []
+        proposal_body = unpack(bytes(row["wire"]))["body"]
+        if effects and self.store.adapter is not None and proposal_body["kind"].endswith(".add") and proposal_body["groups"].get("source"):
+            effects[0]["source"] = proposal_body["groups"]["source"] | {"hash": self.store.adapter.source_token(proposal_body["groups"]["money"])}
         for effect in effects:
             self.store._put_record(effect)
         self.fault("home_effects")
@@ -193,13 +219,14 @@ class JournalHome:
     def decision(self, proposal_id):
         """Return the original signed terminal decision, including after restart."""
         state = self.status(proposal_id)
-        if state is None or state["status"] not in {"accepted", "rejected"}:
+        if state is None or state["status"] not in {"accepted", "accepted-as-existing", "rejected"}:
             return None
         return self._decision(proposal_id)
 
     def _review_token(self, row):
         body = unpack(bytes(row["wire"]))["body"]
-        return digest(dict(proposal=row["hash"], current=self.store.record(body["record"])))
+        matches = self.store.adapter.matches(body) if self.store.adapter is not None else []
+        return digest(dict(proposal=row["hash"], current=self.store.record(body["record"]), matches=matches))
 
     def review_state(self, proposal_id):
         with self.db.transaction():
@@ -209,15 +236,31 @@ class JournalHome:
             body = unpack(bytes(row["wire"]))["body"]
             token = self._review_token(row)
             self.db.execute("UPDATE journal_inbox SET review_token=? WHERE proposal_id=?", (token, proposal_id))
+            base = {}
+            expected = dict(body["bases"])
+            for dependency in body["dependencies"]:
+                state = self.status(origin_id(dependency))
+                if state and state["status"] in {"accepted", "accepted-as-existing"}:
+                    for effect in unpack(self._decision(origin_id(dependency)))["body"]["effects"]:
+                        for group in expected:
+                            if expected[group] is None and group in effect["tokens"]:
+                                expected[group] = effect["tokens"][group]
+            for commit in self.db.all("SELECT wire FROM journal_commits ORDER BY revision DESC"):
+                for effect in unpack(bytes(commit[0]))["body"]["effects"]:
+                    if self.store.resolve(effect["record"]) == self.store.resolve(body["record"]):
+                        for group, value in effect["groups"].items():
+                            if group not in base and expected.get(group) == effect["tokens"].get(group):
+                                base[group] = value
             return dict(proposal_id=proposal_id, token=token, proposed=body,
-                        current=self.store.record(body["record"]))
+                        current=self.store.record(body["record"]), base=base,
+                        matches=self.store.adapter.matches(body) if self.store.adapter is not None else [])
 
-    def review(self, *, command_id, proposal_id, token, choice):
+    def review(self, *, command_id, proposal_id, token, choice, existing=None):
         """Called only by the local home in the lab; not a network control endpoint."""
         uuid(command_id)
-        if type(choice) is not str or choice not in {"apply", "reject"}:
+        if type(choice) is not str or choice not in {"apply", "reject", "link"}:
             raise JournalError("Invalid review choice")
-        request_hash = digest(dict(proposal_id=proposal_id, token=token, choice=choice))
+        request_hash = digest(dict(proposal_id=proposal_id, token=token, choice=choice, existing=existing))
         with self.db.transaction():
             known = self.db.one("SELECT request_hash,result FROM journal_reviews WHERE command_id=?", (command_id,))
             if known:
@@ -231,7 +274,15 @@ class JournalHome:
                                  (row["device"], row["incarnation"]))
             if member is None or member[0]:
                 raise JournalError("Origin is not currently trusted")
-            result = self._consider(unpack(bytes(row["wire"]))["body"], force=True) if choice == "apply" else ("rejected", "cancelled", [])
+            proposal_body = unpack(bytes(row["wire"]))["body"]
+            if choice == "link":
+                matches = self.store.adapter.matches(proposal_body) if self.store.adapter else []
+                if existing not in {match["record"] for match in matches if not match.get("collision")}:
+                    raise JournalError("Refresh the duplicate comparison before linking")
+                matched = next(match for match in matches if match["record"] == existing)
+                result = ("accepted-as-existing", "existing", [dict(record=proposal_body["record"], groups={}, tokens=matched["tokens"], deleted=False, alias=existing)])
+            else:
+                result = self._consider(proposal_body, force=True) if choice == "apply" else ("rejected", "cancelled", [])
             wire = self._finish(row, *result)
             self.db.execute("INSERT INTO journal_reviews VALUES(?,?,?)", (command_id, request_hash, wire))
             self.fault("review_receipt")

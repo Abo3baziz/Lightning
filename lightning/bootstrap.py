@@ -143,7 +143,8 @@ class ReadOnlyCopyError(RuntimeError):
 
 
 def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
-          key: bytes | None = None, backup_dir: Path | None = None, read_only: bool = False) -> Container:
+          key: bytes | None = None, backup_dir: Path | None = None, read_only: bool = False,
+          experimental_journal: bool = False) -> Container:
     """Open a ledger and wire its services.
 
     `read_only` opens an actual SQLite read-only connection and skips every startup write: no backup,
@@ -156,8 +157,11 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
         raise ReadOnlyCopyError("The saved copy is missing or empty.")
     db = Database(db_path, key=key, read_only=read_only)
     try:
+        is_journal = bool(db.scalar("SELECT 1 FROM sqlite_master WHERE type='table' AND name GLOB 'journal_*' LIMIT 1"))
+        if is_journal and not experimental_journal:
+            raise ReadOnlyCopyError("This experimental journal profile requires its journal runtime.")
         inspection = inspect_schema(db)  # Refuse newer schemas before any write.
-        if read_only:
+        if read_only or is_journal:
             if inspection.pending:
                 raise ReadOnlyCopyError("This saved copy was made by an older Lightning and needs an upgrade "
                                         "that a read-only copy cannot make.")
@@ -166,7 +170,7 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
                            pre_upgrade=inspection.needs_backup)
             if saved is None:
                 raise RuntimeError("A verified backup is required before upgrading")
-        if not read_only:
+        if not read_only and not is_journal:
             migrate(db)
             seed(db)
             migrate_legacy_ownership(db)
@@ -243,7 +247,7 @@ def build(db_path: str | Path | None = None, backup_on_start: bool = False, *,
         funding=CashFundingService(db, budgets, reporting, reserves, planning, categories, settings),
         deposit_receipts=deposit_receipts,
     )
-    if not read_only:
+    if not read_only and not is_journal:
         result.undo = UndoService(db, audit)
         db.undo = result.undo
         def validate_history(records):

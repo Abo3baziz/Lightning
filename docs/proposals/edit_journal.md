@@ -1,6 +1,6 @@
 # Edit journal: edit anywhere, one home confirms
 
-**Status: implementation authorized · 2026-10-16 · J1 laboratory started; J1–J6 acceptance remains open.** The owner requested this replacement after reviewing the moving-writer design and authorized all six delivery stages on 2026-10-16. Product decisions live in [Project Overview](../PROJECT_OVERVIEW.md#product-decisions-that-must-hold); the current implementation and experimental core live in [Architecture](../ARCHITECTURE.md#desktop-app-and-encrypted-profiles). This file owns the proposed protocol and its acceptance gates.
+**Status: implementation authorized · 2026-10-16 · J1 core and experimental J2/J3 cash workflows built; stage acceptance remains open.** The owner requested this replacement after reviewing the moving-writer design and authorized all six delivery stages on 2026-10-16. Product decisions live in [Project Overview](../PROJECT_OVERVIEW.md#product-decisions-that-must-hold); the current implementation and experimental core live in [Architecture](../ARCHITECTURE.md#desktop-app-and-encrypted-profiles). This file owns the proposed protocol and its acceptance gates.
 
 Every paired device saves edits immediately. One stable **home** validates them and publishes confirmed changes. Devices exchange those small changes continuously. Opening a PC does not borrow the ledger, move writing rights or require a whole database transfer. The home changes only through an explicit move or recovery.
 
@@ -205,7 +205,7 @@ Compaction tests must cover a returned device after more than 30 days, removed d
 
 No production protocol switch before complete write coverage. Early stages use isolated dummy profiles; they are end-to-end engineering milestones, not claims that the full product is ready. Claims belong in [NOW.md](../../NOW.md). The owner authorized J1–J6; stages proceed in order without treating a prototype as production acceptance.
 
-**Current boundary:** the J1 laboratory has encrypted outboxes, signed bounded messages, atomic dummy-domain decisions, field-group/dependency checks, home review and exact-effect replay. It does not yet satisfy the complete J1 exit gate. Production UUID mapping and financial-service adapters, snapshot repair with preserved queues, compact receipt/retention rules and the remaining fault/security evidence are still required before J2 screen integration. The laboratory message format is provisional and must not be deployed as a production protocol. Implementation and the runnable simulator are documented in Architecture; J2–J6 remain unbuilt.
+**Current boundary:** the experimental cash adapter, separate PC/phone forms, pending overlays, home review, authenticated pinned local delta exchange, queue-preserving checkpoint repair, SMS/CSV candidates, source-aware duplicate linking, import progress and undo are implemented. Only explicit encrypted dummy profiles can enroll; other financial areas and all financial automation remain disabled. Native/Arabic screen acceptance, real phone SMS/permission acceptance, complete fault/security evidence, receipt pruning and resumable network checkpoints remain open. J4–J6 and production pairing/cutover are unbuilt. The laboratory wire format is provisional. See Architecture for implementation, executable preview and measurement commands.
 
 | Stage | Deliverable and exit gate |
 |---|---|
