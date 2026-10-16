@@ -181,7 +181,6 @@ def test_every_tab_of_the_demo_opens_with_its_key_notes(demo):
     assert "chart-cfall-plot" not in overview  # the Net flow list says it; no column waterfall repeats it (UX plan 5)
     # No chart hides behind a toggle; only the one-row investment figures fold (Codex 2026-10-10), with their summary showing.
     assert "overview-month-toggle" not in overview
-    assert 'class="overview-figure-row"' in overview and "Income collected" in overview
     assert "chart-trend" in client.get("/birdview").text  # month by month lives on Birdview
 
 
@@ -392,7 +391,7 @@ def test_the_overview_ends_with_a_calendar_of_months(demo, monkeypatch):
     assert [x["known"] for x in year["cells"]] == [False] * 6 + [True] * 4 + [False] * 2  # July to today
     assert cal["count"] == 4 and sum(x["net"] for x in year["cells"][6:9]) == c.reporting.cash_flow("2026-07-01", "2026-09-30").net
     page = TestClient(create_app(c), base_url="http://127.0.0.1").get("/").text
-    assert "Month by month" in page and page.index("Month by month") > page.index("investments-heading")
+    assert "Month by month" in page and page.index("Month by month") > page.index("Where money in went")
 
 
 def test_setup_guide_can_be_dismissed_and_shown_again_without_changing_accounts(c, setup):

@@ -17,14 +17,7 @@ def test_needs_you_preview_names_first_decision_and_remaining_count(c, setup, mo
     assert "+1 more" in summary
 
 
-def test_portfolio_summary_is_one_visible_kpi_row(c, setup):
+def test_the_overview_has_no_investments_row(c, setup):
+    """Feedback 100: the one-line Investments row is gone; the Investments tab holds those figures."""
     page = TestClient(create_app(c)).get("/").text
-    start = page.index('aria-label="Investments in this period"')
-    row = page[start:page.index("</article>", start)]
-
-    assert "Portfolio value" in row
-    assert "Net gain or loss" in row
-    assert "Income collected" in row
-    assert "Open investments" in row
-    assert "overview-figure-row" in row
-    assert "investment-toggle" not in row
+    assert 'aria-label="Investments in this period"' not in page and "investments-heading" not in page

@@ -365,4 +365,4 @@ Round 2, 2026-10-16. The owner answered §13: one row per broker; convert then b
 - Phase 6: lots and corporate actions.
 - Turning on the Europe and Gulf packs once their sources are licensed.
 
-Feedback batch 004, ticket 107 (owner): one tab per brokerage account plus a main tab aggregating all in EGP; each brokerage limited to markets using its sub-account currency. Same design as above; it needs thinking through before building.
+Owner direction (ticket 107, 2026-10-16): this design's pockets read as tabs: one tab per currency pocket of a brokerage, each limited to markets that trade in that pocket's currency, plus a main tab that adds them all up in EGP. Agree with section 1; next step is to settle the pocket list per broker and the tab layout before any code.
