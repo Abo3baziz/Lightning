@@ -98,7 +98,7 @@ def in_lens(groups: list[dict], divisor: Decimal) -> list[dict]:
         rows = []
         for r in g["rows"]:
             row = dict(r)
-            for key in ("cost", "value", "gain", "price_part", "fx_part"):
+            for key in ("cost", "value", "gain", "price_part", "fx_part", "invested"):
                 if r.get(key) is not None:
                     row[key] = r[key] / divisor
             if not r.get("currency"):  # a pound price per unit; a foreign one stays in its own currency
@@ -107,5 +107,5 @@ def in_lens(groups: list[dict], divisor: Decimal) -> list[dict]:
                         row[key] = r[key] / divisor
             rows.append(row)
         out.append({**g, "rows": rows, "value": g["value"] / divisor, "cost": g["cost"] / divisor,
-                    "gain": g["gain"] / divisor})
+                    "gain": g["gain"] / divisor, "invested": (g.get("invested") or 0) / divisor})
     return out

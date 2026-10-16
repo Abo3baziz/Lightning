@@ -196,3 +196,15 @@ def test_each_view_and_the_lens_render_on_pc_and_phone(c, book, view):
     for query in (f"view={view}", f"view={view}&lens=usd"):
         assert client.get(f"/investments?{PERIOD}&{query}").status_code == 200
         assert client.get(f"/investments?{PERIOD}&{query}", headers={"user-agent": "Mozilla/5.0 (iPhone)"}).status_code == 200
+
+
+def test_the_usd_lens_keeps_every_percentage(c, setup):
+    """Gain and what it is a return on are both divided, so returns read the same in either lens."""
+    from decimal import Decimal
+    from lightning.investments.views import in_lens
+    groups = [{"name": "Stocks", "value": Decimal(120), "cost": Decimal(100), "gain": Decimal(20),
+               "invested": Decimal(100), "rows": [{"cost": Decimal(100), "value": Decimal(120), "gain": Decimal(20),
+                                                   "invested": Decimal(100)}]}]
+    out = in_lens(groups, Decimal(50))
+    assert out[0]["gain"] / out[0]["invested"] == Decimal("0.2")
+    assert out[0]["rows"][0]["gain"] / out[0]["rows"][0]["invested"] == Decimal("0.2")
