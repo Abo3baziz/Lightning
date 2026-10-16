@@ -2365,6 +2365,7 @@ PAGES = {
     "Lightning could not open this page. Your records are safe; nothing was changed by this error.": "لايتننج مقدرش يفتح الصفحة دي. سجلاتك في أمان، والخطأ ده ما غيّرش أي حاجة.",
     "That page does not exist.": "الصفحة دي مش موجودة.",
     "Try again": "جرّب تاني",
+    "Spent over money in": "صرفت أكتر من الداخل",
     "Choose a valid monthly limit.": "اختار حد شهري صحيح.",
     "{n}% of average monthly income": "{n}% من متوسط الدخل الشهري",
     "Average {a} EGP crossed fixed threshold": "متوسط {a} EGP عدّى الحد الثابت",

@@ -57,3 +57,23 @@ def test_shares_show_their_ticker_and_funds_are_not_an_exchange(c, setup):
     groups = regroup("market", [{"name": "Stocks", "rows": rows}], Decimal(15), accounts={}, base="EGP",
                      assets={1: Asset("STK:COMI"), 2: Asset("FND:AZ-GOLD")})
     assert {g["name"] for g in groups} == {"EGX", "Funds"}
+
+
+def test_overview_cards_read_visually(c, setup, monkeypatch):
+    """Tickets 97, 99, 100: overspending says so in rose, net cash flow draws money in against out, and the
+    months of net cash flow are one continuous grid with the year as a hint at the start of each row."""
+    accounts, cats = setup
+    monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-30")
+    c.transactions.record_inflow("2026-09-01", accounts["cib"].id, "10000", cats["EXP.WORK.SALARY"].id, "Employer")
+    c.transactions.record_outflow("2026-09-05", accounts["cib"].id, "12000", cats["EXP.PERSONAL.FOOD"].id, "Carrefour")
+    page = TestClient(create_app(c)).get("/?period=month&month=2026-09").text
+    assert "Spent over money in" in page and "2,000 more went out than the 10,000 that came in" in page
+    assert 'class="flow-bar is-in"' in page and 'class="flow-bar is-out"' in page
+    css = (ROOT / "lightning/ui/static/style.css").read_text(encoding="utf-8")
+    assert "repeat(12, minmax(0, 1fr))" in css and ".mcal-months .cal-month { display:grid; grid-template-columns:44px" in css
+
+
+def test_a_chart_names_the_year_once_under_the_first_month_and_each_january():
+    """Ticket 98: month axes read as month numbers, the year small beneath the first month and every January."""
+    charts = (ROOT / "lightning/ui/templates/partials/charts.html").read_text(encoding="utf-8")
+    assert 'class="chart-year"' in charts and "lab.text[5:] == '01'" in charts
