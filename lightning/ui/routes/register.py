@@ -370,6 +370,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         manual_asset_value=OtherAssetValuationRepository(c.db).latest(account.id, fmt_date(today())) if account and account.account_type == AccountType.OTHER_ASSET else None,
         group=c.accounts.reporting_group(account) if account else "",
         account_value=account_value, account_owned_value=account_owned_value,
+        account_native_value=_native_value(c, account, account_value),
         account_held_value=account_held_value, account_asset_breakdown=account_asset_breakdown,
         holdings=holdings,
         composition=account_composition(account_asset_breakdown, account_value, account_owned_value, account_held_value) if account_asset_breakdown else None,
@@ -657,7 +658,8 @@ async def create_investment_entry(request: Request, account_id: int):
                     if units is not None and units < ZERO:
                         raise ValidationError(f"You do not hold {ticker_row['name']} in this account yet.", "units")
                     asset = c.assets.create_investment(ticker_row["name"], ticker_row["class_code"],
-                                                       ticker_row["ticker"], mic=ticker_row.get("mic", ""))
+                                                       ticker_row["ticker"], mic=ticker_row.get("mic", ""),
+                                                       currency=ticker_row.get("currency", ""))
             else:
                 raise ValidationError("Choose an investment from the results.", "instrument")
             if asset.currency != account.currency:
@@ -748,3 +750,11 @@ async def create_investment_entry(request: Request, account_id: int):
         return page(request, account_id, investment_entry=values, error=exc.message,
                     investment_error_field=exc.field or "", status_code=400)
     return txn, values
+
+
+def _native_value(c, account, value):
+    """A foreign account's value in its own currency (audit 2026-10-15): "2,211 USD" beside "≈ 114,211 EGP"."""
+    if not account or value is None or account.currency == c.base_currency:
+        return None
+    rate = c.reporting.valuer.fx(account.currency, fmt_date(today()))
+    return value / rate.rate if rate and rate.rate else None

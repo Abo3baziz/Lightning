@@ -224,6 +224,7 @@ class FxPositions:
     def totals(positions: list[Position]) -> dict:
         """The page's four headline figures across every currency, in the profile currency."""
         return {"value": sum((p.value or ZERO for p in positions), ZERO),
+                "investments": sum((p.investments or ZERO for p in positions), ZERO),
                 "unrealized": sum((p.unrealized or ZERO for p in positions), ZERO),
                 "realized": sum((p.realized for p in positions), ZERO),
                 "spread": sum((p.spread for p in positions), ZERO),

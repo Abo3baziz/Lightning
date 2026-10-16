@@ -11,6 +11,16 @@ from .connection import Database
 from .settings import SettingsStore
 
 
+
+# ISO 4217 minor units that are not 2 (audit 2026-10-15). Currencies with none (JPY) keep 2 here so amounts
+# typed with cents are not refused; the three-decimal ones need their third place.
+_THREE_DECIMALS = frozenset({"KWD", "BHD", "OMR", "JOD", "TND", "LYD", "IQD"})
+
+
+def minor_units(code: str) -> int:
+    """How many decimals a cash amount in this currency may have: 3 for the dinars and the Omani rial, else 2."""
+    return 3 if (code or "").upper() in _THREE_DECIMALS else 2
+
 class CurrencyRegistry:
     """Currencies a profile can use, plus the ISO 4217 suggestion catalog."""
 
@@ -60,8 +70,8 @@ class CurrencyRegistry:
                 self.db.execute(
                     "INSERT OR IGNORE INTO financial_assets(code,name,asset_class_id,currency,unit,"
                     "quantity_decimals,is_cash,exposure,liquidity,price_source,created_at,updated_at) "
-                    "VALUES(?,?,?,?,?,2,1,'CASH','IMMEDIATE','NONE',?,?)",
-                    (f"CASH:{code}", label, cash_class, code, code, now, now),
+                    "VALUES(?,?,?,?,?,?,1,'CASH','IMMEDIATE','NONE',?,?)",
+                    (f"CASH:{code}", label, cash_class, code, code, minor_units(code), now, now),
                 )
         row = self.db.one(
             "SELECT code,name,is_custom FROM registered_currencies WHERE code=?", (code,)

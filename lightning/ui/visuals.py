@@ -254,10 +254,14 @@ def holding_journey(c, account_id: int, asset_id: int, end: date, months: int = 
     if not j["labels"]:
         return {"labels": [], "trades": []}
     labels, price, value, cost = j["labels"], j["price"], j["value"], j["cost"]
+    currency = c.assets.get_asset(asset_id).currency
+    foreign = currency != c.base_currency
     return {
+        "currency": currency if foreign else None,
+        "average_native": j["average_native"] if foreign else None,
         "labels": labels, "first": j["first"], "months_held": j["months_held"],
         "price": charts.trend(labels, [{"name": "Price", "tone": "hold", "values": price, "plan_applies": False}],
-                              plan=j["average"]),
+                              plan=j["average_native"] if foreign else j["average"]),
         "value_cost": charts.trend(labels, [{"name": "Value", "tone": "hold", "values": value, "area": True},
                                             {"name": "Cost", "tone": "other", "values": cost}]),
         "drawdown": charts.trend(labels, [{"name": "Below its high", "tone": "spend", "area": True,

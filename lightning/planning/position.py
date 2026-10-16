@@ -230,6 +230,18 @@ class PositionService:
                                        row.asset_class_code, quantity, value, asset.unit))
         return result, unvalued
 
+    def foreign_holdings(self, as_of: date | str, base_currency: str) -> dict[str, tuple[Decimal, bool]]:
+        """Owned holdings priced in another currency, by currency: (value in the profile currency, any unpriced)."""
+        holdings, _ = self.owned_holdings(as_of)
+        out: dict[str, tuple[Decimal, bool]] = {}
+        for h in holdings:
+            currency = self.assets.get_asset(h.asset_id).currency
+            if currency == base_currency or not h.quantity:
+                continue
+            value, unpriced = out.get(currency, (ZERO, False))
+            out[currency] = (value + (h.value or ZERO), unpriced or h.value is None)
+        return out
+
     def portfolio_value_at(self, as_of: date | str) -> Decimal:
         """Portfolio value on a date, as Position.portfolio_value gives it, without the plan reads a whole
         Position needs (for a trend of month ends)."""

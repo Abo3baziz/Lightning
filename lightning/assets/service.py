@@ -165,7 +165,7 @@ class AssetService:
 
     # -- creating investments (M3) ----------------------------------------
     def create_investment(self, name: str, class_code: str, symbol: str = "", karat: object = None,
-                          isin: str = "", notes: str = "", mic: str = "") -> FinancialAsset:
+                          isin: str = "", notes: str = "", mic: str = "", currency: str = "") -> FinancialAsset:
         """A stock, fund, gold or other investment you can hold in an account.
 
         Code = <prefix>:<symbol>, e.g. STK:COMI, FND:AZ-GOLD, GLD:21K. Units and decimals follow the class.
@@ -195,9 +195,15 @@ class AssetService:
             existing = self.repo.get_asset_by_code(code)
         if existing:
             raise ConflictError(f"{code} already exists.", "symbol")
-        # A listing is priced in its exchange's currency (US shares in USD); the currency is registered if new.
-        from lightning.market.iso import venue_currency
-        currency = venue_currency(venue) or self.base_currency
+        # A listing is priced in its own trading currency (audit 2026-10-15): given by the catalogue or the person
+        # (a USD line in London or on EGX, a dollar fund), else its exchange's (US shares in USD), else the profile's.
+        from lightning.market.iso import RATED_CURRENCIES, is_currency, venue_currency
+        currency = (currency or "").strip().upper()
+        if currency == "GBX":
+            raise ValidationError("Enter pence prices in pounds sterling: choose GBP.", "currency")
+        if currency and (not is_currency(currency) or currency not in RATED_CURRENCIES | {self.base_currency}):
+            raise ValidationError(f"{currency} has no exchange rate source; choose another currency.", "currency")
+        currency = currency or venue_currency(venue) or self.base_currency
         if currency != self.base_currency:
             from lightning.database.currencies import CurrencyRegistry
             CurrencyRegistry(self.db).register(currency)

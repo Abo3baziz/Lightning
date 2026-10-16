@@ -72,7 +72,7 @@ def test_the_financial_assets_page_lists_and_edits_everything(c, setup):
     assert "Commercial International Bank" in page and ">EGX</span>" in page and "EGS60121C018" in page
     assert "REF:GLD" not in page and "CASH:" not in page  # price references and currencies are not listed
     form = client.get(f"/investments/assets/{comi.id}/edit").text
-    assert 'value="COMI"' in form and '<option value="XCAI" selected>EGX · XCAI</option>' in form
+    assert 'value="COMI"' in form and '<option value="XCAI" selected>EGX</option>' in form
     saved = client.post(f"/investments/assets/{comi.id}/edit", data={
         "name": "CIB", "class_code": "STOCK", "symbol": "COMI", "isin": "EGS60121C018", "mic": "XCAI", "active": "1"})
     assert saved.status_code == 200 and "Saved CIB." in saved.text

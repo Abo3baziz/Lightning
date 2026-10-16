@@ -80,6 +80,10 @@ async def currency_accounts(request: Request):
     except LightningError as exc:  # say why this year is shown instead of the range asked for
         period, period_error = parse_period({"period": "ytd"}, today()), exc.message
     positions = c.reporting.fx_positions.all(period.start_text, period.end_text)
+    # Investments priced in a foreign currency are foreign money too (audit 2026-10-15).
+    for p in positions:
+        p.investments, p.investments_unpriced = c.position.foreign_holdings(
+            period.end_text, c.base_currency).get(p.currency, (None, False))
     shown, other = c.reporting.fx_positions.split(positions)
     chosen = next((p for p in shown if p.currency == request.query_params.get("currency")), shown[0] if shown else None)
     trend = None

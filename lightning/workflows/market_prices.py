@@ -121,7 +121,7 @@ def pack_files(data_dir: Path | None) -> dict[str, dict]:
     return found
 
 
-def pack_rows(data_dir: Path | None, followed) -> list[dict]:
+def pack_rows(data_dir: Path | None, followed, held=()) -> list[dict]:
     """Every pack Lightning knows or the last download listed, for the Price files page."""
     root = local_folder(data_dir)
     try:
@@ -137,6 +137,7 @@ def pack_rows(data_dir: Path | None, followed) -> list[dict]:
                      "covers": known.covers if known else str(listed.get("covers", "")),
                      "source": known.source if known else str(listed.get("source", "")),
                      "venues": ", ".join(venue_name(v) for v in venues), "on": pack_id in followed,
+                     "held": pack_id in held,
                      "bytes": listed.get("bytes"), "have": have.get(pack_id)})
     return rows
 
@@ -264,12 +265,40 @@ FILLED_SETTING = "market_filled"     # "<file date>|<month>" of the last automat
 MISSING_SETTING = "market_missing"   # what that fill could not find, for Needs you
 
 
+def held_packs(c) -> list[str]:
+    """The packs a profile needs for what it holds now (audit 2026-10-15): the market of every held listing,
+    Egyptian funds for a held Egyptian fund, and exchange rates once anything is in another currency."""
+    rows = c.db.all(
+        "SELECT fa.mic, fa.country, fa.currency, ac.code AS class_code FROM ledger_entries le "
+        "JOIN transactions t ON t.id = le.transaction_id AND t.status != 'VOID' "
+        "JOIN financial_assets fa ON fa.id = le.asset_id JOIN asset_classes ac ON ac.id = fa.asset_class_id "
+        "WHERE fa.is_cash = 0 GROUP BY le.account_id, le.asset_id HAVING SUM(le.quantity_e6) > 0")
+    needed = set()
+    for row in rows:
+        mic = (row["mic"] or "").upper()
+        needed.update(p.id for p in PACKS.values() if mic and mic in p.venues)
+        if not mic and (row["class_code"] or "").startswith("FUND") and row["country"] == "EG":
+            needed.add("eg-funds")
+        if row["currency"] and row["currency"] != c.base_currency:
+            needed.add("fx")
+    foreign_cash = c.db.scalar("SELECT 1 FROM accounts WHERE active = 1 AND currency != ? LIMIT 1", (c.base_currency,))
+    if foreign_cash:
+        needed.add("fx")
+    return [p for p in PACKS if p in needed]
+
+
+def followed_packs(c) -> list[str]:
+    """What the person chose to follow, plus every market they hold something on (never dropped by unticking)."""
+    chosen_ids = chosen(c.settings.get("market_packs"))
+    return chosen_ids + [p for p in held_packs(c) if p not in chosen_ids]
+
+
 def fill_followed(c, on: date) -> FillReport | None:
     """Fill from the followed packs now, post the month-end returns this allows, and remember what is
     missing. None when there are no price files or the profile is a read-only copy."""
     if c.db.read_only:
         return None
-    market = current_set(c.data_dir, chosen(c.settings.get("market_packs")))
+    market = current_set(c.data_dir, followed_packs(c))
     if market is None:
         return None
     report = MarketPrices(c.assets, c.reporting).fill(market, on)
@@ -283,7 +312,7 @@ def fill_if_due(c, on: date) -> FillReport | None:
     """The automatic fill: on first run, when a newer file arrived, or in a new month. Quiet otherwise."""
     if c.db.read_only:
         return None
-    market = current_set(c.data_dir, chosen(c.settings.get("market_packs")))
+    market = current_set(c.data_dir, followed_packs(c))
     if market is None or c.settings.get(FILLED_SETTING) == f"{market.created_at[:10]}|{on.isoformat()[:7]}":
         return None
     return fill_followed(c, on)

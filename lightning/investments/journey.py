@@ -49,17 +49,26 @@ def holding_history(reporting, investments, account_id: int, asset_id: int, end:
         typical = (sum(((m - mean) ** 2 for m in moves), ZERO) / len(moves)).sqrt()
     known_dd = [d for d in drawdown if d is not None]
     # The journey: every trade and payout, with units held after it.
-    held, trail = ZERO, []
+    # Cost is also kept in the holding's own currency (the account's), average-cost method, so a dollar holding's
+    # dashed line is the dollars paid, not today's pound cost turned back into dollars (audit 2026-10-15).
+    held, trail, native = ZERO, [], ZERO
     for l in lines:
         units = ZERO if l["type"] == "DIV" else from_e6(l["quantity_e6"] or 0)
         amount = from_e6(l["amount_base_e6"] or 0)
+        amount_native = from_e6(l.get("amount_e6") or 0)
+        if units > 0:
+            native += abs(amount_native)
+        elif units < 0 and held:
+            native -= native / held * -units
         held += units
         trail.append({"date": l["date"], "kind": KINDS.get(l["type"], "Holding added" if units > 0 else "Units out"),
                       "units": units, "amount": abs(amount), "price": abs(amount / units) if units else None,
+                      "price_native": abs(amount_native / units) if units else None,
                       "held": held, "ref": l.get("ref")})
     average = cost[-1] / (value[-1] / price[-1]) if cost[-1] and value[-1] and price[-1] else None
+    average_native = native / held if held > 0 else None
     return {"labels": labels, "first": fmt_date(first), "months_held": len(keys), "price": price, "value": value,
-            "cost": cost, "average": average, "returns": returns, "drawdown": drawdown,
+            "cost": cost, "average": average, "average_native": average_native, "returns": returns, "drawdown": drawdown,
             "best": max(returns, key=lambda r: r[1]) if returns else None,
             "worst": min(returns, key=lambda r: r[1]) if returns else None,
             "typical": typical, "max_drawdown": min(known_dd) if known_dd else None,

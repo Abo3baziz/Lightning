@@ -25,7 +25,8 @@ from lightning.core.figures import label
 from lightning.market.packs import chosen, read_zip
 from lightning.market.update import DEFAULT_URL, update_packs
 from lightning.workflows import live_prices
-from lightning.workflows.market_prices import fill_followed, forget, local_folder, pack_files, pack_rows
+from lightning.workflows.market_prices import (fill_followed, followed_packs, forget, held_packs, local_folder,
+                                              pack_files, pack_rows)
 
 from .. import keynotes, visuals
 
@@ -252,6 +253,14 @@ def _portfolio_value_spark(c, end: date) -> dict:
             "change": change, "added": added}
 
 
+def _native_cost(found, quantity) -> dict:
+    """Currency and average cost per unit in that currency, for a holding priced in a foreign currency."""
+    if not found or not quantity:
+        return {"currency": None, "average_cost_native": None}
+    currency, cost_native = found
+    return {"currency": currency, "average_cost_native": cost_native / quantity}
+
+
 def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, report) -> dict:
     """The Investments page in four parts (guideline 2.7): this period's waffle and result, the fixed
     six-month value line, allocation and biggest holdings, the holdings table grouped by class,
@@ -279,6 +288,9 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
     # A holding in another currency: its gain from the price and from the exchange rate (Overview #16).
     splits = {(r["account_id"], r["asset_id"]): (r["price_part"], r["fx_part"]) for r in report.get("holdings", [])
               if r.get("price_part") is not None and "account_id" in r}
+    # Price and average cost of a foreign holding are shown in its own currency (audit 2026-10-15).
+    native = {(r["account_id"], r["asset_id"]): (r["currency"], r["cost_native"]) for r in report.get("holdings", [])
+              if "account_id" in r and r.get("currency") and r["currency"] != c.base_currency}
     groups: dict[str, dict] = {}
     for h, yours, bucket, horizon, capital, unrealized, units in owned_rows:
         name = h.asset_class.split(" › ")[-1]
@@ -293,6 +305,7 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
                           "xirr": h.xirr * 100 if h.xirr is not None and units == h.quantity else None,
                           "display_return": h.display_return if units == h.quantity else None,
                           "horizon": horizon, "weight": (yours or ZERO) / holdings_total * 100 if holdings_total else ZERO,
+                          **_native_cost(native.get((h.account_id, h.asset_id)), h.quantity),
                           **_owned_split(splits.get((h.account_id, h.asset_id)), units, h.quantity, unrealized)})
     for name, item in balances:
         g = groups.setdefault(name, {"name": name, "value": ZERO, "cost": ZERO, "gain": ZERO, "invested": ZERO, "rows": []})
@@ -622,9 +635,9 @@ async def update_trade(request: Request, txn_id: int):
 # -- investments (what you can hold) -------------------------------------------
 def _asset_form(request: Request, values: dict, asset=None, error: LightningError | None = None, status=200):
     c = container(request)
-    from lightning.market.iso import VENUES, venue_name
+    from lightning.market.iso import offered_venues, venue_name
     return render(request, "investments/asset_form.html", status_code=status, values=values, asset=asset,
-                  classes=c.assets.investment_classes(), venues=VENUES, error=error.message if error else "",
+                  classes=c.assets.investment_classes(), venues=offered_venues(c.base_currency), error=error.message if error else "",
                   error_field=(error.field or "") if error else "",
                   catalogue=[{**row, "exchange": venue_name(row.get("mic"))} for row in instruments()] if asset is None else [])
 
@@ -639,10 +652,12 @@ async def new_asset(request: Request):
 async def create_asset(request: Request):
     c = container(request)
     form = await request.form()
-    values = {k: str(form.get(k, "")) for k in ("name", "class_code", "symbol", "karat", "isin", "mic", "notes")}
+    values = {k: str(form.get(k, "")) for k in ("name", "class_code", "symbol", "karat", "isin", "mic", "notes",
+                                                 "currency")}
     try:
         asset = c.assets.create_investment(values["name"], values["class_code"], values["symbol"], values["karat"],
-                                           values["isin"], values["notes"], mic=values["mic"])
+                                           values["isin"], values["notes"], mic=values["mic"],
+                                           currency=values["currency"])
     except LightningError as exc:
         return _asset_form(request, values, error=exc, status=400)
     back = request.query_params.get("then", "")
@@ -717,7 +732,7 @@ def _followed(c) -> list[dict]:
     """The packs this profile follows, each with what this computer holds of it (or None)."""
     have, rows = pack_files(c.data_dir), {r["id"]: r for r in pack_rows(c.data_dir, ())}
     return [{"id": p, "name": rows.get(p, {}).get("name", p), "source": rows.get(p, {}).get("source", ""),
-             "have": have.get(p)} for p in chosen(c.settings.get("market_packs"))]
+             "have": have.get(p)} for p in followed_packs(c)]
 
 
 def _fill_from(c, done: str = "", back: str = "/investments/prices"):
@@ -733,7 +748,7 @@ def _fill_from(c, done: str = "", back: str = "/investments/prices"):
 
 async def _update(c, back: str):
     """Download what changed in the followed packs (about 1 MB a month each after the first time), then fill."""
-    followed = chosen(c.settings.get("market_packs"))
+    followed = followed_packs(c)
     try:
         changed, missing = await run_in_threadpool(update_packs, local_folder(c.data_dir), followed,
                                                    c.settings.get("market_url") or DEFAULT_URL)
@@ -809,7 +824,7 @@ async def price_files(request: Request):
     """Settings › Price files: which exchanges' prices to download and keep."""
     c = container(request)
     return render(request, "investments/price_files.html",
-                  rows=pack_rows(c.data_dir, chosen(c.settings.get("market_packs"))))
+                  rows=pack_rows(c.data_dir, followed_packs(c), held_packs(c)))
 
 
 @router.get("/prices/online/status")
@@ -835,8 +850,9 @@ async def save_price_files(request: Request):
     c = container(request)
     form = await request.form()
     known = {r["id"] for r in pack_rows(c.data_dir, ())}
+    held = held_packs(c)  # a market you hold something on stays followed
     picked = [p for p in form.getlist("pack") if p in known]
-    dropped = [p for p in chosen(c.settings.get("market_packs")) if p not in picked]
+    dropped = [p for p in followed_packs(c) if p not in picked and p not in held]
     c.settings.set("market_packs", ",".join(picked) or "none")
     forget(c.data_dir, dropped)
     if form.get("update"):

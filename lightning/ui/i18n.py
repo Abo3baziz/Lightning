@@ -1488,7 +1488,7 @@ ARABIC_UI = {
     'Suggested allocation': 'التوزيع المقترح',
     'On this computer': 'على الكمبيوتر ده',
     'Not downloaded': 'لم يتم التنزيل',
-    'Each market is its own file, refreshed after that market closes. After the first download, an update brings only what changed, about 1 MB a month for each. Unfollowing a market removes its file from this computer; prices already filled stay. Prices in another currency fill once holdings can be in that currency.': 'كل سوق في ملف لوحده بيتحدّث بعد إغلاق السوق. بعد أول تنزيل، التحديث بيجيب التغييرات بس، حوالي ١ ميجابايت شهريًا لكل سوق. إلغاء متابعة سوق بيشيل ملفه من الكمبيوتر؛ الأسعار اللي اتملت بتفضل. أسعار العملة التانية بتتملي لما المقتنيات تبقى بالعملة دي.',
+    'Each market is its own file, refreshed after that market closes. After the first download, an update brings only what changed, about 1 MB a month for each. Unfollowing a market removes its file from this computer; prices already filled stay.': 'كل سوق في ملف لوحده بيتحدّث بعد إغلاق السوق. بعد أول تنزيل، التحديث بيجيب التغييرات بس، حوالي ١ ميجابايت شهريًا لكل سوق. إلغاء متابعة سوق بيشيل ملفه من الكمبيوتر؛ الأسعار اللي اتملت بتفضل.',
     'Save and download shared prices': 'احفظ ونزّل الأسعار المشتركة',
     'Back to prices': 'ارجع للأسعار',
     'Price sources': 'مصادر الأسعار',

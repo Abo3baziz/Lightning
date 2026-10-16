@@ -49,6 +49,18 @@ VENUE_CURRENCY: dict[str, str] = {
 }
 
 
+# Currencies with an exchange-rate source (CBE and Banque Misr, lightning/market/sources/cbe.py). A venue whose
+# currency has none cannot be valued in pounds, so it is not offered (audit 2026-10-15: ISK).
+RATED_CURRENCIES = frozenset({"USD", "EUR", "GBP", "CHF", "JPY", "SAR", "KWD", "AED", "CNY", "CAD", "AUD", "DKK",
+                              "NOK", "SEK", "BHD", "OMR", "QAR", "JOD"})
+
+
+def offered_venues(profile_currency: str = "EGP") -> dict[str, tuple[str, str]]:
+    """The exchanges a person can pick: those whose currency is the profile's or has a rate source."""
+    return {code: v for code, v in VENUES.items()
+            if VENUE_CURRENCY.get(code) in RATED_CURRENCIES | {profile_currency}}
+
+
 def venue_currency(mic: str | None) -> str | None:
     """'XNAS' -> 'USD'; an unknown or empty MIC has no currency of its own."""
     return VENUE_CURRENCY.get((mic or "").strip().upper())

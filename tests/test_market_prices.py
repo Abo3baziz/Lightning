@@ -216,7 +216,8 @@ def test_the_prices_page_follows_markets_updates_imports_and_fills(c, holdings, 
     assert 'value="egx" checked' in settings and 'value="gcc" ' in settings and 'value="gcc" checked' not in settings
     saved = client.post("/investments/prices/markets", data={"pack": ["egx", "us"]})
     assert "Saved." in saved.text and c.settings.get("market_packs") == "egx,us"
-    assert not (c.data_dir / "market" / "eg-funds").exists()  # unfollowed: its file is removed
+    # A fund is held, so Egyptian funds stays followed and its file stays (audit 2026-10-15).
+    assert (c.data_dir / "market" / "eg-funds").exists()
     publish(tmp_path / "published", "2027-01-01T22:30:00Z", december="90")
     c.settings.set("market_url", "http://127.0.0.1:1/")  # nothing listens there
     assert "Could not reach the price file" in client.post("/investments/prices/market/update").text
@@ -229,7 +230,8 @@ def test_the_prices_page_follows_markets_updates_imports_and_fills(c, holdings, 
     rows = {r["id"]: r for r in pack_rows(c.data_dir, chosen(c.settings.get("market_packs")))}
     assert rows["us"]["on"] and rows["us"]["bytes"] > 0 and rows["us"]["have"]["origin"] == "downloaded"
     assert client.post("/investments/prices/markets", data={}).status_code == 200 and chosen(c.settings.get("market_packs")) == []
-    assert "You follow no markets" in client.get("/investments/prices").text
+    # Unticking everything still follows the markets of what is held (stocks on EGX, an Egyptian fund).
+    assert "You follow no markets" not in client.get("/investments/prices").text
 
 
 def test_the_desktop_window_takes_one_bounded_market_file():

@@ -28,7 +28,7 @@
       <label for="mic">{{ "Exchange"|tr(locale) }}</label>
       <select id="mic" name="mic">
         <option value="" {{ 'selected' if not values.mic }}>—</option>
-        {% for code, venue in venues.items() %}<option value="{{ code }}" {{ 'selected' if values.mic == code }}>{{ venue[0] }} · {{ code }}</option>{% endfor %}
+        {% for code, venue in venues.items() %}<option value="{{ code }}" {{ 'selected' if values.mic == code }}>{{ venue[0] }}</option>{% endfor %}
       </select>
       <div class="help">{{ "A stock is on EGX unless you choose another. Funds and gold are not listed."|tr(locale) }}</div>
     </div>
@@ -46,6 +46,7 @@
   <details>
     <summary>{{ "More options"|tr(locale) }}</summary>
     <div style="margin-top:10px">
+      {% if not asset %}<div class="field"><label for="currency">{{ 'Trading currency'|tr(locale) }}</label><input id="currency" name="currency" value="{{ values.currency }}" maxlength="3" placeholder="{{ 'Follows the exchange'|tr(locale) }}" autocomplete="off"><p class="muted small">{{ 'Only when it trades in another currency than its exchange, e.g. a dollar fund or a USD line in London.'|tr(locale) }}</p></div>{% endif %}
       <div class="field"><label for="notes">{{ 'Notes'|tr(locale) }}</label><textarea id="notes" name="notes" rows="2">{{ values.notes }}</textarea></div>
       {% if asset %}<label class="small"><input type="checkbox" name="active" value="1" {{ 'checked' if values.active }}>{{ "Show in lists"|tr(locale) }}</label>{% endif %}
     </div>

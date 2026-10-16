@@ -68,8 +68,10 @@
 </tr>{% else %}{% set h = r.h %}<tr data-search="{{ (h.asset_name ~ ' ' ~ h.asset_code ~ ' ' ~ g.name ~ ' ' ~ h.account_label)|lower }}" data-horizon="{{ r.horizon }}">
   <td><a class="holding-link" href="/investments/holding/{{ h.asset_id }}?account={{ h.account_id }}&date={{ period.end_text }}&start={{ period.start_text }}">{{ h.asset_name }}</a></td>{% if multi %}<td>{{ h.account_label }}</td>{% endif %}
   <td class="num">{{ r.units|units_of(h.unit) }}</td>
+  {% if r.currency %}<td class="num">{{ r.average_cost_native|money(False, 2) }} <small>{{ r.currency }}</small></td>
+  <td class="num"{% if h.price_date %} title="Price of {{ h.price_date }}"{% endif %}>{{ r.price|money(False, 2) if r.price is not none else '—' }} <small>{{ r.currency }}</small></td>{% else %}
   <td class="num">{{ r.average_cost|money(False, 2 if r.average_cost < 10 else 0) if r.average_cost is not none else '—' }}</td>
-  <td class="num"{% if h.price_date %} title="Price of {{ h.price_date }}{{ ' · valued at cost' if h.price_source == 'COST' }}"{% endif %}>{{ r.price|money(False, 2 if r.price < 10 else 0) if r.price is not none else '—' }}</td>
+  <td class="num"{% if h.price_date %} title="Price of {{ h.price_date }}{{ ' · valued at cost' if h.price_source == 'COST' }}"{% endif %}>{{ r.price|money(False, 2 if r.price < 10 else 0) if r.price is not none else '—' }}</td>{% endif %}
   <td class="num">{{ r.cost|money }}</td>
   <td class="num"><b>{{ r.value|money if r.value is not none else 'Unavailable' }}</b></td>
   <td class="num">{{ '%.1f'|format(r.weight) }}%</td>

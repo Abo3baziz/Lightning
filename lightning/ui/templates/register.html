@@ -40,7 +40,7 @@
 
 {% block heading %}
 {% if account %}
-{% set strip %}{% if account_held_value %}<div><span>{{ 'In this account'|tr(locale) }}</span><b>{{ account_value|money(False, 0) }}</b></div><div><span>{{ fig.what_you_own.label }}</span><b>{{ account_owned_value|money(False, 0) }}</b></div><div><span>{{ fig.held_for_others.label }}</span><b>{{ account_held_value|money(False, 0) }}</b></div>{% else %}<div><span>{{ 'Balance'|tr(locale) }}</span><b>{{ account_value|money(False, 0) }}</b></div>{% endif %}{% endset %}
+{% set strip %}{% if account_held_value %}<div><span>{{ 'In this account'|tr(locale) }}</span><b>{{ account_value|money(False, 0) }}</b></div><div><span>{{ fig.what_you_own.label }}</span><b>{{ account_owned_value|money(False, 0) }}</b></div><div><span>{{ fig.held_for_others.label }}</span><b>{{ account_held_value|money(False, 0) }}</b></div>{% elif account_native_value is not none %}<div><span>{{ 'Balance'|tr(locale) }}</span><b>{{ account_native_value|money(False, 2) }} <small>{{ account.currency }}</small></b></div><div><span>{{ 'In {base}'|tr(locale, base=base) }}</span><b>≈ {{ account_value|money(False, 0) }}</b></div>{% else %}<div><span>{{ 'Balance'|tr(locale) }}</span><b>{{ account_value|money(False, 0) }}</b></div>{% endif %}{% endset %}
 {{ page_header(account.name, account.type_short|tr(locale) ~ (' · ' ~ account.institution if account.institution else '') ~ ' · ' ~ account.currency, tile=account.institution or account.name, figure=strip) }}
 {% else %}
 <div class="acct-title"><h1>{{ 'Transactions'|tr(locale) }}</h1><p class="muted small">Every account · {{ base }}</p></div>
