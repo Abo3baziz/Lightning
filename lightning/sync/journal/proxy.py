@@ -31,7 +31,8 @@ class PendingOnHome(Exception):
 class JournalServices:
     def __init__(self, device):
         self._device = device
-        self._calls = {entry.call: name for name, entry in COMMANDS.items()}
+        # Module-level workflow commands (a function `call`) are reached by their own screens, not through here.
+        self._calls = {entry.call: name for name, entry in COMMANDS.items() if type(entry.call) is str}
 
     def __getattr__(self, name):
         service = getattr(self._device.c, name)

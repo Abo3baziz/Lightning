@@ -23,7 +23,7 @@
 
 - **Website guideline copies:** fix on website `codex/sync-app-guidelines`; main push needs owner approval after auto-review rejection. **Read:** report › website guideline copies.
 
-- **Edit journal:** enrollment and transition-resume services tested; native integration, retention, full write coverage/security gates open. No deployment. **Read:** `docs/proposals/edit_journal.md` §10; Architecture › Experimental edit journal.
+- **Edit journal (Claude):** J6a/b built; J6c areas cash, master data, currency, reserves, plans, budgets; J6f proxy runs app screens. Next: investments, route coverage, launch. **Read:** proposal §10 J6 table; Architecture › Command proposals.
 
 - **Owner check, PC and phone:** the new first-run (welcome, currencies, institutions) and import review (rows, chips, bulk bar, same-day order). **Read:** Architecture › CSV import and export contract.
 - **Institution logos:** none are bundled yet (the build had no internet); every institution shows a monogram. Run `python tools/fetch_institution_logos.py` from a PC and commit `lightning/ui/static/institutions/` and the CSV. **Read:** Architecture › Modules (accounts).

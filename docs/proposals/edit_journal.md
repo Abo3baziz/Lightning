@@ -222,10 +222,10 @@ No production protocol switch before complete write coverage. Early stages use i
 |---|---|
 | J6a — Generic exact effects (built) | One replicator for every synchronized table: UUID row identity (integer ids via `journal_ids`, other keys as key columns with references mapped), touched-row triggers, typed row upserts/deletes in reference order, per-row fingerprint. Cash becomes the first area on it. |
 | J6b — Checkpoint baselines (built) | Every replica, including the lab and tests, starts from the home's verified checkpoint; independent baselines are retired. |
-| J6c — Areas (started: command framework; accounts and categories) | Command families with field groups and service preconditions: master data (accounts, categories, counterparties, rules), foreign currency and conversions, plans/bills/loans/reserves/budgets, investments, shared settings. |
+| J6c — Areas (in progress: cash, master data, currency and reserves, plans and budgets) | Command families with field groups and service preconditions: master data (accounts, categories, counterparties, rules), foreign currency and conversions, plans/bills/loans/reserves/budgets, investments, shared settings. |
 | J6d — Home automation | Rules, price fills, bill matching and revaluation run only on the home and commit as effects. |
 | J6e — Upgrades and backups | Migration barrier, per-release compatibility table, journal-profile backup and restore. |
-| J6f — Cutover | Convert a v1 profile (freeze lends, receive returns, verified baseline), pair peers, Mohab's year on a journal profile, Windows/Android acceptance, security/durability review. |
+| J6f — Cutover (started: the app's screens run on a journal profile through `proxy.JournalServices`) | Convert a v1 profile (freeze lends, receive returns, verified baseline), pair peers, Mohab's year on a journal profile, Windows/Android acceptance, security/durability review. |
 
 No borrowing fallback inside a journal profile. An area still awaiting coverage remains disabled there; the ordinary v1 profile stays on its existing implementation until cutover. A stranded pre-journal copy is preserved for explicit comparison/import, never guessed into an operation history.
 

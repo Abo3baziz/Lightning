@@ -10,6 +10,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: journal areas for currencies, conversions, reserves, plans, bills, instalments and budgets (with two Sonnet agents); the app's own
+  screens run on a journal profile via `proxy.JournalServices`: the home confirms at once, other devices rehearse, save and show "Saved on this device".
 - 2026-10-16 · Claude: journal J6c started: command proposals run allowlisted service actions on the home with exact row effects and row-hash
   preconditions (`commands.py`, `areas/`); open/update/archive accounts and create/update categories from any device.
 - 2026-10-16 · Claude: journal J6b: replicas (lab, tests) start from the home's verified checkpoint (`snapshots.checkpoint_replica`); `initialize` creates homes only.
