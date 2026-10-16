@@ -15,7 +15,7 @@ def test_the_inventory_reports_the_account_edit_route_as_covered():
     rows = journal_coverage.inventory()
     state = {row["path"]: row["state"] for row in rows}
     assert state["/accounts/{account_id:int}/edit"] == "covered"
-    assert state["/rules"] == "uncovered" and state["/settings/locale"] == "uncovered"
+    assert state["/rules"] == "uncovered" and state["/settings/locale"] == "covered"
     assert {"covered", "uncovered", "read-only"} <= set(state.values())
     assert journal_coverage.regressions(rows) == []
     assert "Summary:" in journal_coverage.report(rows)
@@ -26,12 +26,13 @@ def test_an_uncovered_write_is_refused_gracefully_and_writes_nothing(screens, wh
     (hd, pc), clients = screens
     device, client = (hd, pc)[who], clients[who]
     before = device.store.fingerprint()
-    response = client.post("/settings/locale", data={"locale": "ar"}, headers={"referer": "http://testserver/settings"})
+    # Rules are not synchronized yet.
+    response = client.post("/rules", data={"match": "any", "counterparty_op": "contains", "counterparty": "CAFE", "tag": "#coffee"}, headers={"referer": "http://testserver/rules"})
     assert response.status_code == 303
     location = response.headers["location"]
-    assert location.startswith("/settings?msg=This+is+not+available+on+a+synchronized+profile+yet")
+    assert location.startswith("/rules?msg=This+is+not+available+on+a+synchronized+profile+yet")
     assert device.store.fingerprint() == before and not device.store.pending()
-    assert device.c.settings.get("locale") != "ar"
+    assert not device.c.db.scalar("SELECT COUNT(*) FROM rules")
     assert client.get(location).status_code == 200  # The screen the user lands on renders.
 
 
@@ -41,6 +42,6 @@ def test_other_database_errors_are_not_hidden(screens, monkeypatch):
 
     def broken(*args, **kwargs):
         raise sqlite3.DatabaseError("disk image is malformed")
-    monkeypatch.setattr(hd.c.settings, "set", broken)
+    monkeypatch.setattr(hd.c.rules, "save", broken)
     with pytest.raises(sqlite3.DatabaseError, match="malformed"):
-        home.post("/settings/locale", data={"locale": "ar"})
+        home.post("/rules", data={"match": "any", "counterparty_op": "contains", "counterparty": "CAFE", "tag": "#coffee"})
