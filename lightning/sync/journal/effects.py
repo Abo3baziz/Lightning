@@ -57,7 +57,7 @@ class Table:
         self.rowid = self.key == ["id"] and self.types["id"] == "INTEGER"
         self.columns = [row["name"] for row in info if not (self.rowid and row["name"] == "id")]
         self.refs = {row["from"]: row["table"] for row in db.all(f"PRAGMA foreign_key_list({name})")} | EXTRA_REFS.get(name, {})
-        if set(self.types.values()) - {"INTEGER", "TEXT"}:
+        if set(self.types.values()) - {"INTEGER", "TEXT", "REAL"}:
             raise JournalError(f"{name} has a column type the journal cannot carry yet")
 
 
@@ -132,8 +132,8 @@ class Replicator:
         return self.uid(target, value)
 
     def encode(self, table, row):
-        return {column: self._ref(table, column, row[column]) if column in table.refs else row[column]
-                for column in table.columns}
+        return {column: self._ref(table, column, row[column]) if column in table.refs
+                else _real(row[column]) if table.types[column] == "REAL" else row[column] for column in table.columns}
 
     # -- capture --------------------------------------------------------------
     def install(self):
@@ -233,6 +233,12 @@ class Replicator:
         elif table.types[column] == "INTEGER":
             if type(value) is not int:
                 raise JournalError("Row integers must be exact")
+        elif table.types[column] == "REAL":
+            try:
+                if type(value) is not str or _real(float(value)) != value:
+                    raise ValueError
+            except ValueError as error:
+                raise JournalError("Row decimals must be exact text") from error
         elif type(value) is not str:
             raise JournalError("Row text must be text")
 
@@ -256,7 +262,8 @@ class Replicator:
                 self.db.execute(f"DELETE FROM {table.name} WHERE " + " AND ".join(f"{column} IS ?" for column in table.key), key)
         for item in sorted((item for item in rows if item["values"] is not None), key=lambda item: rank[item["table"]]):
             table = self.tables[item["table"]]
-            values = {column: self.local(table.refs[column], value) if column in table.refs else value
+            values = {column: self.local(table.refs[column], value) if column in table.refs
+                      else float(value) if table.types[column] == "REAL" and value is not None else value
                       for column, value in item["values"].items()}
             columns = table.columns
             if table.rowid:
@@ -313,3 +320,8 @@ class Replicator:
         if cached:
             return self.combine(row[0] for row in self.db.all("SELECT hash FROM journal_fp"))
         return self.combine(self.row_hash(item["table"], item["key"], item["values"]) for item in self.all_rows())
+
+
+def _real(value):
+    """A stored float as the shortest text that reads back as the same float."""
+    return None if value is None else repr(float(value))
