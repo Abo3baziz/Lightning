@@ -1,10 +1,11 @@
 """Plans and budgets: bills, income, loans, instalment purchases, monthly budgets and carryover.
 
-Not covered (they write settings or reserves, which are not synchronized): the recurring-income and one-off
-category flags, "not recurring" suggestions, payday cash funding and the budget undo (a raw row restore).
+The recurring-income and one-off category flags and the "not recurring" list are settings holding local row ids,
+copied as they are: they read right on a device whose category and counterparty ids match the home's (a replica
+made from a checkpoint). Payday funding carries the preview's token; ids that differ make the home refuse it.
 Automatic plan matching is not a user action.
 """
-from .spec import AMOUNT, DATE, FLAG, INT, LONG, MONTH, TEXT, Command, choice, items, optional, ref
+from .spec import AMOUNT, DATE, FLAG, INT, LONG, MONTH, TEXT, Command, choice, items, listof, optional, ref
 
 TABLES = ("planned_items", "planned_payments", "loan_extra_payments", "installment_purchases", "budgets",
           "budget_carryover", "budget_carryover_resets", "cash_funding")
@@ -52,8 +53,19 @@ def _carryover(values):
     return dict(month=values["month"], settings={line["category"]: line["enabled"] for line in values["lines"]})
 
 
+def _funding(values):
+    return values | dict(amounts={str(line["category"]): line["amount"] for line in values["amounts"]},
+                         reserve_additions={str(line["reserve"]): line["amount"] for line in values["reserve_additions"]})
+
+
+# The columns a budget row keeps; a restored row gets a new id, since ids are local.
+BUDGET_ROW = items(category_id=ref("categories"), month=TEXT, one_off=INT, amount_e6=optional(INT), created_at=TEXT,
+                   updated_at=TEXT, average_months=optional(INT), income_percent_e6=optional(INT))
+
 COMMANDS = {
-    "plans.add_payee": Command("counterparties.create", dict(name=TEXT), creates="counterparties"),
+    "plans.add_payee": Command("counterparties.create", dict(
+        name=TEXT, default_category_id=optional(ref("categories")), alias=optional(TEXT), kind=optional(TEXT)),
+        creates="counterparties"),
     "plans.add": Command("planning.create", dict(
         PLAN, month_day=optional(INT), match_window_days=optional(INT), match_tolerance_pct=optional(INT)),
         creates="planned_items"),
@@ -89,4 +101,13 @@ COMMANDS = {
         month=MONTH, lines=items(category=ref("categories"), enabled=FLAG)), adapt=_carryover),
     "budgets.reset_carryover": Command("budgets.reset_carryover", dict(
         category_id=ref("categories"), month=MONTH), target=CATEGORY),
+    "budgets.set_one_off": Command("budgets.set_one_off", dict(category_id=ref("categories"), one_off=FLAG), target=CATEGORY),
+    "budgets.set_recurring_income": Command("budgets.set_recurring_income", dict(
+        category_id=ref("categories"), recurring=FLAG), target=CATEGORY),
+    "budgets.set_emergency_basis": Command("budgets.set_emergency_basis", dict(basis=choice("spending", "income"))),
+    "budgets.restore_rows": Command("budgets.restore_rows", dict(category_ids=listof(ref("categories")), rows=BUDGET_ROW)),
+    "funding.apply": Command("funding.apply", dict(
+        fingerprint=TEXT, amounts=items(category=ref("categories"), amount=TEXT),
+        reserve_additions=items(reserve=ref("cash_reserves"), amount=TEXT)), adapt=_funding),
+    "planning.not_recurring": Command("planning.not_recurring", dict(counterparty_id=ref("counterparties"))),
 }
