@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -523,6 +525,21 @@ async def deactivate(request: Request, account_id: int):
     except LightningError as exc:
         return redirect(f"/accounts/{account_id}", exc.message)
     return redirect(f"/accounts/{account.id}", f"{account.label} is now inactive.")
+
+
+@router.post("/{account_id:int}/spendable")
+async def set_spendable(request: Request, account_id: int):
+    """Count this account's cash as spendable or keep it apart (Free cash, Safe to spend, payday)."""
+    c = container(request)
+    form = await request.form()
+    choice = {"yes": True, "no": False}.get(str(form.get("spendable", "")))
+    account = c.accounts.get(account_id)
+    if choice is not None and choice == replace(account, spendable=None).counts_as_spendable(c.base_currency):
+        choice = None  # the default: store no override
+    account = c.accounts.set_spendable(account_id, choice)
+    spendable = account.counts_as_spendable(c.base_currency)
+    return redirect(f"/accounts/{account.id}",
+                    "Its cash now counts as spendable." if spendable else "Its cash is now kept apart from spendable cash.")
 
 
 @router.post("/{account_id:int}/reactivate")

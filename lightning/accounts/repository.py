@@ -26,6 +26,7 @@ def _row(row: sqlite3.Row) -> Account:
         sort_order=row["sort_order"],
         notes=row["notes"],
         cash_at_hand=bool(row["cash_at_hand"]),
+        spendable=None if row["spendable"] is None else bool(row["spendable"]),
     )
 
 
@@ -61,8 +62,8 @@ class AccountRepository:
         now = now_iso()
         cur = self.db.execute(
             "INSERT INTO accounts(code, name, institution, account_type, currency, cash_class_id,"
-            " opening_date, is_system, last4, active, sort_order, notes, cash_at_hand, created_at, updated_at)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " opening_date, is_system, last4, active, sort_order, notes, cash_at_hand, spendable, created_at, updated_at)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 a.code,
                 a.name,
@@ -77,6 +78,7 @@ class AccountRepository:
                 a.sort_order,
                 a.notes,
                 int(a.cash_at_hand),
+                None if a.spendable is None else int(a.spendable),
                 now,
                 now,
             ),
@@ -86,7 +88,7 @@ class AccountRepository:
     def update(self, a: Account) -> None:
         self.db.execute(
             "UPDATE accounts SET code=?, name=?, institution=?, account_type=?, cash_class_id=?,"
-            " opening_date=?, last4=?, active=?, sort_order=?, notes=?, cash_at_hand=?, updated_at=? WHERE id=?",
+            " opening_date=?, last4=?, active=?, sort_order=?, notes=?, cash_at_hand=?, spendable=?, updated_at=? WHERE id=?",
             (
                 a.code,
                 a.name,
@@ -99,6 +101,7 @@ class AccountRepository:
                 a.sort_order,
                 a.notes,
                 int(a.cash_at_hand),
+                None if a.spendable is None else int(a.spendable),
                 now_iso(),
                 a.id,
             ),

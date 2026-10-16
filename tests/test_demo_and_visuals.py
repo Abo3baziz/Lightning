@@ -141,7 +141,7 @@ def test_the_demo_household_adds_up(demo):
     assert position.held_for_others == D(10000)
     assert position.loans_still_to_pay == D(52500)  # 21 car-loan payments left
     assert position.net_worth == position.what_you_own - position.what_you_owe
-    assert position.free_cash == position.cash_you_own - position.reserves - position.bills_due
+    assert position.free_cash == position.cash_you_own - position.kept_apart - position.reserves - position.bills_due
     assert c.budgets.income_average("2026-09").amount == D(45000)
     assert c.budgets.has_plan("2026-09")
     assert position.reserves == D(20000)  # the emergency fund
@@ -323,7 +323,7 @@ def test_visuals_and_breakdowns_add_up(demo):
     assert [lab["text"] for lab in trend["labels"]] == ["2026-07", "2026-08", "2026-09"]
     assert trend["series"][0]["values"][-1] == c.position.at(last).net_worth  # the same figure as the card
     steps = visuals.free_cash_steps(c.position.at(last))
-    assert [r["kind"] for r in steps["rows"]] == ["total", "down", "down", "end"]
+    assert [r["kind"] for r in steps["rows"]] == ["total", "down", "down", "down", "end"]  # kept apart, reserves, bills
     assert steps["rows"][-1]["value"] == c.position.at(last).free_cash
     out = c.reporting.cash_flow(first, last).outflows
     assert sum(v for _, v in c.reporting.spending_by_counterparty(first, last)) == out  # who you paid

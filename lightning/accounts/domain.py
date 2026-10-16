@@ -80,6 +80,9 @@ OFFERED_TYPES = [
     AccountType.GAMEYA,
 ]
 
+# Cash in these accounts counts as spendable by default (in the profile currency only)
+SPENDABLE_BY_DEFAULT = {AccountType.CASH, AccountType.BANK}
+
 # Accounts that can hold investments (stocks, funds, gold)
 INVESTMENT_ACCOUNT_TYPES = {AccountType.BROKERAGE, AccountType.PHYSICAL_ASSET, AccountType.OTHER_ASSET}
 
@@ -112,6 +115,15 @@ class Account:
     sort_order: int
     notes: str
     cash_at_hand: bool = False
+    spendable: bool | None = None  # None follows the default (counts_as_spendable)
+
+    def counts_as_spendable(self, profile_currency: str) -> bool:
+        """Whether this account's own cash counts in Free cash and Safe to spend. By default wallets and bank
+        accounts in the profile currency do; brokerage cash and foreign-currency cash are kept apart, because
+        spending them needs a transfer or a conversion first (audit 2026-10-15). The person can override it."""
+        if self.spendable is not None:
+            return self.spendable
+        return self.account_type in SPENDABLE_BY_DEFAULT and self.currency == profile_currency
 
     @property
     def label(self) -> str:

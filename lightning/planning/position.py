@@ -9,10 +9,11 @@ never re-adds balances its own way. The names match docs/GLOSSARY.md and the UI 
     Cash you own                = Bank and wallet cash + Brokerage cash
     What you owe                = Bills due (other than loan payments) + Loans still to pay + Gam'eya still to pay
     Net worth                   = What you own − What you owe
-    Free cash                   = Cash you own − Reserves − Bills due
+    Kept apart                  = Cash you own in brokerages, other currencies or accounts set apart
+    Free cash                   = Cash you own − Kept apart − Reserves − Bills due
     Portfolio value             = Holdings value + Brokerage cash
     Investments after sale      = Σ (Deposits and Holdings value by class × sale factor)
-    If you sold today           = Free cash + Investments after sale
+    If you sold today           = Free cash + Kept apart + Investments after sale
 
 A gam'eya (savings circle) is one GAMEYA account per circle: its positive balance is Gam'eya paid in (a class of
 Holdings value, sale factor 100%, not liquid so never in Cash you own or Free cash); its negative balance, the pot
@@ -101,6 +102,7 @@ class Position:
     reserve_rows: tuple[dict, ...] | None
     owe: WhatYouOwe
     gameya_owed: Decimal = ZERO         # Gam'eya still to pay: circles with a negative balance
+    kept_apart: Decimal = ZERO          # owned cash that is not spendable (brokerage, foreign, set apart)
 
     # ------------------------------------------------------------ base parts
     @property
@@ -151,7 +153,11 @@ class Position:
 
     @property
     def free_cash(self) -> Decimal | None:
-        return None if self.reserves is None else self.cash_you_own - self.reserves - self.bills_due
+        return None if self.reserves is None else self.spendable_cash - self.reserves - self.bills_due
+
+    @property
+    def spendable_cash(self) -> Decimal:
+        return self.cash_you_own - self.kept_apart
 
     @property
     def portfolio_value(self) -> Decimal:
@@ -175,7 +181,7 @@ class Position:
     def if_you_sold_today(self) -> Decimal | None:
         if self.free_cash is None or self.unvalued:
             return None
-        return self.free_cash + self.holdings_after_sale
+        return self.free_cash + self.kept_apart + self.holdings_after_sale
 
     @property
     def unavailable_reason(self) -> str:
@@ -342,4 +348,5 @@ class PositionService:
             brokerage_cash=brokerage, classes=tuple(classes),
             reserves=None if rows is None else sum((r["effective_allocated"] for r in rows), ZERO),
             reserve_rows=None if rows is None else tuple(rows),
-            owe=self.planning.what_you_owe(day), gameya_owed=wealth.gameya_owed)
+            owe=self.planning.what_you_owe(day), gameya_owed=wealth.gameya_owed,
+            kept_apart=self.reporting.owned_cash_kept_apart(text))

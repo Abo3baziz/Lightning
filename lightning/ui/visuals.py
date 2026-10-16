@@ -210,11 +210,12 @@ def net_worth_trend(c, end: date, count: int = 12) -> dict:
 
 
 def free_cash_steps(position) -> dict | None:
-    """Cash you own, less reserves and bills due, down to free cash."""
+    """Cash you own, less cash kept apart, reserves and bills due, down to free cash."""
     if position.free_cash is None:
         return None
+    steps = [("Kept apart", -position.kept_apart)] if position.kept_apart else []
     return charts.waterfall(("Cash you own", position.cash_you_own),
-                            [("Reserves", -(position.reserves or ZERO)), ("Bills due", -position.bills_due)],
+                            steps + [("Reserves", -(position.reserves or ZERO)), ("Bills due", -position.bills_due)],
                             ("Free cash", position.free_cash))
 
 

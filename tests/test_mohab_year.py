@@ -868,15 +868,16 @@ def test_safe_to_spend_until_payday(mohab):
     assert route(mohab, "safe") == ["/", "/plan"]
     # 20,000 of a 270,000 emergency target: the top-up the budget asks for (250,000 over 24 months,
     # 10,417) is kept back too, as Saving for goals is (owner request 2026-10-05: one plan).
-    assert answer.figure("Safe to spend until 2026-10-01") == D("40937")
+    # Audit 2026-10-15: the 400 of cash in THNDR is kept apart from spendable cash (40,937 before).
+    assert answer.figure("Safe to spend until 2026-10-01") == D("40537")
     assert answer.shows("On top of your plan until 2026-10-01")
-    assert answer.shows("Budget left to spend −1,309 Emergency fund top-up −10,417 Safe to spend 40,937")
+    assert answer.shows("Budget left to spend −1,309 Emergency fund top-up −10,417 Safe to spend 40,537")
 
 
 def test_free_cash_shows_what_was_taken_off(mohab):
     answer = mohab.answers["free_cash"]
-    assert answer.shows("Cash you own 72,663 Reserves −20,000 Emergency fund 20,000")
-    assert answer.figure("Free cash After reserves and bills due Cash planning") == D("52663")
+    assert answer.shows("Cash you own 72,663 Kept apart −400 THNDR EGP 400 Reserves −20,000 Emergency fund 20,000")
+    assert answer.figure("Free cash After reserves and bills due Cash planning") == D("52263")
 
 
 def test_september_spending_by_category(mohab):
@@ -1060,14 +1061,14 @@ def test_safe_to_spend_keeps_the_rest_of_the_savings_target(mohab):
     # His 28% target is 13,533 of 48,333; the emergency top-up already holds back 11,521 of it.
     assert route(mohab, "safe_keeps_saving") == ["/", "/plan"]
     assert mohab.answers["safe_keeps_saving"].shows(
-        "Free cash 313,205 Emergency fund top-up −11,521 Rest of savings target −2,013 Safe to spend 299,672")
+        "Free cash 312,505 Emergency fund top-up −11,521 Rest of savings target −2,013 Safe to spend 298,972")
 
 
 def test_a_goal_the_plan_cannot_reach_says_when_and_what_else_works(mohab):
     answer = mohab.answers["laptop"]
     assert answer.shows("New laptop will not be ready by its date Due 2027-06-30 · it needs 30,000 EGP a month and "
                         "your plan leaves 23,301 for it. Setting aside 23,301 a month, it is ready in July 2027. "
-                        "Set aside 60,000 of your 339,623 free cash now, or give it a later date.")
+                        "Set aside 60,000 of your 338,923 free cash now, or give it a later date.")
     assert mohab.notes["laptop_set_aside"].shows("Updated cash assigned to New laptop.")
     assert not mohab.answers["laptop_after"].shows("New laptop will not be ready")
     assert mohab.answers["laptop_late"].shows("New laptop is past its date Due 2027-06-30 · 60,000 EGP still set aside.")

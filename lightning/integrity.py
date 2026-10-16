@@ -78,10 +78,10 @@ class IntegrityService:
                                   categorized_outflows,
                                   "Budget actuals should reconcile to posted money-out categories."))
 
-        cash = self.reporting.owned_liquid_cash(day)
+        cash = self.reporting.owned_spendable_cash(day)
         bills_due = self.planning.what_you_owe(parse_date(day)).bills_due if self.planning else ZERO
         reserve = self.reserves.cash_summary(cash, bills_due)
-        checks.append(self._check("Free cash plus reserves and bills due equals owned liquid cash",
+        checks.append(self._check("Free cash plus reserves and bills due equals spendable cash",
                                   reserve["free_cash"] + reserve["allocated"] + reserve["bills_due"], cash,
                                   "Budget limits are intentionally excluded; reserves assign real cash and bills due are owed now."))
 

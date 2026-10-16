@@ -291,6 +291,35 @@ class ReportingService:
                      if account.account_type in {AccountType.CASH, AccountType.BANK}), ZERO)
                 + self.owned_brokerage_cash(as_of))
 
+    def owned_cash_kept_apart(self, as_of: date | str) -> Decimal:
+        """Owned cash that does not count as spendable: brokerage and foreign-currency cash by default, or any
+        account the person set apart (Account.counts_as_spendable). Free cash leaves it out."""
+        return sum((row["value"] for row in self.owned_cash_kept_apart_by_account(as_of)), ZERO)
+
+    def owned_cash_kept_apart_by_account(self, as_of: date | str) -> list[dict]:
+        return [dict(row) for row in self._owned_cash_kept_apart_by_account(self._day(as_of))]
+
+    @request_cached
+    def _owned_cash_kept_apart_by_account(self, day: str) -> list[dict]:
+        brokerage = {row["id"]: row["value"] or ZERO for row in self._owned_brokerage_cash_by_account(day)}
+        rows = []
+        for account in self.accounts.list():
+            if account.counts_as_spendable(self.base_currency):
+                continue
+            if account.account_type == AccountType.BROKERAGE:
+                value = brokerage.get(account.id, ZERO)
+            elif account.account_type in {AccountType.CASH, AccountType.BANK}:
+                value = self.owned_account_value(account.id, day)
+            else:
+                continue
+            if value:
+                rows.append({"id": account.id, "label": account.label, "currency": account.currency, "value": value})
+        return rows
+
+    def owned_spendable_cash(self, as_of: date | str) -> Decimal:
+        """Cash you own less cash kept apart: what Free cash starts from."""
+        return self.owned_liquid_cash(as_of) - self.owned_cash_kept_apart(as_of)
+
     def owned_brokerage_cash(self, as_of: date | str) -> Decimal:
         """Cash inside brokerage accounts, valued at face value and excluded from spendable cash."""
         return sum((row["value"] or ZERO for row in self.owned_brokerage_cash_by_account(as_of)), ZERO)

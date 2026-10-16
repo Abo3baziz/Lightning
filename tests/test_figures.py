@@ -39,13 +39,15 @@ def test_derived_figures_are_formulas_of_base_figures(c, setup):
     assert p.what_you_own == c.reporting.net_worth("2026-12-31").total
     assert p.cash_you_own == c.reporting.owned_liquid_cash("2026-12-31") == p.bank_and_wallet_cash + p.brokerage_cash
     assert p.deposits == Decimal("5000") and p.brokerage_cash == Decimal("3000")
-    assert p.free_cash == p.cash_you_own - p.reserves - p.bills_due
+    # Audit 2026-10-15: brokerage cash is kept apart from spendable cash by default; If you sold today keeps it.
+    assert p.kept_apart == p.brokerage_cash == c.reporting.owned_cash_kept_apart("2026-12-31")
+    assert p.free_cash == p.cash_you_own - p.kept_apart - p.reserves - p.bills_due
     assert p.bills_due == Decimal("650") and p.loans_still_to_pay == Decimal("10000")
     assert p.what_you_owe == Decimal("10650")
     assert p.net_worth == p.what_you_own - p.what_you_owe
     assert p.portfolio_value == p.holdings_value   # owner decision 2026-10-04: brokerage cash is not portfolio
     assert p.holdings_value >= p.deposits and p.holdings_after_sale >= p.deposits_after_sale
-    assert p.if_you_sold_today == p.free_cash + p.holdings_after_sale
+    assert p.if_you_sold_today == p.free_cash + p.kept_apart + p.holdings_after_sale
     assert p.in_your_accounts == p.what_you_own + p.held_for_others
 
 

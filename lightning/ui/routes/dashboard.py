@@ -249,6 +249,7 @@ async def dashboard(request: Request):
         range_label=(f"No recorded activity · Position as of {fmt_date(position_day)}"
                      if period.key == "all" and not first_activity else f"{fmt_date(first)} to {fmt_date(as_of)} · Position as of {fmt_date(position_day)}"),
         pos=position, cash_accounts=cash_accounts, owe=owe,
+        kept_apart_accounts=c.reporting.owned_cash_kept_apart_by_account(position.as_of),
         change=change, change_reason=change_reason, change_label=change_label,
         attention=attention, attention_groups=attention_groups, setup=setup,
         net_worth=net_worth,

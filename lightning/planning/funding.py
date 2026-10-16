@@ -59,7 +59,7 @@ class CashFundingService:
                          "stored": stored.get(cid, ZERO)})
         reserves = self.reserves.list_active()
         assigned_reserves = sum((r["effective_allocated"] for r in reserves), ZERO)
-        own_cash = self.reporting.owned_liquid_cash(day)
+        own_cash = self.reporting.owned_spendable_cash(day)
         for account in self.reporting.accounts.list():
             if account.account_type not in {AccountType.BANK, AccountType.CASH, AccountType.BROKERAGE}:
                 continue

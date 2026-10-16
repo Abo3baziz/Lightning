@@ -29,7 +29,8 @@ def test_overview_cash_reserves_spending_and_investments_reconcile(c, setup, mon
     assert pos.cash_you_own == sum((row["value"] for row in captured["cash_accounts"]), Decimal(0))
     assert pos.brokerage_cash == Decimal("1000")
     assert pos.reserves == sum((row["effective_allocated"] for row in pos.reserve_rows), Decimal(0))
-    assert pos.free_cash == pos.cash_you_own - Decimal("500")
+    assert pos.kept_apart == pos.brokerage_cash  # brokerage cash is kept apart from spendable cash
+    assert pos.free_cash == pos.cash_you_own - pos.kept_apart - Decimal("500")
     flow = captured["money_sankey"]  # "Where money in went": sources into money in, out to categories
     assert "Food" in flow["targets"][0]["label"] and len(flow["targets"]) == 1 and flow["targets"][0]["value"] == Decimal("100")
     assert "category_id=" in flow["targets"][0]["href"]

@@ -172,6 +172,13 @@ class AccountService:
             self.repo.update(updated)
         return self.get(account_id), (new_code != current.code or name != current.name)
 
+    def set_spendable(self, account_id: int, choice: bool | None) -> Account:
+        """Count this account's cash as spendable (True), keep it apart (False) or follow the default (None)."""
+        current = self.get(account_id)
+        with self.db.transaction():
+            self.repo.update(replace(current, spendable=choice))
+        return self.get(account_id)
+
     def _ensure_unique_name(self, name: str, exclude_id: int | None = None) -> None:
         wanted = name.casefold()
         if any(account.id != exclude_id and account.name.casefold() == wanted for account in self.repo.list()):

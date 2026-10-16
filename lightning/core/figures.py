@@ -93,8 +93,11 @@ _TABLE = [
     ("fixed_costs_to_income", "Fixed costs to income",
      "The share of your income already promised to bills, subscriptions and loan payments.",
      "(Bills and subscriptions a month + Loan payments a month) ÷ Average monthly income"),
-    ("free_cash", "Free cash", "Cash you can spend without touching reserves or leaving a bill unpaid.",
-     "Cash you own − Reserves − Bills due"),
+    ("kept_apart", "Kept apart", "Cash you own that is not ready to spend: cash in a brokerage, cash in another "
+     "currency, or an account you set apart. It stays in what you own and in If you sold today."),
+    ("free_cash", "Free cash", "Cash you can spend without touching reserves or leaving a bill unpaid. Cash kept "
+     "apart (brokerage, other currencies) is left out.",
+     "Cash you own − Kept apart − Reserves − Bills due"),
     ("portfolio_value", "Portfolio value", "Holdings value under the name the Investments tab uses: everything "
      "you own that is not cash. Cash waiting in a brokerage account counts in Cash you own (owner decisions "
      "2026-10-04).", "Holdings value"),
@@ -251,6 +254,7 @@ _SOURCES = {
     "debt_to_cash": (BOTH, "lightning.planning.health.Ratio.percent"),
     "loan_payments_to_income": (BOTH, "lightning.planning.health.Ratio.percent"),
     "fixed_costs_to_income": (BOTH, "lightning.planning.health.Ratio.percent"),
+    "kept_apart": (LEDGER, "lightning.reporting.service.ReportingService.owned_cash_kept_apart"),
     "free_cash": (BOTH, f"{P}.free_cash"),
     "portfolio_value": (LEDGER, f"{P}.portfolio_value"),
     "holdings_after_sale": (BOTH, f"{P}.holdings_after_sale"),
