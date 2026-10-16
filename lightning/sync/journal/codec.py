@@ -8,8 +8,6 @@ from datetime import datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from lightning.sync.identity import verify_signature
-
 MAX_MESSAGE = 64 * 1024
 ZERO_HASH = "0" * 64
 GROUP = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
@@ -186,5 +184,7 @@ def unpack(wire: bytes):
 
 
 def authenticate(envelope, public_key):
+    from lightning.sync.identity import verify_signature  # needs cryptography; plain profiles never reach here
+
     if not verify_signature(public_key, canonical(envelope["body"]), envelope["signature"]):
         raise JournalError("Invalid signature")
