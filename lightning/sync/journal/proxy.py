@@ -66,7 +66,9 @@ class JournalServices:
         if entry.encode is not None:
             values = entry.encode(adapter, values)
         if self._device.home is None:
-            self._rehearse(method, args, kwargs)
+            rehearsed = self._rehearse(method, args, kwargs)
+            if isinstance(rehearsed, dict) and rehearsed.get("errors"):
+                return rehearsed  # Row-level refusals (an import): shown at once, nothing is saved.
         wire = self._device.command(action, **values)
         identifier = origin_id(unpack(wire)["body"]["origin"])
         home = self._device.home
@@ -84,10 +86,10 @@ class JournalServices:
         try:
             with self._device.store.db.transaction():
                 with self._device.adapter.writing():
-                    method(*args, **kwargs)
-                raise _Rehearsed
-        except _Rehearsed:
-            pass
+                    result = method(*args, **kwargs)
+                raise _Rehearsed(result)
+        except _Rehearsed as rehearsed:
+            return rehearsed.args[0]
 
 
 class _Rehearsed(Exception):

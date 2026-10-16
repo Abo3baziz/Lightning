@@ -117,3 +117,4 @@ def test_a_file_over_forty_kib_is_refused_with_a_clear_message(devices):
         response = upload(Screen(device), device, big)
         assert response.status_code == 400 and "too large to synchronize" in response.text
         assert not device.store.pending()
+

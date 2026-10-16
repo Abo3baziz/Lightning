@@ -10,6 +10,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: journal chunked large effects (≤1 MiB per action) and bank-statement import as commands; Mohab's year on a journal home now passes import.
 - 2026-10-16 · Claude: journal areas for settings, people, investments, CDs, gam'eya and physical items (with Sonnet agents); write-coverage audit
   (`tools/journal_coverage.py`: 77 of 149 POST routes covered), graceful uncovered writes, `tools/journal_mohab.py` gauge; lab `--app` opens the real screens.
 - 2026-10-16 · Claude: the plain app (`run.bat`, `python -m lightning`) starts again without `cryptography`: `journal/codec.py` imports
