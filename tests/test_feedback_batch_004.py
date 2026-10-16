@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from lightning.core.dates import today
 from lightning.ui.web import create_app
 
 ROOT = Path(__file__).parents[1]
@@ -77,3 +78,14 @@ def test_a_chart_names_the_year_once_under_the_first_month_and_each_january():
     """Ticket 98: month axes read as month numbers, the year small beneath the first month and every January."""
     charts = (ROOT / "lightning/ui/templates/partials/charts.html").read_text(encoding="utf-8")
     assert 'class="chart-year"' in charts and "lab.text[5:] == '01'" in charts
+
+
+def test_a_budget_that_pushes_safe_to_spend_below_zero_points_to_the_budget(c, setup):
+    """Ticket 102: when the budget left to spend alone makes Safe to spend negative, Cash planning says so and links
+    to the budget instead of blaming promised payments."""
+    from decimal import Decimal
+    accounts, cats = setup
+    c.budgets.set_budget(cats["EXP.PERSONAL.FOOD"].id, "2026-12", "900000")
+    assert c.forecaster.forecast(today()).safe_to_spend < Decimal(0)
+    page = TestClient(create_app(c)).get("/plan").text
+    assert "Adjust your budget" in page and 'href="/budget"' in page
