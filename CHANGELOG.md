@@ -10,6 +10,15 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Codex: added verified, resumable first-replica enrollment, owner-wrapper/authority-chain transfer and crash-safe publication; sender-local keys and queues stay out of checkpoints.
+  Home transitions resume after interruption, verify the pinned retirement signer and rotate transport keys atomically; offline peers verify consecutive authority certificates. Native cutover and full write coverage remain gated.
+  Prepared the companion website guideline-copy fix on `codex/sync-app-guidelines`; its public main push awaits separate owner approval.
+- 2026-10-16 · Codex: added experimental local-first journal routing, automatic paired-device discovery, free-only Worker/SQLite delivery and resumable snapshots without R2; no paid subscription or live deployment enabled.
+  Added a Devices preview with named nearby discovery, six-digit pairing and automatic saved-device key updates; guarded owner transitions and encrypted queue recovery remain experimental, with native integration and full write coverage gated.
+- 2026-10-16 · Codex: continued J2/J3 on the journal branch: real cash-service confirmation/replay, PC/phone pending/review screens, pinned local TLS, queue-preserving checkpoints and SMS/CSV review with duplicate linking, progress and undo.
+  Added a persistent password-protected dummy launcher and bandwidth probe; production profiles remain on v1 and unsupported financial writes are blocked; phone amount fields retain their required 56px height.
+- 2026-10-16 · Codex: started the authorized six-stage edit journal with an isolated encrypted J1 laboratory, signed proposals, atomic decisions/replay, conflict review and a runnable fault-tested simulator; live profiles remain on v1.
+  Disk-full transaction cleanup now preserves SQLite's original failure, including when it automatically rolls back nested work.
 - 2026-10-16 · Claude: currencies said out loud: a foreign holding's price, average cost and trades in its own currency (holdings table, holding page), a USD account's header in USD and ≈ EGP, Prices with currency and no trailing zeros; Foreign money counts foreign investments;
   held markets are followed automatically; exchanges without a rate source (ISK) are not offered and MIC codes are gone from pickers; a listing may trade in another currency than its exchange (USD fund, USD line in London); KWD/BHD/OMR/JOD keep 3 decimals.
 - 2026-10-16 · Claude: **Kept apart**: brokerage and foreign-currency cash no longer count in Free cash, Safe to spend or the payday pool (still in what you own and If you sold today); ⋯ › Count its cash as spendable overrides it per account (`0065_account_spendable.sql`, `Position.kept_apart`). Mohab's Safe to spend 40,937 → 40,537 (THNDR's 400).
