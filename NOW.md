@@ -4,6 +4,7 @@
 
 | Who | Work | Files | Since |
 |---|---|---|---|
+| Codex | Edit journal J1 foundation; owner authorized J1–J6. Isolated protocol/storage and simulator first; no live profile conversion. | `lightning/sync/journal/`, `tests/test_edit_journal.py`, `docs/proposals/edit_journal.md` | 2026-10-16 |
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk. | `tests/test_database_promotion.py` | 2026-10-06 |
 | Claude | Pockets | `accounts`, `investments` | 2026-10-16 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
