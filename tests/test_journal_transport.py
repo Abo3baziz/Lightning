@@ -129,7 +129,7 @@ def reply_for(devices, monkeypatch, sizes):
     home, pc = devices
     hp, pp = peers(devices, Carrier())
     monkeypatch.setattr(home.store, "commits_after", lambda cursor, limit=50: [os.urandom(size) for size in sizes])
-    request = pp.channel.protect(dict(operation="round", value=dict(capabilities=local_caps(pc), proposals=[], status=[], cursor=pc.store.cursor())), home.identity.device_id)
+    request = pp.channel.protect(dict(operation="round", value=dict(capabilities=local_caps(pc), proposals=[], status=[], cursor=pc.store.cursor(), pieces=[])), home.identity.device_id)
     answer = hp.channel.handle(request)
     _, payload = pp.channel.open(answer)
     return answer, payload["result"]["commits"]

@@ -339,7 +339,13 @@ class JournalDevice:
             if not batch:
                 raise JournalError("Missing confirmed history; verified snapshot required")
             for wire in batch:
-                self.store.apply(wire)
+                from .finance import ChunksMissing
+                try:
+                    self.store.apply(wire)
+                except ChunksMissing as error:  # In process: copy the large effect's chunks, then apply.
+                    for item in error.missing:
+                        self.store.put_chunk(home.store.chunk(item), error.missing)
+                    self.store.apply(wire)
                 count += 1
         with self.store.db.transaction():
             self.store.db.execute("INSERT OR REPLACE INTO journal_local VALUES('last_sync',?)", (datetime.now(timezone.utc).isoformat(),))

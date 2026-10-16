@@ -228,6 +228,21 @@ class JournalStore:
                         (effect["record"], canonical(effect["groups"]).decode(),
                          canonical(effect["tokens"]).decode(), int(effect["deleted"])))
 
+    def chunk(self, item):
+        if not self.db.has_table("journal_chunks"):
+            return None
+        data = self.db.scalar("SELECT data FROM journal_chunks WHERE hash=?", (item,))
+        return bytes(data) if data is not None else None
+
+    def put_chunk(self, data, wanted):
+        """Keep a received chunk of a large effect, only if it was asked for and matches."""
+        import hashlib
+        item = hashlib.sha256(data).hexdigest()
+        if item not in wanted or len(data) > 64 * 1024:
+            raise JournalError("Unexpected effect chunk")
+        with self.db.transaction():
+            self.db.execute("INSERT OR IGNORE INTO journal_chunks VALUES(?,?)", (item, data))
+
     def commits_after(self, confirmed_cursor, *, limit=50):
         cursor(confirmed_cursor)
         if not 1 <= limit <= 50:

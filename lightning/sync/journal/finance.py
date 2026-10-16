@@ -17,15 +17,24 @@ from lightning.core.errors import ValidationError
 from lightning.core.ledger import Effect, PostingLine, validate_posting
 from lightning.core.money import from_e6
 
-from .codec import JournalError, canonical, digest, fields, number, uuid
+from .codec import JournalError, canonical, digest, fields, hash_value, number, uuid
 from . import commands
-from .effects import GUARDED, MAX_ROWS, SCHEMA, Replicator
+from .effects import CHUNK_BYTES, GUARDED, MAX_CHUNKS, MAX_ROWS, SCHEMA, Replicator
 from .store import JournalStore, SCHEMA as STORE_SCHEMA
 
 
 
 def validate_domain(value):
     """Shape only; `Replicator.validate` checks every row against this device's schema."""
+    if type(value) is dict and "chunks" in value:
+        fields(value, ("schema", "chunks"))
+        if type(value["chunks"]) is not list or not 1 <= len(value["chunks"]) <= MAX_CHUNKS:
+            raise JournalError("Invalid chunked effect")
+        for item in value["chunks"]:
+            hash_value(item)
+        if value["schema"] != SCHEMA:
+            raise JournalError("Unsupported effect schema; update this device")
+        return
     fields(value, ("schema", "rows"))
     if type(value["schema"]) is not int or value["schema"] != SCHEMA:
         raise JournalError("Unsupported effect schema; update this device")
@@ -66,6 +75,13 @@ def attach(container):
     return store
 
 
+class ChunksMissing(JournalError):
+    """A chunked commit waits for these chunk hashes; nothing was applied."""
+    def __init__(self, missing):
+        super().__init__("Effect chunks are still arriving")
+        self.missing = missing
+
+
 class CashAdapter:
     def __init__(self, container, store):
         self.c, self.store, self.db = container, store, container.db
@@ -84,6 +100,7 @@ class CashAdapter:
         self.rows.install()
         with self.db.transaction():
             self.db.execute("CREATE TABLE IF NOT EXISTS journal_fp(uuid TEXT PRIMARY KEY,hash TEXT NOT NULL)")
+            self.db.execute("CREATE TABLE IF NOT EXISTS journal_chunks(hash TEXT PRIMARY KEY,data BLOB NOT NULL)")
             rows = list(self.rows.all_rows())  # Binds every baseline row's identity.
             if (self.db.scalar("SELECT COUNT(*) FROM journal_fp") != len(rows)
                     or self.db.scalar("SELECT 1 FROM journal_fp WHERE uuid NOT LIKE '%:%' LIMIT 1")):
@@ -287,10 +304,46 @@ class CashAdapter:
         return self._result()
 
     def _result(self):
-        result = dict(schema=SCHEMA, rows=self.captured)
-        if not 1 <= len(result["rows"]) <= MAX_ROWS:
-            raise ValidationError("This action changed nothing, or more than one effect can carry")
-        return result
+        rows = self.captured
+        if not rows:
+            raise ValidationError("This action changed nothing")
+        if len(rows) <= MAX_ROWS and len(canonical(rows)) <= 40 * 1024:
+            return dict(schema=SCHEMA, rows=rows)
+        chunks, current, size = [], [], 2
+        for row in rows:
+            encoded = len(canonical(row)) + 1
+            if encoded > CHUNK_BYTES:
+                raise ValidationError("One record of this action is too large for the journal")
+            if current and size + encoded > CHUNK_BYTES:
+                chunks.append(current)
+                current, size = [], 2
+            current.append(row)
+            size += encoded
+        chunks.append(current)
+        if len(chunks) > MAX_CHUNKS:
+            raise ValidationError("This action is too large for one journal entry; split it into smaller parts")
+        hashes = []
+        for chunk in chunks:
+            data = canonical(chunk)
+            hashes.append(hashlib.sha256(data).hexdigest())
+            self.db.execute("INSERT OR IGNORE INTO journal_chunks VALUES(?,?)", (hashes[-1], data))
+        return dict(schema=SCHEMA, chunks=hashes)
+
+    def assemble(self, domain):
+        """The rows of a chunked effect, once every chunk is here and verified."""
+        if "chunks" not in domain:
+            return domain
+        missing = [item for item in domain["chunks"]
+                   if not self.db.scalar("SELECT 1 FROM journal_chunks WHERE hash=?", (item,))]
+        if missing:
+            raise ChunksMissing(missing)
+        rows = []
+        for item in domain["chunks"]:
+            data = bytes(self.db.scalar("SELECT data FROM journal_chunks WHERE hash=?", (item,)))
+            if hashlib.sha256(data).hexdigest() != item:
+                raise JournalError("Damaged effect chunk; verified snapshot required")
+            rows.extend(json.loads(data))
+        return dict(schema=SCHEMA, rows=rows)
 
     @staticmethod
     def _keep(store, proposal, value):
@@ -307,8 +360,9 @@ class CashAdapter:
 
     def apply(self, domain):
         """Typed exact replay on replicas, with no normal save/rule/automation call."""
+        domain = self.assemble(domain)
         with self.writing():
-            self.rows.apply(domain)
+            self.rows.apply(domain, bounded=len(domain["rows"]) <= MAX_ROWS)
             self.rows.reset()  # The effect names every touched row, deletes included; triggers could not name those.
             self.rows.remember(domain["rows"])
             if any(row["table"] == "settings" for row in domain["rows"]):

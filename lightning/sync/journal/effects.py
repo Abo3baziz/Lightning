@@ -42,6 +42,10 @@ NATURAL = {"transactions": ("ref",), "counterparties": ("normalized_name",), "ac
 # References an area's table keeps without a declared foreign key: {table: {column: target}}.
 EXTRA_REFS = _from_areas("REFS")
 MAX_ROWS = 64
+# An action too large to carry inline (a statement import) travels as hashed chunks
+# beside its commit, applied only once all have arrived (proposal §6).
+CHUNK_BYTES = 24 * 1024
+MAX_CHUNKS = 44  # About 1 MiB of rows for one action.
 WALL_CLOCK = {"created_at", "updated_at"}
 
 

@@ -17,7 +17,9 @@ from urllib.parse import urlsplit
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from .codec import MAX_MESSAGE, JournalError, authenticate, canonical, cursor as check_cursor, fields, origin, origin_id, number, uuid, seal, unpack
+from .codec import (MAX_MESSAGE, JournalError, authenticate, canonical, cursor as check_cursor, fields, hash_value, origin,
+                    origin_id, number, uuid, seal, unpack)
+from .finance import ChunksMissing
 
 # Plaintext budgets for one combined round. A sealed message is AES-GCM + base64 + signature,
 # so about 4/3 of its plaintext plus ~2 KiB of header must stay within MAX_MESSAGE. A commit is
@@ -132,8 +134,10 @@ class LocalChannel:
         elif payload["operation"] == "round":
             result = self._round(home, sender, payload["value"])
             nonce = unpack(wire)["body"]["nonce"]
-            while len(result["commits"]) > 1 and not fits(dict(request_nonce=nonce, result=result)):
+            while result["commits"] and (len(result["commits"]) > 1 or result["pieces"]) and not fits(dict(request_nonce=nonce, result=result)):
                 result["commits"].pop()
+            while len(result["pieces"]) > 1 and not fits(dict(request_nonce=nonce, result=result)):
+                result["pieces"].pop()
         elif payload["operation"] == "changes":
             commits = home.store.commits_after(payload["value"], limit=1)
             result = dict(commits=[encode(commit) for commit in commits], cursor=home.store.cursor())
@@ -152,7 +156,11 @@ class LocalChannel:
     def _round(self, home, sender, value):
         """Receive what fits, process, report statuses and as many commits as one reply holds."""
         from .compatibility import capabilities, check
-        fields(value, ("capabilities", "proposals", "status", "cursor"))
+        fields(value, ("capabilities", "proposals", "status", "cursor", "pieces"))
+        if type(value["pieces"]) is not list or len(value["pieces"]) > 4:
+            raise JournalError("Invalid sync round")
+        for item in value["pieces"]:
+            hash_value(item)
         proposals, ids = value["proposals"], value["status"]
         if (type(proposals) is not list or len(proposals) > ROUND_PROPOSALS or type(ids) is not list or len(ids) > 50
                 or any(type(item) is not str or not item.startswith(sender + "/") for item in ids)):
@@ -167,7 +175,7 @@ class LocalChannel:
                 raise JournalError("A local sender cannot impersonate another origin")
         check_cursor(value["cursor"])
         mine = capabilities(home.store)
-        result = dict(capabilities=mine, reject=None, held=None, states={}, commits=[], cursor=home.store.cursor())
+        result = dict(capabilities=mine, reject=None, held=None, states={}, commits=[], pieces=[], cursor=home.store.cursor())
         try:
             check(value["capabilities"], mine, wires)
         except (JournalError, TypeError, KeyError) as error:
@@ -189,6 +197,11 @@ class LocalChannel:
             result["reject"] = str(error)
             return result
         size = 0
+        for item in value["pieces"]:  # Chunks of a large effect the device is waiting for, first.
+            data = home.store.chunk(item)
+            if data is not None:
+                result["pieces"].append(encode(data))
+                size += sum(map(len, result["pieces"][-1]))
         for commit in commits:
             encoded = encode(commit)
             size += sum(map(len, encoded))
@@ -219,7 +232,7 @@ class LocalChannel:
             return result["result"]
         from .compatibility import capabilities, check
         store = self.device.store
-        local, held = capabilities(store), None
+        local, held, wanted = capabilities(store), None, []
         while True:
             pending = store.pending()
             known = {row[0] for row in store.db.all("SELECT proposal_id FROM journal_remote_states")}
@@ -234,7 +247,8 @@ class LocalChannel:
                 size += sum(map(len, chunks))
             ids = [identifier for identifier, _ in batch]
             ids += [identifier for identifier, _ in entries if identifier in known][:50 - len(ids)]
-            result = await exchange("round", dict(capabilities=local, proposals=[chunks for _, chunks in batch], status=ids, cursor=store.cursor()))
+            result = await exchange("round", dict(capabilities=local, proposals=[chunks for _, chunks in batch], status=ids,
+                                                  cursor=store.cursor(), pieces=wanted))
             if type(result) is not dict or {"capabilities", "reject", "held", "states", "commits", "cursor"} - set(result):
                 raise JournalError("Invalid sync round reply")
             check(local, result["capabilities"], pending)
@@ -249,11 +263,18 @@ class LocalChannel:
                         store.db.execute("INSERT OR REPLACE INTO journal_remote_states VALUES(?,?,?)", (identifier, state["status"], state["reason"]))
                     else:
                         store.db.execute("DELETE FROM journal_remote_states WHERE proposal_id=?", (identifier,))
+            for piece in result.get("pieces", []):
+                store.put_chunk(decode(piece), wanted)
+            wanted = []
             for commit in result["commits"]:
-                store.apply(decode(commit))
+                try:
+                    store.apply(decode(commit))
+                except ChunksMissing as error:  # A large effect: fetch its chunks next round.
+                    wanted = error.missing[:4]
+                    break
             held = held or result["held"]
             if store.cursor() != result["cursor"]:
-                if not result["commits"]:
+                if not result["commits"] and not result.get("pieces") and not wanted:
                     raise JournalError("Verified checkpoint required")
                 continue
             if len(batch) < len(unsent) and not held:
