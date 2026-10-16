@@ -23,6 +23,7 @@ from .codec import JournalError, authenticate, canonical, digest, fields, unpack
 
 CHUNK_SIZE = 32768
 MAX_SNAPSHOT = 200 * 1024 * 1024
+REFUSED = 2  # journal_mail_in.processed: opened or answered with a refusal, acknowledged, never retried
 
 
 def raw_signature(identity, body):
@@ -33,6 +34,10 @@ def raw_signature(identity, body):
 
 class CloudUnavailable(JournalError):
     """Transient carrier failure. The caller retains every durable source."""
+
+
+class ReplyPending(CloudUnavailable):
+    """The carrier works; the home has not answered yet. This is waiting, not failure."""
 
 
 class MailboxClient:
@@ -148,6 +153,10 @@ class MailboxPeer:
                 # and retries it under the independently fetched new key epoch.
                 sender = unpack(wire)["body"]["sender"]
                 obsolete = True
+            except JournalError:
+                # An envelope that cannot be opened must not block those behind it:
+                # keep it as refused (processed=2), then acknowledge it with the rest.
+                sender, obsolete = message["sender"], REFUSED
             if sender != message["sender"]:
                 raise JournalError("Mailbox sender mismatch")
             with self.db.transaction():
@@ -160,29 +169,32 @@ class MailboxPeer:
         # Durable incoming rows remain available even if processing fails.
         for row in self.db.all("SELECT * FROM journal_mail_in WHERE processed=0 ORDER BY rowid LIMIT ?", (budget,)):
             wire = bytes(row["wire"])
-            with self.db.transaction():
-                if self.channel.device.home:
-                    from .local import MembershipUpdateRequired
-                    try:
-                        answer = self.channel.handle(wire)
-                    except MembershipUpdateRequired:
-                        self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?",(row["id"],))
-                        continue
-                    self.enqueue(answer)
-                else:
-                    try:
-                        _, payload = self.channel.open(wire)
-                    except MembershipUpdateRequired:
-                        self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?", (row["id"],))
-                        continue
-                    fields(payload, ("request_nonce", "result"))
-                    pending = self.db.all("SELECT id,wire FROM journal_rpc WHERE response IS NULL")
-                    request = next((item for item in pending if unpack(bytes(item["wire"]))["body"]["nonce"] == payload["request_nonce"]), None)
-                    if request is None:
-                        self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?", (row["id"],))
-                        continue  # An authenticated delayed reply to an already consumed RPC.
-                    self.db.execute("UPDATE journal_rpc SET response=? WHERE id=?", (wire, request["id"]))
-                self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?", (row["id"],))
+            try:
+                with self.db.transaction():
+                    if self.channel.device.home:
+                        try:
+                            answer = self.channel.handle(wire)
+                        except MembershipUpdateRequired:
+                            self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?",(row["id"],))
+                            continue
+                        self.enqueue(answer)
+                    else:
+                        try:
+                            _, payload = self.channel.open(wire)
+                        except MembershipUpdateRequired:
+                            self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?", (row["id"],))
+                            continue
+                        fields(payload, ("request_nonce", "result"))
+                        pending = self.db.all("SELECT id,wire FROM journal_rpc WHERE response IS NULL")
+                        request = next((item for item in pending if unpack(bytes(item["wire"]))["body"]["nonce"] == payload["request_nonce"]), None)
+                        if request is None:
+                            self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?", (row["id"],))
+                            continue  # An authenticated delayed reply to an already consumed RPC.
+                        self.db.execute("UPDATE journal_rpc SET response=? WHERE id=?", (wire, request["id"]))
+                    self.db.execute("UPDATE journal_mail_in SET processed=1 WHERE id=?", (row["id"],))
+            except JournalError:
+                with self.db.transaction():
+                    self.db.execute("UPDATE journal_mail_in SET processed=? WHERE id=?", (REFUSED, row["id"]))
             fault("delivery_processed")
 
 
@@ -218,7 +230,7 @@ class MailboxExchange:
         await self.peer.pump()
         row = self.db.one("SELECT response FROM journal_rpc WHERE wire=?", (wire,))
         if row["response"] is None:
-            raise CloudUnavailable("Queued for the home; this edit remains pending")
+            raise ReplyPending("Queued for the home; this edit remains pending")
         with self.db.transaction():
             self.db.execute("UPDATE journal_rpc SET consumed=1 WHERE wire=?", (wire,))
         return bytes(row["response"])
@@ -337,6 +349,11 @@ class RetryWindow:
 
     def ready(self):
         return self.clock() >= self.next_attempt
+
+    def waiting(self, delay=30):
+        """The carrier answered and the home is simply not done: a short fixed wait, no backoff."""
+        self.failures = 0
+        self.next_attempt = self.clock() + delay + self.jitter(max(1, delay // 4))
 
     def result(self, success):
         self.failures = 0 if success else min(self.failures + 1, 10)

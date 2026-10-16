@@ -17,11 +17,27 @@ from urllib.parse import urlsplit
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from .codec import JournalError, authenticate, canonical, fields, origin, origin_id, number, uuid, seal, unpack
+from .codec import MAX_MESSAGE, JournalError, authenticate, canonical, cursor as check_cursor, fields, origin, origin_id, number, uuid, seal, unpack
+
+# Plaintext budgets for one combined round. A sealed message is AES-GCM + base64 + signature,
+# so about 4/3 of its plaintext plus ~2 KiB of header must stay within MAX_MESSAGE. A commit is
+# base64-wrapped again, so the largest single commit a reply can carry is about 33 KiB of wire.
+REPLY_BUDGET = 40 * 1024
+REQUEST_BUDGET = 36 * 1024
+ROUND_PROPOSALS = 50
+SEALED_OVERHEAD = 2048
+
+
+def fits(payload):
+    return 4 * ((len(canonical(payload)) + 18) // 3) + SEALED_OVERHEAD <= MAX_MESSAGE
 
 
 class CatchupPaused(JournalError):
     """This bounded wake-up ended; resume from its already durable cursor."""
+
+
+class UploadHeld(JournalError):
+    """Downloads finished, but the home would not take every pending edit yet; they stay pending."""
 
 
 class MembershipUpdateRequired(JournalError):
@@ -113,6 +129,11 @@ class LocalChannel:
                 raise JournalError("A local sender cannot impersonate another origin")
             result = dict(status=home.receive(proposal))
             home.process(limit=50)
+        elif payload["operation"] == "round":
+            result = self._round(home, sender, payload["value"])
+            nonce = unpack(wire)["body"]["nonce"]
+            while len(result["commits"]) > 1 and not fits(dict(request_nonce=nonce, result=result)):
+                result["commits"].pop()
         elif payload["operation"] == "changes":
             commits = home.store.commits_after(payload["value"], limit=1)
             result = dict(commits=[encode(commit) for commit in commits], cursor=home.store.cursor())
@@ -127,6 +148,54 @@ class LocalChannel:
         else:
             raise JournalError("Unsupported local operation")
         return self.protect(dict(request_nonce=unpack(wire)["body"]["nonce"], result=result), sender)
+
+    def _round(self, home, sender, value):
+        """Receive what fits, process, report statuses and as many commits as one reply holds."""
+        from .compatibility import capabilities, check
+        fields(value, ("capabilities", "proposals", "status", "cursor"))
+        proposals, ids = value["proposals"], value["status"]
+        if (type(proposals) is not list or len(proposals) > ROUND_PROPOSALS or type(ids) is not list or len(ids) > 50
+                or any(type(item) is not str or not item.startswith(sender + "/") for item in ids)):
+            raise JournalError("Invalid sync round")
+        wires = [decode(item) for item in proposals]
+        for wire in wires:
+            inner = unpack(wire)["body"]
+            if type(inner) is not dict:
+                raise JournalError("Invalid proposal body")
+            origin(inner.get("origin"))
+            if inner["origin"]["device"] != sender:
+                raise JournalError("A local sender cannot impersonate another origin")
+        check_cursor(value["cursor"])
+        mine = capabilities(home.store)
+        result = dict(capabilities=mine, reject=None, held=None, states={}, commits=[], cursor=home.store.cursor())
+        try:
+            check(value["capabilities"], mine, wires)
+        except (JournalError, TypeError, KeyError) as error:
+            result["reject"] = str(error) or "Incompatible peer"
+            return result
+        for wire in wires:
+            try:
+                home.receive(wire)
+            except JournalError as error:  # Later proposals wait; downloads continue.
+                result["held"] = str(error)
+                break
+        if wires:
+            home.process(limit=50)
+        result["states"] = {identifier: home.status(identifier) for identifier in ids}
+        result["cursor"] = home.store.cursor()
+        try:
+            commits = home.store.commits_after(value["cursor"], limit=50)
+        except JournalError as error:
+            result["reject"] = str(error)
+            return result
+        size = 0
+        for commit in commits:
+            encoded = encode(commit)
+            size += sum(map(len, encoded))
+            if result["commits"] and size > REPLY_BUDGET:
+                break
+            result["commits"].append(encoded)
+        return result
 
     async def synchronize(self, request, *, home_id, max_requests=1000):
         """`request` sends bytes over a certificate-pinned TLS connection."""
@@ -148,30 +217,52 @@ class LocalChannel:
             if result["request_nonce"] != unpack(outgoing)["body"]["nonce"]:
                 raise JournalError("Response belongs to an earlier request")
             return result["result"]
-        pending = self.device.store.pending()
         from .compatibility import capabilities, check
-        local = capabilities(self.device.store)
-        check(local, await exchange("capabilities", local), pending)
-        for proposal in pending:
-            await exchange("proposal", encode(proposal))
-        for offset in range(0, len(pending), 50):
-            ids = [origin_id(unpack(wire)["body"]["origin"]) for wire in pending[offset:offset + 50]]
-            states = await exchange("status", ids)
-            with self.device.store.db.transaction():
+        store = self.device.store
+        local, held = capabilities(store), None
+        while True:
+            pending = store.pending()
+            known = {row[0] for row in store.db.all("SELECT proposal_id FROM journal_remote_states")}
+            entries = [(origin_id(unpack(wire)["body"]["origin"]), wire) for wire in pending]
+            unsent = [] if held else [(identifier, wire) for identifier, wire in entries if identifier not in known]
+            batch, size = [], 0
+            for identifier, wire in unsent:
+                chunks = encode(wire)
+                if batch and (len(batch) >= ROUND_PROPOSALS or size + sum(map(len, chunks)) > REQUEST_BUDGET):
+                    break
+                batch.append((identifier, chunks))
+                size += sum(map(len, chunks))
+            ids = [identifier for identifier, _ in batch]
+            ids += [identifier for identifier, _ in entries if identifier in known][:50 - len(ids)]
+            result = await exchange("round", dict(capabilities=local, proposals=[chunks for _, chunks in batch], status=ids, cursor=store.cursor()))
+            if type(result) is not dict or {"capabilities", "reject", "held", "states", "commits", "cursor"} - set(result):
+                raise JournalError("Invalid sync round reply")
+            check(local, result["capabilities"], pending)
+            if result["reject"]:
+                raise JournalError(result["reject"])
+            states = result["states"]
+            if type(states) is not dict or set(states) - set(ids):
+                raise JournalError("Invalid sync round reply")
+            with store.db.transaction():
                 for identifier, state in states.items():
                     if state:
-                        self.device.store.db.execute("INSERT OR REPLACE INTO journal_remote_states VALUES(?,?,?)",
-                                                    (identifier, state["status"], state["reason"]))
-        while True:
-            response = await exchange("changes", self.device.store.cursor())
-            if not response["commits"]:
-                if response["cursor"] != self.device.store.cursor():
+                        store.db.execute("INSERT OR REPLACE INTO journal_remote_states VALUES(?,?,?)", (identifier, state["status"], state["reason"]))
+                    else:
+                        store.db.execute("DELETE FROM journal_remote_states WHERE proposal_id=?", (identifier,))
+            for commit in result["commits"]:
+                store.apply(decode(commit))
+            held = held or result["held"]
+            if store.cursor() != result["cursor"]:
+                if not result["commits"]:
                     raise JournalError("Verified checkpoint required")
-                with self.device.store.db.transaction():
-                    self.device.store.db.execute("INSERT OR REPLACE INTO journal_local VALUES('last_sync',?)", (datetime.now(timezone.utc).isoformat(),))
-                return
-            for commit in response["commits"]:
-                self.device.store.apply(decode(commit))
+                continue
+            if len(batch) < len(unsent) and not held:
+                continue
+            with store.db.transaction():
+                store.db.execute("INSERT OR REPLACE INTO journal_local VALUES('last_sync',?)", (datetime.now(timezone.utc).isoformat(),))
+            if held:
+                raise UploadHeld(held)
+            return
 
 
 class PinnedLocalClient:
