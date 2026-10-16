@@ -13,6 +13,15 @@ COMMANDS = {
         last4=optional(TEXT), notes=LONG), target=("accounts", "account_id")),
     "accounts.set_active": Command("accounts.set_active", dict(account_id=ref("accounts"), active=FLAG),
                                    target=("accounts", "account_id")),
+    # The account screens call the workflow layer.
+    "account_flows.update_account": Command("account_flows.update_account", dict(
+        account_id=ref("accounts"), name=TEXT, account_type=ACCOUNT_TYPES, opening_date=DATE, opening_balance=AMOUNT,
+        institution=TEXT, last4=optional(TEXT), notes=LONG, opening_balance_date=optional(DATE),
+        owner_id=optional(ref("counterparties"))), target=("accounts", "account_id")),
+    "account_flows.deactivate": Command("account_flows.deactivate", dict(account_id=ref("accounts")),
+                                        target=("accounts", "account_id")),
+    "account_flows.reactivate": Command("account_flows.reactivate", dict(account_id=ref("accounts")),
+                                        target=("accounts", "account_id")),
     "categories.create": Command("categories.create", dict(
         parent_id=ref("categories"), name=TEXT, default_reimbursable=optional(FLAG)), creates="categories"),
     "categories.update": Command("categories.update", dict(

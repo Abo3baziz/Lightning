@@ -12,15 +12,20 @@ import inspect
 from datetime import date
 from enum import Enum
 
-from lightning.core.errors import LightningError, ValidationError
+from lightning.core.errors import ValidationError
 from lightning.core.money import to_decimal
 
 from .codec import origin_id, unpack
 from .commands import COMMANDS
 
 
-class PendingOnHome(LightningError):
-    """Saved on this device; it takes effect when the home confirms it."""
+class PendingOnHome(Exception):
+    """Saved on this device; it takes effect when the home confirms it. Not a
+    LightningError, so screens that show refusals inline let it reach the app."""
+
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
 
 
 class JournalServices:
@@ -41,10 +46,12 @@ class JournalServices:
         bound = signature.bind(*args, **kwargs)
         for name, value in bound.arguments.items():
             if name not in entry.args and value is not signature.parameters[name].default:
-                raise ValidationError("This option is not available on a synchronized profile yet")
+                raise ValidationError("This option is not available on a synchronized profile yet.")
         bound.apply_defaults()
         adapter = self._device.adapter
         values = {name: _wire(adapter, spec, bound.arguments.get(name)) for name, spec in entry.args.items()}
+        if self._device.home is None:
+            self._rehearse(method, args, kwargs)
         wire = self._device.command(action, **values)
         identifier = origin_id(unpack(wire)["body"]["origin"])
         home = self._device.home
@@ -54,6 +61,22 @@ class JournalServices:
         if state["status"] == "rejected":
             raise ValidationError(adapter.errors.pop(identifier, "The home could not apply this action."))
         return adapter.results.pop(identifier, None)
+
+
+    def _rehearse(self, method, args, kwargs):
+        """Run the action against this device's confirmed copy and roll it back, so
+        a refusal the service would give shows at once, in its own words."""
+        try:
+            with self._device.store.db.transaction():
+                with self._device.adapter.writing():
+                    method(*args, **kwargs)
+                raise _Rehearsed
+        except _Rehearsed:
+            pass
+
+
+class _Rehearsed(Exception):
+    pass
 
 
 class _Service:

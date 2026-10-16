@@ -479,5 +479,17 @@ def create_app(c: Container | None = None) -> FastAPI:
     async def not_found(request: Request, exc: NotFoundError):
         return render(request, "not_found.html", status_code=404, message=exc.message)
 
+    from lightning.sync.journal.proxy import PendingOnHome
+
+    @app.exception_handler(PendingOnHome)
+    async def saved_pending(request: Request, exc: PendingOnHome):
+        """On a synchronized profile a saved change waits for the home: back to the page, saying so."""
+        back = urlsplit(request.headers.get("referer", "")).path
+        if not back.startswith("/") or back.startswith("//"):
+            back = "/"
+        if request.url.path.endswith(".json"):
+            return JSONResponse({"pending": exc.message}, status_code=202)
+        return RedirectResponse(f"{back}?{urlencode({'msg': exc.message})}", status_code=303)
+
     app.add_middleware(RequestCache, state=app.state)  # outermost, so every page and middleware shares it
     return app

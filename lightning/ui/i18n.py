@@ -32,6 +32,9 @@ ARABIC_UI = {
 
     'A certificate interest receipt cannot be turned into a recurring plan.': 'متحولش عائد شهادة مستلم لخطة دخل متكرر.',
     'Check your setup': 'راجع إعداداتك',
+    'Saved on this device. It takes effect when the home confirms it.': 'اتحفظ على الجهاز ده. هيتطبّق لما الجهاز الأساسي يأكده.',
+    'This option is not available on a synchronized profile yet.': 'الاختيار ده لسه مش متاح على ملف متزامن.',
+    'The home could not apply this action.': 'الجهاز الأساسي معرفش ينفّذ الإجراء ده.',
     'No {currency} exchange rate to {base} is available on {date}. Add a rate before using this scheduled amount.': 'مفيش سعر صرف من {currency} لـ {base} متاح يوم {date}. ضيف سعر صرف قبل استخدام المبلغ المخطط ده.',
 
     'Outstanding reimbursement': 'التعويض اللي لسه مستنيه',
