@@ -2,14 +2,18 @@
 
 
 class Command:
-    def __init__(self, call, args, *, target=None, creates=None, adapt=None):
+    def __init__(self, call, args, *, target=None, creates=None, adapt=None, encode=None):
         # call: "service.method" or a function(container, **args); args: name -> spec; target: (table, arg) of the
         # row an existing-record command changes; creates: table of a new row;
         # adapt: optional function reshaping mapped arguments for the service.
-        self.call, self.args, self.target, self.creates, self.adapt = call, args, target, creates, adapt
+        # encode: optional function (adapter, values) -> values on the saving device, turning local ids hidden
+        # in structured arguments into UUIDs; adapt does the reverse on the home.
+        self.call, self.args, self.target, self.creates, self.adapt, self.encode = call, args, target, creates, adapt, encode
 
 
 TEXT, LONG, DATE, MONTH, AMOUNT, RATE, INT, FLAG = "text", "long", "date", "month", "amount", "rate", "int", "flag"
+# BYTES: a small file (at most 40 KiB) carried as base64; JSON: structured data with no local ids left in it.
+BYTES, JSON = "bytes", "json"
 
 
 def ref(table):

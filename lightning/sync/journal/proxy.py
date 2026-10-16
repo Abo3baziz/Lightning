@@ -63,6 +63,8 @@ class JournalServices:
                 raise ValidationError("This option is not available on a synchronized profile yet.")
         adapter = self._device.adapter
         values = {name: _wire(adapter, spec, arguments.get(name)) for name, spec in entry.args.items()}
+        if entry.encode is not None:
+            values = entry.encode(adapter, values)
         if self._device.home is None:
             self._rehearse(method, args, kwargs)
         wire = self._device.command(action, **values)
@@ -143,6 +145,11 @@ def _wire(adapter, spec, value):
         value = value.value
     if bare.startswith("ref:"):
         return adapter.uid(bare[len("ref:"):], int(value))
+    if bare == "bytes":
+        import base64
+        return base64.b64encode(value).decode("ascii")
+    if bare == "json":
+        return value
     if bare in ("amount", "rate"):
         if spec.startswith("?") and not str(value).strip():
             return None  # An optional amount left blank (a fee) is not given.

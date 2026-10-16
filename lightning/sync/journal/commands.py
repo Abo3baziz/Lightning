@@ -17,7 +17,7 @@ from lightning.core.errors import ValidationError
 from .codec import JournalError, canonical, fields, uuid
 
 
-from .areas.spec import AMOUNT, DATE, FLAG, INT, LONG, MONTH, RATE, TEXT, Command, choice, items, listof, optional, ref  # noqa: F401
+from .areas.spec import AMOUNT, BYTES, DATE, FLAG, INT, JSON, LONG, MONTH, RATE, TEXT, Command, choice, items, listof, optional, ref  # noqa: F401
 
 
 def _registry():
@@ -74,6 +74,15 @@ def _value(name, spec, value):
     elif spec == FLAG:
         if type(value) is not bool:
             raise ValidationError("Choose yes or no")
+    elif spec == JSON:
+        canonical(value)  # Bounded nesting and sizes, exact numbers only.
+    elif spec == BYTES:
+        import base64
+        try:
+            if type(value) is not str or len(base64.b64decode(value, validate=True)) > 40 * 1024:
+                raise ValueError
+        except ValueError as error:
+            raise ValidationError("This file is too large to synchronize; split it into smaller files") from error
     elif spec == INT:
         if type(value) is not int or not -(2**53) < value < 2**53:
             raise ValidationError("Enter a whole number")
@@ -117,6 +126,9 @@ def _local(adapter, spec, value):
     if type(spec) is tuple:
         return [{name: _local(adapter, inner, item[name]) for name, inner in spec[1].items()} for item in value]
     bare = spec.lstrip("?")
+    if bare == BYTES and value is not None:
+        import base64
+        return base64.b64decode(value)
     return adapter.local(bare[len("ref:"):], value) if bare.startswith("ref:") and value is not None else value
 
 
@@ -139,7 +151,8 @@ def run(adapter, kind, record, groups):
         except ValueError as error:  # Some services refuse with a plain ValueError.
             raise ValidationError(str(error)) from error
     if entry.creates:
-        created = result if type(result) is int else result.get("id") if isinstance(result, dict) else getattr(result, "id", None)
+        first = result[0] if isinstance(result, tuple) and result else result  # (id, extra) results
+        created = first if type(first) is int else first.get("id") if isinstance(first, dict) else getattr(first, "id", None)
         if type(created) is not int:
             raise JournalError("The service did not return the created record")
         adapter.bind(entry.creates, record, created)
