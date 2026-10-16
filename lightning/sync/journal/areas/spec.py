@@ -2,13 +2,13 @@
 
 
 class Command:
-    def __init__(self, call, args, *, target=None, creates=None, adapt=None, encode=None):
+    def __init__(self, call, args, *, target=None, creates=None, adapt=None, encode=None, decode=None):
         # call: "service.method" or a function(container, **args); args: name -> spec; target: (table, arg) of the
         # row an existing-record command changes; creates: table of a new row;
         # adapt: optional function reshaping mapped arguments for the service.
         # encode: optional function (adapter, values) -> values on the saving device, turning local ids hidden
-        # in structured arguments into UUIDs; adapt does the reverse on the home.
-        self.call, self.args, self.target, self.creates, self.adapt, self.encode = call, args, target, creates, adapt, encode
+        # in structured arguments into UUIDs; decode(adapter, values) does the reverse on the home, before adapt.
+        self.call, self.args, self.target, self.creates, self.adapt, self.encode, self.decode = call, args, target, creates, adapt, encode, decode
 
 
 TEXT, LONG, DATE, MONTH, AMOUNT, RATE, INT, FLAG = "text", "long", "date", "month", "amount", "rate", "int", "flag"

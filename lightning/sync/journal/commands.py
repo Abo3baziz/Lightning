@@ -136,6 +136,8 @@ def run(adapter, kind, record, groups):
     """Inside the adapter's writing(): call the service with local ids."""
     entry = command(kind)
     values = {name: _local(adapter, spec, groups["args"][name]) for name, spec in entry.args.items()}
+    if entry.decode is not None:
+        values = entry.decode(adapter, values)  # UUIDs hidden in structured arguments back to local ids.
     if entry.adapt is not None:
         values = entry.adapt(values)  # Shape lists into what the service signature takes.
     if callable(entry.call):  # A module-level workflow taking the container.
