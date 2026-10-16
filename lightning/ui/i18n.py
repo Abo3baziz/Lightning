@@ -656,6 +656,7 @@ ARABIC_UI = {
     'Monthly limit': 'الحد الشهري',
     'Open categories': 'افتح الفئات',
     'Undo': 'تراجع',
+    'Redo': 'إعادة',
     'Select all': 'اختار الكل',
     'Track': 'تابع',
     'Not now': 'مش دلوقتي',

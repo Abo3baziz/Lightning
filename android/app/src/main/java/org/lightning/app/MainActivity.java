@@ -69,10 +69,16 @@ public final class MainActivity extends Activity {
         WebView.setWebContentsDebuggingEnabled(false);
         FrameLayout frame = new FrameLayout(this);
         fitSystemBars(frame);
+        frame.setBackgroundColor(0xFFF5F8F7);  // the app's own background, so the start looks like the app
         TextView starting = new TextView(this);
         starting.setPadding(48, 48, 48, 48);
-        starting.setText("Starting Lightning…");
-        frame.addView(starting);
+        starting.setGravity(android.view.Gravity.CENTER);
+        starting.setTextColor(0xFF0D2233);
+        starting.setTextSize(22);
+        starting.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        starting.setText("Lightning");
+        frame.addView(starting, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(frame);
         if (Build.VERSION.SDK_INT >= 33
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -84,8 +90,11 @@ public final class MainActivity extends Activity {
                 String url = Python.getInstance().getModule("lightning_android").callAttr("start", files).toString();
                 runOnUiThread(() -> show(frame, url));
             } catch (Throwable error) {
-                String text = "Lightning could not start:\n" + Log.getStackTraceString(error);
+                String text = "Lightning could not start. Close it and open it again.\n\n" + Log.getStackTraceString(error);
                 runOnUiThread(() -> {
+                    starting.setTextSize(13);
+                    starting.setTypeface(android.graphics.Typeface.DEFAULT);
+                    starting.setGravity(android.view.Gravity.START);
                     starting.setText(text);
                     starting.setTextIsSelectable(true);
                 });

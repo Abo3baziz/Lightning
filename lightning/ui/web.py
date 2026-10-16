@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextvars
+import logging
 from datetime import timedelta
 
 import re
@@ -16,6 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 from markupsafe import Markup, escape
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exception_handlers import http_exception_handler
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from lightning import DISPLAY_VERSION
@@ -267,6 +270,11 @@ def render(request: Request, name: str, status_code: int = 200, **context) -> HT
         _ROUND_MONEY.reset(token)
 
 
+_BARE_ERROR_PAGE = ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+                    "<title>Something went wrong</title><body style='font:16px system-ui;margin:12vh auto;max-width:28rem;"
+                    "padding:0 24px;color:#0D2233;background:#F5F8F7'><h1>Something went wrong</h1>"
+                    "<p>Lightning could not open this page. Your records are safe.</p><p><a href='/'>Back to the dashboard</a></p>")
+
 _PHONE: contextvars.ContextVar[bool] = contextvars.ContextVar("lightning_phone", default=False)
 _PHONE_TEMPLATES: set[str] | None = None
 
@@ -478,6 +486,22 @@ def create_app(c: Container | None = None) -> FastAPI:
     @app.exception_handler(NotFoundError)
     async def not_found(request: Request, exc: NotFoundError):
         return render(request, "not_found.html", status_code=404, message=exc.message)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_problem(request: Request, exc: StarletteHTTPException):
+        """An unknown address gets the Not found page; other HTTP errors keep their own answer."""
+        if exc.status_code == 404 and not request.url.path.startswith("/static/"):
+            return render(request, "not_found.html", status_code=404, message="That page does not exist.")
+        return await http_exception_handler(request, exc)
+
+    @app.exception_handler(Exception)
+    async def unexpected(request: Request, exc: Exception):
+        """Any other failure: one calm page with a way forward, never the server's plain error text."""
+        logging.getLogger("lightning").exception("Unhandled error on %s", request.url.path)
+        try:
+            return render(request, "error.html", status_code=500)
+        except Exception:
+            return HTMLResponse(_BARE_ERROR_PAGE, status_code=500)
 
     from lightning.sync.journal.proxy import PendingOnHome
 

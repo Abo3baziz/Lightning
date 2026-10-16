@@ -627,6 +627,18 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// Ctrl+Z undoes and Ctrl+Shift+Z (or Ctrl+Y) redoes the last action, except while typing in a field.
+document.addEventListener("keydown", (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const key = e.key.toLowerCase();
+  const operation = key === "z" ? (e.shiftKey ? "redo" : "undo") : key === "y" ? "redo" : "";
+  if (!operation || e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  const button = document.querySelector(`[data-history="${operation}"]`);
+  if (!button) return;
+  e.preventDefault();
+  button.click();
+});
+
 let dateFieldCount = 0;
 const normalizeDateField = (input) => {
   if (!input.value.trim()) { input.setCustomValidity(""); return true; }
