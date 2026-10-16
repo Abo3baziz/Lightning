@@ -158,11 +158,12 @@ class Replicator:
 
     def capture(self):
         """Final values of every touched row, net of intermediate changes."""
-        rows = {}
+        rows, released = {}, []
         for name in self.order:
             table = self.tables[name]
-            # Removed identities first: their id mapping is released before a
-            # reused row id or natural key can be bound to a new row.
+            # Removed identities first. Their id mappings are released only once all are
+            # named (a child key refers to a removed parent) and before a reused row id
+            # or natural key can be bound to a new row.
             for (gone,) in self.db.all("SELECT gone FROM journal_touched_rows WHERE tbl=? AND gone IS NOT NULL", (name,)):
                 key = json.loads(gone)
                 if self._find(table, key) is not None and not table.rowid:
@@ -173,11 +174,15 @@ class Replicator:
                     identity = self.db.scalar("SELECT uuid FROM journal_ids WHERE entity=? AND local_id=?", (name, key[0]))
                     if identity is None:
                         continue  # Created and removed inside one action.
-                    self.db.execute("DELETE FROM journal_ids WHERE entity=? AND local_id=?", (name, key[0]))
+                    released.append((name, key[0]))
                 else:
                     identity = [self.uid(table.refs[column], value) if column in table.refs else value
                                 for column, value in zip(table.key, key)]
                 rows[(name, canonical(identity))] = dict(table=name, key=identity, values=None)
+        for entity, local_id in released:
+            self.db.execute("DELETE FROM journal_ids WHERE entity=? AND local_id=?", (entity, local_id))
+        for name in self.order:
+            table = self.tables[name]
             for (rid,) in self.db.all(f"SELECT t.rid FROM journal_touched_rows t JOIN main.{name} r ON r.rowid=t.rid "
                                       "WHERE t.tbl=? ORDER BY t.rid", (name,)):
                 row = self.db.one(f"SELECT * FROM {name} WHERE rowid=?", (rid,))

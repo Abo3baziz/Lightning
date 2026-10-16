@@ -3,7 +3,7 @@
 
 class Command:
     def __init__(self, call, args, *, target=None, creates=None, adapt=None):
-        # call: "service.method"; args: name -> spec; target: (table, arg) of the
+        # call: "service.method" or a function(container, **args); args: name -> spec; target: (table, arg) of the
         # row an existing-record command changes; creates: table of a new row;
         # adapt: optional function reshaping mapped arguments for the service.
         self.call, self.args, self.target, self.creates, self.adapt = call, args, target, creates, adapt

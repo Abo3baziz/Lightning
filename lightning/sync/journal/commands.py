@@ -124,8 +124,11 @@ def run(adapter, kind, record, groups):
     values = {name: _local(adapter, spec, groups["args"][name]) for name, spec in entry.args.items()}
     if entry.adapt is not None:
         values = entry.adapt(values)  # Shape lists into what the service signature takes.
-    service, method = entry.call.split(".")
-    result = getattr(getattr(adapter.c, service), method)(**values)
+    if callable(entry.call):  # A module-level workflow taking the container.
+        result = entry.call(adapter.c, **values)
+    else:
+        service, method = entry.call.split(".")
+        result = getattr(getattr(adapter.c, service), method)(**values)
     if entry.creates:
         created = result if type(result) is int else result.get("id") if isinstance(result, dict) else getattr(result, "id", None)
         if type(created) is not int:
