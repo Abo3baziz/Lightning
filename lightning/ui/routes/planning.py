@@ -103,6 +103,9 @@ async def plan_page(request: Request):
     window_end = day + timedelta(days=30)
     next_payments = [p for p in c.planning.all_payments(window_end, day)
                      if p.status in (PaymentStatus.DUE, PaymentStatus.UPCOMING)]
+    # Late payments first, each with its days late (computed here, not in the template).
+    next_payments.sort(key=lambda p: (not p.days_late(day), p.due_date, p.item.name.casefold()))
+    late_days = {(p.item.id, p.due_date): p.days_late(day) for p in next_payments if p.days_late(day)}
     plan = visuals.cash_plan(c, forecast, day)
     # Honest numbers (A01): with no income planned there is nothing to forecast from.
     has_income = bool(c.planning.items((PlanKind.INCOME,)))
@@ -110,7 +113,7 @@ async def plan_page(request: Request):
     return render(request, "planning/plan.html", tabs=TABS, plan_tab="plan", forecast=forecast, owe=owe, has_income=has_income,
                   gameya_owed=c.position.at(day).gameya_still_to_pay,
                   notes=[], plan=plan, stats=stats, forecast_chart=visuals.forecast_trend(forecast),
-                  next_payments=next_payments, as_of=fmt_date(day), window_end=fmt_date(window_end),
+                  next_payments=next_payments, late_days=late_days, as_of=fmt_date(day), window_end=fmt_date(window_end),
                   has_items=bool(c.planning.items()), labels=_labels(c), zakat=c.zakat.forecast(day))
 
 

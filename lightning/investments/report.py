@@ -339,6 +339,19 @@ def normalized_target_weights(targets: dict[str, Decimal]) -> dict[str, Decimal]
     return {bucket: weight * 100 / total for bucket, weight in targets.items()}
 
 
+def suggest_by_current_mix(values: dict[str, Decimal], amount: Decimal) -> dict[str, Decimal]:
+    """Split new money in proportion to what is held now, for a profile with no target weights.
+    Same rounding as suggest_contributions: whole cents, the leftover to the largest part. {} without holdings."""
+    held = {b: v for b, v in values.items() if v > ZERO}
+    total = sum(held.values(), ZERO)
+    if amount <= ZERO or total <= ZERO:
+        return {}
+    cent = Decimal("0.01")
+    split = {b: (amount * v / total).quantize(cent) for b, v in held.items()}
+    split[max(split, key=lambda b: (split[b], b))] += amount - sum(split.values(), ZERO)
+    return {b: x for b, x in split.items() if x > ZERO}
+
+
 def suggest_contributions(values: dict[str, Decimal], targets: dict[str, Decimal], amount: Decimal,
                           mode: str = "prorata") -> dict[str, Decimal]:
     """Split new money across allocation classes to move toward their targets; nothing is ever sold.

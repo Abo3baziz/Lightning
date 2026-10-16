@@ -451,6 +451,14 @@ class HealthService:
         reserve = next((row for row in (position.reserve_rows or ()) if row["kind"] == "EMERGENCY"), None)
         return self.budgets.emergency_fund(month_of(day), reserve["effective_allocated"] if reserve else None)
 
+    def cash_months(self, day: date, fund=None) -> Decimal | None:
+        """Months of the fund's own average (income or spending) that the cash you own would cover:
+        Cash you own ÷ that average. Shown beside the emergency fund, which counts only its reserve."""
+        fund = fund or self.emergency_fund(day)
+        if not fund.monthly:
+            return None
+        return self.position.at(day, match_payments=False).cash_you_own / fund.monthly
+
     def overview(self, as_of: date | None = None) -> dict:
         """Assemble the read-only figures and six completed-month trends for the Health page."""
         day = as_of or today()
@@ -527,4 +535,4 @@ class HealthService:
             cursor = next_month
         return {"as_of": fmt_date(day), "savings_month": savings_month, "fund": fund,
                 "figures": figures, "trends": tuple(trends), "emergency_months": EMERGENCY_FUND_MONTHS,
-                "income_average": income_average}
+                "income_average": income_average, "cash_months": self.cash_months(day, fund)}

@@ -17,7 +17,7 @@
   {% if not phone_mode() %}{# on a phone the Overview's tiles carry these rates; never twice #}
   <div class="stat-tile surface-in inv-saved-tile">{% set w = waffle %}{% set bar = w.bar %}
     <span class="stat-tile-head">{{ tone_icon('in') }}<span class="stat-tile-label">{{ 'Saved and invested'|tr(locale) }}</span><span class="stat-chip">{{ chip }}</span></span>
-    {{ saved_split(w) }}
+    {{ saved_split(w, period.tag) }}
   </div>{% endif %}
   <div class="stat-tile surface-{{ 'over' if result is not none and result < 0 else 'in' }} inv-result-tile">
     <span class="stat-tile-head">{{ tone_icon('over' if result is not none and result < 0 else 'in') }}<span class="stat-tile-label">{{ fig.result.label }}</span><span class="stat-chip is-{{ 'up' if result and result > 0 else ('down' if result and result < 0 else 'flat') }}">{{ chip }}</span></span>
@@ -39,7 +39,7 @@
   <div class="overview-split">
     <section><div class="overview-block-head"><div><h3>{{ "Allocation"|tr(locale) }}</h3><p>{{ fig.holdings_value.label }} by asset class · {{ period.end_text }}</p></div></div>
       {{ donut(investment_donut, fig.holdings_value.label, base, (fig.what_you_own.label, pos.what_you_own)) }}
-      {% for item in pos.locked_holdings %}<div class="overview-static-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }}<small>{{ "locked until {date}"|tr(locale, date=item.locked_until) }}</small></span><b>{{ item.value|money }}</b></div>{% endfor %}
+      {% for item in pos.locked_holdings %}<div class="overview-static-row locked-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }} <small>{{ "not counted until {date}"|tr(locale, date=item.locked_until) }}</small></span><b class="muted">{{ item.value|money }}</b></div>{% endfor %}
       <div class="overview-inline-list inv-after-sale"><div class="overview-static-row"><span>{{ fig.brokerage_cash.label }}</span><b>{{ investment_report.investment_cash|money if investment_report.investment_cash is not none else 'Unavailable' }}</b></div><a class="overview-static-row" href="/settings?section=assets-valuations"><span>{{ fig.holdings_after_sale.label }}</span><b>{{ pos.holdings_after_sale|money if investment_report.value is not none else 'Unavailable' }}</b></a></div></section>
     <section><div class="overview-block-head"><div><h3>{{ "Biggest holdings"|tr(locale) }}</h3><p>Share of {{ fig.holdings_value.label|lower }} · {{ period.end_text }}</p></div></div>
       {{ bars(biggest, 'hold', 'No holdings to show.') }}</section>

@@ -33,7 +33,7 @@
         <input type="text" name="name" value="{{ party.name }}" aria-label="Counterparty name">
         <span class="inline-save-status" role="status" aria-live="polite"></span>
       <input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>
-      {% if aliases or aliases|length < alias_limit %}<details class="alias-details"><summary>Aliases · {{ aliases|length }}</summary>
+      {% if aliases or aliases|length < alias_limit %}<details class="alias-details"><summary>Aliases{% if aliases %} · {{ aliases|length }}{% endif %}</summary>
       {% if aliases %}<div class="alias-list muted small">{% for item in aliases %}
         <form method="post" action="/counterparties" class="alias-row" data-counterparty-autosave>
           <input type="hidden" name="counterparty_action" value="rename_alias">

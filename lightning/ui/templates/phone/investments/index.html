@@ -47,7 +47,7 @@
   </article>{% endif %}
 </section>
 
-{% for item in pos.locked_holdings %}<div class="phone-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }}<small>{{ "locked until {date}"|tr(locale, date=item.locked_until) }}</small></span><b>{{ item.value|money }}</b></div>{% endfor %}
+{% for item in pos.locked_holdings %}<div class="phone-row locked-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }} <small>{{ "not counted until {date}"|tr(locale, date=item.locked_until) }}</small></span><b class="muted">{{ item.value|money }}</b></div>{% endfor %}
 <section class="phone-section" aria-labelledby="holdings-heading">
   <header class="phone-section-head"><h2 id="holdings-heading">{{ 'Holdings'|tr(locale) }}</h2><span>As of {{ period.end_text }}</span></header>
   {% for g in holding_groups %}

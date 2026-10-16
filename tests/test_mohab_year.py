@@ -870,7 +870,7 @@ def test_safe_to_spend_until_payday(mohab):
     # 10,417) is kept back too, as Saving for goals is (owner request 2026-10-05: one plan).
     assert answer.figure("Safe to spend until 2026-10-01") == D("40937")
     assert answer.shows("On top of your plan until 2026-10-01")
-    assert answer.shows("Budget left to spend −1,309 Emergency fund top-up −10,417 Safe to spend 40,937")
+    assert answer.shows("Budget until payday −1,309 Emergency fund top-up −10,417 Safe to spend 40,937")
 
 
 def test_free_cash_shows_what_was_taken_off(mohab):

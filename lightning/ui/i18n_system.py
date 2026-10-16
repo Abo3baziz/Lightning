@@ -682,6 +682,17 @@ MARKETS = {
     "اللي تملكه {a} · مملوك لـ others {b}": "اللي تملكه {a} · مملوك لغيرك {b}",
 }
 TEMPLATES = {
+    "Current {value} · {weight}%": "الحالي {value} · {weight}%",
+    "Current {value} · {weight}% · Target {target}%": "الحالي {value} · {weight}% · المستهدف {target}%",
+    "Aliases": "الأسماء البديلة",
+    "By your current mix — set targets to change it": "حسب توزيعك الحالي — حدد الأهداف لتغييره",
+    "Each class gets the same share of the amount as it holds now. Nothing is sold.": "كل فئة بتاخد من المبلغ نفس نسبتها الحالية. مفيش حاجة بتتباع.",
+    "{n} months in cash you own": "{n} شهر في النقدية اللي تملكها",
+    "Emergency fund: {n} months in cash you own": "صندوق الطوارئ: {n} شهر في النقدية اللي تملكها",
+    "Bills due, loans apart": "فواتير مستحقة، من غير القروض",
+    "Late · 1 day": "متأخر · يوم",
+    "Late · {n} days": "متأخر · {n} يوم",
+    "not counted until {date}": "مش محسوب لحد {date}",
     "locked until {date}": "مقفول لحد {date}",
     "Done with setup": "خلصت الإعداد",
     "Show setup guide": "عرض دليل الإعداد",

@@ -57,7 +57,8 @@ def grouped(items: list[dict]) -> list[dict]:
         group["priority"] = min(item["priority"] for item in group["items"])
         if len(group["items"]) == 1:  # shown as itself: its own words, detail and action
             group.update(label=first["label"], detail=first["detail"], href=first["href"],
-                         popup=bool(first.get("popup")), action=first.get("action") or "Review", count=1)
+                         popup=bool(first.get("popup")), action=first.get("action") or "Review", count=1,
+                         late_days=first.get("late_days", 0))
         else:
             names = ", ".join(i["label"] for i in group["items"][:2])
             more = f" and {len(group['items']) - 2} more" if len(group["items"]) > 2 else ""
@@ -93,7 +94,8 @@ class ReviewInbox:
             items.append({"label": f"{kind}: {payment.item.name}",
                           "detail": f"Due {payment.due_date} · {fmt(payment.amount)} {c.base_currency} · not paid yet.",
                           "href": f"/plan/items/{payment.item.id}/pay?due={payment.due_date}&back=%2F",
-                          "popup": True, "action": "Mark paid", "priority": 1})
+                          "popup": True, "action": "Mark paid", "priority": 1,
+                          "late_days": payment.days_late(on)})
         items.extend(c.gameya.attention(on))  # an instalment or payout past its date and not recorded
         for changed in c.db.all(
                 "SELECT i.id,i.name,i.amount_e6,i.account_id,p.amount_e6 AS paid_e6,p.due_date "
