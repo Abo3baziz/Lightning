@@ -71,11 +71,10 @@ def test_writes_outside_the_synchronized_tables_are_refused_by_confirmation(devi
     real = hd.c.transactions.record_in_account
     def leaky(**values):
         result = real(**values)
-        hd.c.db.execute("INSERT INTO settings(key,value) VALUES('leak','1')")
+        hd.c.db.execute("DELETE FROM rule_conditions WHERE id=-1")  # Rules are not synchronized.
         return result
     monkeypatch.setattr(hd.c.transactions, "record_in_account", leaky)
     wire = pc.save(groups(pc))
     pc.sync_with(hd.home)
     from lightning.sync.journal.codec import origin_id
     assert hd.home.status(origin_id(unpack(wire)["body"]["origin"])) == dict(status="rejected", reason="financial-validation")
-    assert hd.c.db.scalar("SELECT COUNT(*) FROM settings WHERE key='leak'") == 0

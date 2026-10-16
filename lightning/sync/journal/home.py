@@ -243,7 +243,8 @@ class JournalHome:
         if slot is None and creates:
             if self.store.adapter.row_token(creates + ":" + canonical(body["record"]).decode()):
                 return "rejected", "record-exists", []
-        elif slot is not None and not force and (self.store.adapter.row_token(slot) != base if base is not None else not body["dependencies"]):
+        elif slot is not None and not force and not (base is None and body["dependencies"]) and self.store.adapter.row_token(slot) != base:
+            # No base and no pending predecessor means the device saw no such row.
             return "review", "conflict", []
         return "accepted", "accepted", [dict(record=body["record"], groups={}, tokens={}, deleted=False)]
 
@@ -255,7 +256,8 @@ class JournalHome:
             try:
                 with self.db.transaction():
                     domain = self.store.adapter.confirm(unpack(bytes(row["wire"]))["body"], effects[0])
-                    effects[0]["domain"] = domain
+                    if domain is not None:  # None: a command that found nothing to change.
+                        effects[0]["domain"] = domain
                     if len(canonical(effects[0])) > 48 * 1024:
                         raise ValidationError("The confirmed action exceeds the effect limit")
             except ValidationError as error:

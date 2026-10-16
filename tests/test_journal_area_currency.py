@@ -30,7 +30,7 @@ def usd_setup(hd, pc):
     """USD registered, a rate saved and a USD account opened by the replica."""
     register = pc.command("currencies.register", code="USD", name=None)
     rate = pc.command("currencies.save_rate", currency="USD", day="2026-09-01", rate="48.5")
-    opened = pc.command("accounts.open_foreign", name="Dollars", account_type="BANK", opening_date="2026-09-01",
+    opened = pc.command("accounts.open", opening_balance_date=None, owner_id=None, name="Dollars", account_type="BANK", opening_date="2026-09-01",
                         opening_balance="200", institution="", currency="USD", last4=None, notes="")
     settle(hd, pc, register, rate, opened)
     return unpack(opened)["body"]["record"]

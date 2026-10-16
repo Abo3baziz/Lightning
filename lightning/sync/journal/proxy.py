@@ -36,6 +36,8 @@ class JournalServices:
 
     def __getattr__(self, name):
         service = getattr(self._device.c, name)
+        if name in self._calls:  # A container-level action, e.g. set_profile_currency.
+            return lambda *args, **kwargs: self._run(name, service, args, kwargs)
         if any(call.split(".")[0] == name for call in self._calls):
             return _Service(self, name, service)
         return service
@@ -110,6 +112,9 @@ def _wire(adapter, spec, value):
         return adapter.uid(bare[len("ref:"):], int(value))
     if bare in ("amount", "rate"):
         return format(to_decimal(value), "f")
+    if bare == "date" and type(value) is str:
+        from lightning.core.dates import parse_date
+        value = parse_date(value)  # The screens accept short dates (1/7); the command carries ISO.
     if bare in ("date", "month") and isinstance(value, date):
         return value.isoformat()[:7 if bare == "month" else 10]
     if bare == "int":

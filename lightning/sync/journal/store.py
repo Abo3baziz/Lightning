@@ -222,8 +222,8 @@ class JournalStore:
                 raise JournalError("Unsupported financial effect adapter")
             if self.config["role"] == "replica":
                 self.adapter.apply(effect["domain"])
-            if not effect["groups"] and not effect["deleted"]:
-                return  # A command's rows are the record; no register field groups.
+        if not effect["groups"] and not effect["deleted"]:
+            return  # A command's rows (if any) are its record; it has no register field groups.
         self.db.execute("INSERT INTO journal_records VALUES(?,?,?,?) ON CONFLICT(record_id) DO UPDATE SET groups_json=excluded.groups_json,tokens_json=excluded.tokens_json,deleted=excluded.deleted",
                         (effect["record"], canonical(effect["groups"]).decode(),
                          canonical(effect["tokens"]).decode(), int(effect["deleted"])))

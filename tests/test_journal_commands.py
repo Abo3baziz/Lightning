@@ -17,7 +17,7 @@ def account(device, name):
 
 def test_open_and_rename_an_account_from_a_replica_replays_exactly(devices):
     hd, pc = devices
-    wire = pc.command("accounts.open", name="Savings", account_type="BANK", opening_date="2026-02-01",
+    wire = pc.command("accounts.open", currency=None, opening_balance_date=None, owner_id=None, name="Savings", account_type="BANK", opening_date="2026-02-01",
                       opening_balance="500", institution="", last4=None, notes="")
     assert not any(item.name == "Savings" for item in pc.c.accounts.list())  # Pending until the home confirms.
     pc.sync_with(hd.home)
@@ -71,10 +71,10 @@ def test_two_changes_from_one_device_chain_without_conflict(devices):
 
 def test_service_refusal_and_uncovered_areas_are_refused_not_written(devices):
     hd, pc = devices
-    duplicate = pc.command("accounts.open", name="Bank", account_type="BANK", opening_date="2026-02-01",
+    duplicate = pc.command("accounts.open", currency=None, opening_balance_date=None, owner_id=None, name="Bank", account_type="BANK", opening_date="2026-02-01",
                            opening_balance="0", institution="", last4=None, notes="")
     pc.sync_with(hd.home)
     assert status(hd, duplicate) == dict(status="rejected", reason="financial-validation")
     with pytest.raises(Exception, match="not covered"):
-        pc.command("settings.set", key="x", value="y")
+        pc.command("rules.create", name="x")
     assert hd.store.fingerprint() == pc.store.fingerprint()

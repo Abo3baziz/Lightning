@@ -18,9 +18,6 @@ CONVERSION = dict(date=DATE, from_account_id=ref("accounts"), to_account_id=ref(
 COMMANDS = {
     "currencies.register": Command("currencies.register", dict(code=TEXT, name=optional(TEXT))),
     "currencies.save_rate": Command("fx.save", dict(currency=TEXT, day=DATE, rate=RATE)),
-    "accounts.open_foreign": Command("account_flows.open_account", dict(
-        name=TEXT, account_type=ACCOUNT_TYPES, opening_date=DATE, opening_balance=AMOUNT, institution=TEXT,
-        currency=TEXT, last4=optional(TEXT), notes=LONG), creates="accounts"),
     "transactions.record_conversion": Command("transactions.record_conversion", CONVERSION, creates="transactions"),
     "transactions.update_conversion": Command("transactions.update_conversion", dict(txn_id=ref("transactions"), **CONVERSION),
                                               target=("transactions", "txn_id")),

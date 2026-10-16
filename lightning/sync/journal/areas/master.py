@@ -3,11 +3,13 @@ from .spec import AMOUNT, DATE, FLAG, LONG, TEXT, Command, choice, optional, ref
 
 TABLES = ("asset_classes", "financial_assets", "accounts", "categories")
 
-ACCOUNT_TYPES = choice("BANK", "CASH", "CASH_AT_HAND")
+# Every type; a type whose tables are not synchronized yet is refused by the home.
+ACCOUNT_TYPES = choice("BANK", "CASH", "CASH_AT_HAND", "DEPOSIT", "BROKERAGE", "PHYSICAL_ASSET", "OTHER_ASSET", "GAMEYA")
 COMMANDS = {
     "accounts.open": Command("account_flows.open_account", dict(
         name=TEXT, account_type=ACCOUNT_TYPES, opening_date=DATE, opening_balance=AMOUNT, institution=TEXT,
-        last4=optional(TEXT), notes=LONG), creates="accounts"),
+        currency=optional(TEXT), last4=optional(TEXT), notes=LONG, opening_balance_date=optional(DATE),
+        owner_id=optional(ref("counterparties"))), creates="accounts"),
     "accounts.update": Command("accounts.update", dict(
         account_id=ref("accounts"), name=TEXT, institution=TEXT, account_type=ACCOUNT_TYPES, opening_date=DATE,
         last4=optional(TEXT), notes=LONG), target=("accounts", "account_id")),

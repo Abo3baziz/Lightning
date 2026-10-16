@@ -233,7 +233,7 @@ class CashAdapter:
             commands.validate(proposal["kind"], proposal["groups"])
             with self.writing():
                 result = commands.run(self, proposal["kind"], proposal["record"], proposal["groups"])
-            effect_rows = self._result()
+            effect_rows = self._result() if self.captured else None
             self._keep(self.results, proposal, result)
             return effect_rows
         if not proposal["kind"].startswith("transaction."):
@@ -311,6 +311,9 @@ class CashAdapter:
             self.rows.apply(domain)
             self.rows.reset()  # The effect names every touched row, deletes included; triggers could not name those.
             self.rows.remember(domain["rows"])
+            if any(row["table"] == "settings" for row in domain["rows"]):
+                from .areas.settings import refresh
+                refresh(self.c)
             changed = set()
             for row in domain["rows"]:
                 if row["table"] == "transactions" and row["values"] is not None:

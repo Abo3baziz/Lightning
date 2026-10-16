@@ -25,8 +25,8 @@ def _registry():
     commands = {}
     for area in AREAS:
         for name, entry in area.COMMANDS.items():
-            if name in commands:
-                raise JournalError(f"Command {name} is registered twice")
+            if name in commands or any(other.call == entry.call for other in commands.values()):
+                raise JournalError(f"Command {name} is registered twice")  # The proxy maps each call to one command.
             commands[name] = entry
     return commands
 
@@ -106,7 +106,9 @@ def target_slot(kind, groups):
     if entry.target is None:
         return None
     table, name = entry.target
-    return table + ":" + canonical(groups["args"][name]).decode()
+    # An integer-id row is named by its UUID; a keyed row (a setting) by its key columns.
+    identity = [groups["args"][column] for column in name] if type(name) is tuple else groups["args"][name]
+    return table + ":" + canonical(identity).decode()
 
 
 def _local(adapter, spec, value):
@@ -127,8 +129,15 @@ def run(adapter, kind, record, groups):
     if callable(entry.call):  # A module-level workflow taking the container.
         result = entry.call(adapter.c, **values)
     else:
-        service, method = entry.call.split(".")
-        result = getattr(getattr(adapter.c, service), method)(**values)
+        owner = adapter.c
+        for part in entry.call.split("."):  # "service.method", or a container method
+            owner = getattr(owner, part)
+        try:
+            result = owner(**values)
+        except JournalError:
+            raise
+        except ValueError as error:  # Some services refuse with a plain ValueError.
+            raise ValidationError(str(error)) from error
     if entry.creates:
         created = result if type(result) is int else result.get("id") if isinstance(result, dict) else getattr(result, "id", None)
         if type(created) is not int:

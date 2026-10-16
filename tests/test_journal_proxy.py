@@ -29,9 +29,9 @@ def test_uncovered_options_and_writes_are_refused_not_written(devices):
     hd, _ = devices
     services = JournalServices(hd)
     with pytest.raises(ValidationError, match="not available"):
-        services.account_flows.open_account("Euro", "BANK", "2026-02-01", "0", currency="EUR")
+        services.account_flows.open_account("Euro", "BANK", "2026-02-01", "0", code="EUR-1")
     with pytest.raises(hd.c.db.driver.DatabaseError):
-        services.settings.set("uncovered", "write")
+        services.db.execute("DELETE FROM rule_conditions WHERE id=-1")  # Rules are not synchronized.
     assert services.accounts.get(next(a.id for a in hd.c.accounts.list() if a.name == "Bank")).name == "Bank"
 
 

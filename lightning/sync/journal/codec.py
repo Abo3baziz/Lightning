@@ -13,7 +13,7 @@ from lightning.sync.identity import verify_signature
 MAX_MESSAGE = 64 * 1024
 ZERO_HASH = "0" * 64
 GROUP = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
-COMMAND = re.compile(r"command\.[a-z][a-z_]{0,31}\.[a-z][a-z_]{0,31}")
+COMMAND = re.compile(r"command\.[a-z][a-z_]{0,31}(\.[a-z][a-z_]{0,31})?")
 
 
 class JournalError(ValueError):

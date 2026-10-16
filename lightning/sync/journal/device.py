@@ -116,10 +116,13 @@ class JournalDevice:
         kind, groups = "command." + action, dict(args=args)
         self.adapter.check(kind, groups)
         entry = command(kind)
-        if entry.target:
-            record = args[entry.target[1]]
-        record = record or str(uuid4())
         slot = target_slot(kind, groups)
+        if entry.target:
+            # A keyed row (a setting) gets a stable record id, so repeated saves chain.
+            from uuid import UUID, uuid5
+            keyed = type(entry.target[1]) is tuple
+            record = str(uuid5(UUID(self.store.config["profile"]), slot)) if keyed else args[entry.target[1]]
+        record = record or str(uuid4())
         base = self.adapter.row_token(slot) if slot else None
         dependencies = []
         for wire in self.store.pending():
