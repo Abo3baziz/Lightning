@@ -87,16 +87,7 @@ class Membership:
         header = dict(type="journal-membership", profile=self.device.store.config["profile"],
                       generation=self.device.store.config["generation"], previous=state["version"],
                       version=state["version"] + 1, epoch=state["epoch"] + 1, members=members, retired=sorted(retired))
-        wrapped = {}
-        for identifier, member in members.items():
-            ephemeral = ec.generate_private_key(ec.SECP256R1())
-            public = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), bytes.fromhex(member["key"]))
-            context = canonical(header | dict(recipient=identifier))
-            nonce = os.urandom(12)
-            wrapped[identifier] = dict(ephemeral=ephemeral.public_key().public_bytes(
-                serialization.Encoding.X962, serialization.PublicFormat.CompressedPoint).hex(), nonce=nonce.hex(),
-                ciphertext=AESGCM(_key(ephemeral.exchange(ec.ECDH(), public), context)).encrypt(nonce, secret, context).hex())
-        wire = seal(header | dict(wrapped=wrapped), self.device.identity.sign)
+        wire = self._wrap(header,secret,self.device.identity.sign)
         with self.db.transaction():
             for identifier, member in state["members"].items():
                 if members.get(identifier) != member:
@@ -107,6 +98,40 @@ class Membership:
             self.db.execute("INSERT OR REPLACE INTO journal_local VALUES('membership_wire',?)", (wire.decode(),))
             self.db.execute("INSERT OR REPLACE INTO journal_local VALUES(?,?)", ("membership_wire:" + str(header["version"]),wire.decode()))
         return wire
+
+    @staticmethod
+    def _wrap(header,secret,signer):
+        wrapped = {}
+        for identifier, member in header["members"].items():
+            ephemeral = ec.generate_private_key(ec.SECP256R1())
+            public = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), bytes.fromhex(member["key"]))
+            context = canonical(header | dict(recipient=identifier))
+            nonce = os.urandom(12)
+            wrapped[identifier] = dict(ephemeral=ephemeral.public_key().public_bytes(
+                serialization.Encoding.X962, serialization.PublicFormat.CompressedPoint).hex(), nonce=nonce.hex(),
+                ciphertext=AESGCM(_key(ephemeral.exchange(ec.ECDH(), public), context)).encrypt(nonce, secret, context).hex())
+        return seal(header | dict(wrapped=wrapped), signer)
+
+    def begin_generation(self,signer):
+        """Called only inside the owner's verified activation transaction."""
+        store = self.device.store
+        authority = store.authority.state() if store.authority is not None else None
+        if (authority is None or authority["phase"] != "candidate" or authority["generation"] != store.config["generation"]
+                or authority["home"] != store.config["device"]):
+            raise JournalError("Transport reset requires a pinned candidate authority")
+        state = self.state()
+        own = state["members"].get(store.config["device"])
+        if own is None or own["key"] != store.config["origin_key"] or own["incarnation"] != store.config["incarnation"]:
+            raise JournalError("The successor is not an approved device incarnation")
+        secret = os.urandom(32)
+        header = dict(type="journal-membership",profile=store.config["profile"],generation=store.config["generation"],
+                      previous=0,version=1,epoch=1,members=state["members"],retired=state["retired"])
+        wire = self._wrap(header,secret,signer)
+        authenticate(unpack(wire),store.config["origin_key"])
+        self._save(dict(version=1,epoch=1,members=state["members"],retired=state["retired"]),secret)
+        self.db.execute("INSERT OR REPLACE INTO journal_local VALUES('membership_wire:1',?)",(wire.decode(),))
+        self.db.execute("INSERT OR REPLACE INTO journal_local VALUES('membership_wire',?)",(wire.decode(),))
+        self.db.execute("INSERT OR REPLACE INTO journal_local VALUES('transport_generation',?)",(store.config["generation"],))
 
     def control(self, wire):
         if self.device.home is None or len(wire) > 4096:
@@ -157,8 +182,8 @@ class Membership:
         self.device.store._scope(body)
         present = self.db.scalar("SELECT value FROM journal_local WHERE name='membership'")
         if initial and present is None:
-            number(body["previous"], minimum=1)
-            number(body["epoch"], minimum=2)
+            number(body["previous"], minimum=0)
+            number(body["epoch"], minimum=1)
             state = dict(version=body["previous"], epoch=body["epoch"] - 1, retired=[])
         else:
             state = self.state()

@@ -80,6 +80,7 @@ export class ProfileMailbox {
       if (route === '/snapshot/status') return await this.snapshotStatus(auth, parse(bytes));
       if (route === '/snapshot/finish') return await this.finishSnapshot(auth, parse(bytes));
       if (route === '/authority') return json(auth.registry);
+      if (route === '/authority/chain') return await this.authorityChain(auth,parse(bytes));
       if (route === '/authority/transition') return await this.transition(auth, parse(bytes));
       if (route === '/membership') return await this.membership(auth, parse(bytes));
       if (route === '/membership/update') return await this.membershipUpdate(auth, parse(bytes));
@@ -114,7 +115,7 @@ export class ProfileMailbox {
     require(body.profile === profile && body.method === request.method && body.path === `/profiles/${profile}${route}` && body.sha256 === await hash(bytes), 401);
     let publicKey = registry.members[body.device];
     if (body.generation !== registry.generation) {
-      require(route === '/authority', 409);
+      require(route === '/authority' || route === '/authority/chain', 409);
       const retired = await this.storage.get(`retired:${body.generation}`);
       publicKey = retired?.members?.[body.device];
     }
@@ -339,7 +340,7 @@ export class ProfileMailbox {
       if (data.key_update !== undefined) {
         require(typeof data.key_update === 'string' && data.key_update.length <= ENVELOPE);
         const update = parse(encoder.encode(data.key_update));
-        require(data.key_version === (registry.key_version || 1) + 1 && update.body?.version === data.key_version &&
+        require(data.key_version === (registry.key_version ?? 1) + 1 && update.body?.version === data.key_version &&
           update.body.type === 'journal-membership' && update.body.profile === registry.profile && update.body.generation === registry.generation);
         await tx.put(`membership-wire:${data.key_version}`,data.key_update);
         registry.key_version = data.key_version;
@@ -351,11 +352,22 @@ export class ProfileMailbox {
     return json({updated:true});
   }
   async membershipUpdate(auth,data) {
-    require(Object.keys(data).join() === 'version' && Number.isSafeInteger(data.version) && data.version >= 1);
-    require(data.version < (auth.registry.key_version || 1),409);
+    require(Object.keys(data).join() === 'version' && Number.isSafeInteger(data.version) && data.version >= 0);
+    require(data.version < (auth.registry.key_version ?? 1),409);
     const update = await this.storage.get(`membership-wire:${data.version+1}`);
     require(update,409);
     return json({update, latest:auth.registry.key_version});
+  }
+  async authorityChain(auth,data) {
+    require(Object.keys(data).join() === 'after' && Number.isSafeInteger(data.after) && data.after >= 1 && data.after <= auth.registry.version);
+    const certificates = [];
+    for (let version=data.after+1; version<=Math.min(data.after+8,auth.registry.version); version++) {
+      const certificate = await this.storage.get(`authority-version:${version}`) ||
+        (version === auth.registry.version ? auth.registry.certificate : null);
+      require(certificate,409);
+      certificates.push(certificate);
+    }
+    return json({certificates,latest:auth.registry.version});
   }
   async transition(auth, data) {
     const {body, signature} = data;
@@ -373,9 +385,10 @@ export class ProfileMailbox {
       // Durable retirement/certificates are never expired with message queues.
       await tx.put(`retired:${registry.generation}`, {generation:registry.generation, home:registry.home, members:registry.members, certificate:data});
       await tx.put(`transition:${body.nonce}`, data);
+      await tx.put(`authority-version:${body.version}`, data);
       await tx.put('registry', {...registry, generation:body.generation, home:body.home, home_key:body.home_key,
         owner_key:body.owner_key, version:body.version, cutoff:body.cutoff, membership:registry.membership + 1,
-        members:{[body.home]:body.home_key}, certificate:data, retired:[]});
+        members:{[body.home]:body.home_key}, key_version:0, certificate:data, retired:[]});
     });
     for (const socket of this.state.getWebSockets()) socket.close(1008,'Authority changed');
     return json({activated:true});

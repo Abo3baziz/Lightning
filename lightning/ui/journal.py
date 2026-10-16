@@ -33,7 +33,7 @@ class BoundedJournalBody:
         if scope["type"] != "http" or scope["method"] != "POST":
             return await self.app(scope, receive, send)
         chunks, total = [], 0
-        limit = 4096 if scope["path"] in ("/pairing/exchange", "/membership/exchange") else 64 * 1024 if scope["path"] == "/exchange" else 6 * 1024 * 1024
+        limit = 4096 if scope["path"] in ("/pairing/exchange", "/membership/exchange") else 64 * 1024 if scope["path"] in ("/exchange","/enrollment/exchange") else 6 * 1024 * 1024
         while True:
             event = await receive()
             if event["type"] == "http.disconnect":
@@ -90,7 +90,7 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
 
     @app.middleware("http")
     async def guard(request, call_next):
-        if not request.url.path.startswith("/static/") and request.url.path not in ("/exchange", "/pairing/exchange", "/membership/exchange"):
+        if not request.url.path.startswith("/static/") and request.url.path not in ("/exchange", "/pairing/exchange", "/membership/exchange", "/enrollment/exchange"):
             token = request.cookies.get("journal_session", "")
             if not hmac.compare_digest(token.encode("utf-8"), session_token.encode("utf-8")):
                 return PlainTextResponse("Unlock this experimental profile first.", status_code=401)
@@ -161,7 +161,7 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
     @app.exception_handler(JournalError)
     @app.exception_handler(LightningError)
     async def failure(request, error):
-        if request.url.path in ("/exchange", "/pairing/exchange", "/membership/exchange"):
+        if request.url.path in ("/exchange", "/pairing/exchange", "/membership/exchange", "/enrollment/exchange"):
             from lightning.sync.journal.local import MembershipUpdateRequired
             if isinstance(error,MembershipUpdateRequired):
                 return PlainTextResponse("Membership update required.",status_code=409,headers={"X-Journal-Action":"membership"})
@@ -190,6 +190,12 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
         if len(body) > 4096:
             return PlainTextResponse("Pairing request refused.",status_code=413)
         return Response(pairing.exchange(body),media_type="application/octet-stream")
+
+    @app.post("/enrollment/exchange")
+    async def enrollment_exchange(request: Request):
+        if pairing is None or pairing.enrollment is None:
+            return PlainTextResponse("Enrollment unavailable.",status_code=403)
+        return Response(pairing.enrollment.exchange(await request.body()),media_type="application/octet-stream")
 
     @app.post("/membership/exchange")
     async def membership_exchange(request: Request):

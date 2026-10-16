@@ -61,6 +61,9 @@ class JournalInternet:
         registry = await self.peer.client.call("/authority")
         config = self.device.store.config
         if registry["generation"] != config["generation"]:
+            if self.device.store.authority is not None:
+                from lightning.sync.journal.authority import AuthorityRegistry
+                await AuthorityRegistry(self.peer.client).catch_up(self.device.store.authority,local_device=config["device"])
             raise CloudUnavailable("Authority changed; preserve this copy and verify the successor")
         state = self.trust.state()
         if self.device.home:

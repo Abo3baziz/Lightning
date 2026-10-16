@@ -16,11 +16,14 @@ from lightning.sync.journal.pairing import PairingDesk, request_pairing
 
 
 class NearbyPairing:
-    def __init__(self, device, *, key_document=None, search=nearby_devices, client_factory=PinnedLocalClient):
+    def __init__(self, device, *, key_document=None, owner_document=None, search=nearby_devices, client_factory=PinnedLocalClient):
         self.device, self.db = device, device.store.db
         self.membership = Membership(device)
         self.keys, self.search, self.client_factory = key_document, search, client_factory
         self.desk = PairingDesk(device,self.membership) if device.home else None
+        from lightning.sync.journal.enrollment import EnrollmentSource
+        self.enrollment = EnrollmentSource(device,key_document=key_document,owner_document=owner_document,
+            approval=lambda identifier:self._value("pairing_result:"+identifier,{})) if device.home and key_document else None
 
     def _value(self, name, default=None):
         value = self.db.scalar("SELECT value FROM journal_local WHERE name=?", (name,))

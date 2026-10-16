@@ -206,3 +206,170 @@ def test_pairing_requires_code_password_both_keys_and_explicit_matching_digits(d
     assert home.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'") == pc.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'")
     with pytest.raises(JournalError):
         desk.accept(request)
+
+
+@pytest.mark.parametrize("phase",["freeze","prepare","retire","authority_observed","authority_profile_committed","authority_activated"])
+def test_move_resumes_from_reopened_control_and_profile_without_two_active_homes(devices,tmp_path,phase):
+    from lightning.bootstrap import build
+    from lightning.sync.journal.finance import attach
+    from lightning.sync.journal.device import JournalDevice
+    home,pc = devices
+    owner,controls = memories(devices,tmp_path)
+    reopened = None
+    try:
+        home.save(groups(home))
+        pc.sync_with(home.home)
+        original = pc.save(groups(pc,"-8"))
+        cutoff = controls[0].freeze(home.store)
+        if phase == "freeze":
+            controls[0].close()
+            controls[0] = AuthorityMemory(tmp_path/'control-0.db',profile=home.store.config["profile"])
+            controls[0].bind(home.store)
+            assert controls[0].freeze(home.store) == cutoff
+        transfer_home_state(home.store,pc.store)
+        wire = change(home,pc,owner)
+        prepared = controls[1].prepare(pc.store,wire,pc.identity.sign)
+        if phase == "prepare":
+            controls[1].close()
+            controls[1] = AuthorityMemory(tmp_path/'control-1.db',profile=pc.store.config["profile"])
+            controls[1].bind(pc.store)
+            assert controls[1].prepare(pc.store,wire,pc.identity.sign) == prepared
+        retired = controls[0].retire(home.store,wire,prepared,home.identity.sign)
+        if phase == "retire":
+            controls[0].close()
+            controls[0] = AuthorityMemory(tmp_path/'control-0.db',profile=home.store.config["profile"])
+            controls[0].bind(home.store)
+            assert controls[0].retire(home.store,wire,prepared,home.identity.sign) == retired
+        class Interrupted(BaseException):
+            pass
+        def stop(at):
+            if at == phase:
+                raise Interrupted
+        if phase.startswith("authority_"):
+            with pytest.raises(Interrupted):
+                controls[1].activate_move(pc.store,wire,prepared,retired,old_home_key=home.identity.public_key,fault=stop)
+        key,path,identity = pc.c.db.copy_key(),pc.c.db.path,pc.identity
+        controls[1].close()
+        pc.store.close()
+        reopened = build(path,key=key,experimental_journal=True)
+        pc = JournalDevice(attach(reopened),identity)
+        controls[1] = AuthorityMemory(tmp_path/'control-1.db',profile=pc.store.config["profile"])
+        controls[1].bind(pc.store)
+        assert not controls[0].can_confirm(home.store)
+        controls[1].activate_move(pc.store,wire,prepared,retired,old_home_key=home.identity.public_key)
+        assert controls[1].can_confirm(pc.store)
+        pc.home = JournalHome(pc.store,pc.identity.sign)
+        pc.flush_home()
+        assert not pc.store.pending() and pc.store.cursor()["revision"] == 2
+        assert pc.c.db.scalar("SELECT wire FROM journal_outbox WHERE seq=1") == original
+        with pytest.raises(JournalError):
+            home.home.process()
+    finally:
+        for control in controls:
+            control.close()
+        if reopened:
+            reopened.db.close()
+
+
+def test_move_rejects_retirement_signed_by_successor_instead_of_pinned_old_home(devices,tmp_path):
+    home,pc = devices
+    owner,controls = memories(devices,tmp_path)
+    try:
+        controls[0].freeze(home.store)
+        transfer_home_state(home.store,pc.store)
+        wire = change(home,pc,owner)
+        prepared = controls[1].prepare(pc.store,wire,pc.identity.sign)
+        forged = seal(dict(type="authority-retired",transition=digest(unpack(wire)["body"]),prepared=digest(unpack(prepared)["body"])),pc.identity.sign)
+        with pytest.raises(JournalError,match="pinned old home"):
+            controls[1].activate_move(pc.store,wire,prepared,forged,old_home_key=pc.identity.public_key)
+        assert controls[0].state()["phase"] == "frozen"
+        assert not controls[1].can_confirm(pc.store)
+    finally:
+        for control in controls:
+            control.close()
+
+
+@pytest.mark.parametrize("tamper",[None,"skip","signature","owner"])
+def test_offline_peer_verifies_every_authority_link_and_pins_valid_prefix(devices,tmp_path,tamper):
+    from lightning.sync.journal.cloud import raw_signature
+    home,pc = devices
+    owner,controls = memories(devices,tmp_path)
+    replacement = OwnerCredential(ec.generate_private_key(ec.SECP256R1()))
+    first = unpack(change(home,pc,owner,mode="recover"))["body"]
+    first["owner_key"] = replacement.public_key
+    second = first | dict(previous=first["generation"],generation=str(uuid4()),version=3,nonce=os.urandom(32).hex())
+    certificates = [dict(body=first,signature=raw_signature(owner,first)),dict(body=second,signature=raw_signature(replacement,second))]
+    if tamper == "skip":
+        certificates = certificates[1:]
+    elif tamper == "signature":
+        certificates[1]["signature"] = "00"*64
+    elif tamper == "owner":
+        certificates[1]["signature"] = raw_signature(owner,second)
+    class Registry:
+        async def call(self,route,data):
+            assert route == "/authority/chain" and data == dict(after=1)
+            return dict(certificates=certificates,latest=3)
+    try:
+        request = AuthorityRegistry(Registry()).catch_up(controls[0],local_device=home.identity.device_id)
+        if tamper:
+            with pytest.raises(JournalError):
+                asyncio.run(request)
+            assert controls[0].state()["version"] == (1 if tamper == "skip" else 2)
+        else:
+            assert asyncio.run(request)["generation"] == second["generation"]
+            controls[0].close()
+            controls[0] = AuthorityMemory(tmp_path/'control-0.db',profile=home.store.config["profile"])
+            controls[0].bind(home.store)
+            assert controls[0].state()["version"] == 3
+            assert not controls[0].can_confirm(home.store)
+        assert home.store.config["generation"] == first["previous"]
+    finally:
+        for control in controls:
+            control.close()
+
+
+@pytest.mark.parametrize("interrupt",[False,True])
+def test_successor_rotates_transport_in_same_profile_commit_and_retry_keeps_the_new_key(devices,tmp_path,interrupt):
+    home,pc = devices
+    secret = os.urandom(32)
+    members = {d.identity.device_id:dict(key=d.identity.public_key,incarnation=d.store.config["incarnation"]) for d in devices}
+    for device in devices:
+        Membership(device).initialize(members,secret)
+    owner,controls = memories(devices,tmp_path)
+    try:
+        controls[0].freeze(home.store)
+        transfer_home_state(home.store,pc.store)
+        wire = change(home,pc,owner)
+        prepared = controls[1].prepare(pc.store,wire,pc.identity.sign)
+        retired = controls[0].retire(home.store,wire,prepared,home.identity.sign)
+        with pytest.raises(JournalError,match="signing key is required"):
+            controls[1].activate_move(pc.store,wire,prepared,retired,old_home_key=home.identity.public_key)
+        assert pc.store.config["generation"] == home.store.config["generation"]
+        class Interrupted(BaseException):
+            pass
+        def fault(phase):
+            if phase == "authority_profile_committed":
+                raise Interrupted
+        if interrupt:
+            with pytest.raises(Interrupted):
+                controls[1].activate_move(pc.store,wire,prepared,retired,old_home_key=home.identity.public_key,home_signer=pc.identity.sign,fault=fault)
+            stored = pc.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'")
+        controls[1].activate_move(pc.store,wire,prepared,retired,old_home_key=home.identity.public_key,home_signer=pc.identity.sign)
+        current = pc.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'")
+        assert current != secret.hex()
+        if interrupt:
+            assert current == stored
+        assert Membership(pc).state()["version"] == 1
+        update = pc.c.db.scalar("SELECT value FROM journal_local WHERE name='membership_wire:1'").encode()
+        body = unpack(update)["body"]
+        assert body["generation"] == pc.store.config["generation"] and body["previous"] == 0
+        assert controls[1].can_confirm(pc.store)
+        # A newly enrolled peer can consume this generation's initial wrap.
+        with home.c.db.transaction():
+            home.c.db.execute("DELETE FROM journal_local WHERE name='membership'")
+            home.store.config = dict(home.store.config,generation=pc.store.config["generation"],home_key=pc.store.config["home_key"])
+            Membership(home).accept(update,initial=True)
+        assert home.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'") == current
+    finally:
+        for control in controls:
+            control.close()

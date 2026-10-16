@@ -177,3 +177,35 @@ test('existing members fetch key updates and revoked members lose access', async
     members:{[lab.home.id]:lab.home.public}})).status,200);
   assert.equal((await request(lab,lab.pc,'/membership/update',{version:1})).status,401);
 });
+
+test('offline devices can fetch consecutive retirement certificates across owner-key changes', async () => {
+  const lab=await profile(), replacement=await identity();
+  const first={profile:lab.config.profile,previous:lab.config.generation,generation:randomUUID(),home:lab.pc.id,
+    home_key:lab.pc.public,owner_key:replacement.public,version:2,mode:'recover',nonce:randomBytes(32).toString('hex'),cutoff:{revision:0,hash:'0'.repeat(64)}};
+  const firstCertificate={body:first,signature:await sign(lab.owner.key,first)};
+  assert.equal((await request(lab,lab.pc,'/authority/transition',firstCertificate)).status,200);
+  const nextLab={...lab,config:{...lab.config,generation:first.generation}};
+  const second={...first,previous:first.generation,generation:randomUUID(),version:3,nonce:randomBytes(32).toString('hex')};
+  const secondCertificate={body:second,signature:await sign(replacement.key,second)};
+  assert.equal((await request(nextLab,lab.pc,'/authority/transition',secondCertificate)).status,200);
+  const response=await request(lab,lab.home,'/authority/chain',{after:1});
+  assert.equal(response.status,200);
+  assert.deepEqual(await response.json(),{certificates:[firstCertificate,secondCertificate],latest:3});
+  assert.equal((await request(lab,lab.home,'/send',message(lab,lab.home,lab.pc))).status,409);
+});
+
+test('a successor publishes a fresh initial transport wrap for its new generation', async () => {
+  const lab=await profile();
+  const body={profile:lab.config.profile,previous:lab.config.generation,generation:randomUUID(),home:lab.pc.id,
+    home_key:lab.pc.public,owner_key:lab.owner.public,version:2,mode:'recover',nonce:randomBytes(32).toString('hex'),cutoff:{revision:0,hash:'0'.repeat(64)}};
+  assert.equal((await request(lab,lab.pc,'/authority/transition',{body,signature:await sign(lab.owner.key,body)})).status,200);
+  const current={...lab,config:{...lab.config,generation:body.generation}};
+  const registry=await (await request(current,lab.pc,'/authority')).json();
+  assert.equal(registry.key_version,0);
+  const key_update=canonical({body:{type:'journal-membership',profile:body.profile,generation:body.generation,previous:0,version:1},signature:'opaque-device-signature'});
+  assert.equal((await request(current,lab.pc,'/membership',{previous:registry.membership,version:registry.membership+1,generation:body.generation,
+    members:{[lab.pc.id]:lab.pc.public,[lab.home.id]:lab.home.public},key_version:1,key_update})).status,200);
+  const response=await request(current,lab.home,'/membership/update',{version:0});
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).update,key_update);
+});

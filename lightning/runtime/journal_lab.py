@@ -159,7 +159,8 @@ async def serve(devices, transport_key, port, *, browser=True, mailbox_origin=No
         certificate=home.identity.cert_path.read_text(), endpoints=[f"https://127.0.0.1:{port + 2}/exchange"],
         internet=internet[1] if internet else None)
     from lightning.runtime.journal_pairing import NearbyPairing
-    pairings = [NearbyPairing(home,key_document=lambda:read_slot(Path(home.store.db.path).parent/'keys.json')), NearbyPairing(pc)]
+    pairings = [NearbyPairing(home,key_document=lambda:read_slot(Path(home.store.db.path).parent/'keys.json'),
+        owner_document=(lambda:read_slot(Path(home.store.db.path).parent/'owner-authority.json')) if home.store.authority else None), NearbyPairing(pc)]
     async def sync():
         if not internet_only:
             return await router.synchronize()

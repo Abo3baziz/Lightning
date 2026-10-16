@@ -228,6 +228,8 @@ class CheckpointTransfer:
     """Resumable ciphertext-only chunks; the signed manifest binds final bytes."""
     def __init__(self, client, folder):
         self.client, self.folder = client, Path(folder)
+        if self.folder.is_symlink():
+            raise JournalError("Invalid checkpoint cache directory")
         self.folder.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     @staticmethod
