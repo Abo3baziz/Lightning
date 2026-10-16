@@ -257,7 +257,8 @@ class JournalHome:
                     effects[0]["domain"] = domain
                     if len(canonical(effects[0])) > 48 * 1024:
                         raise ValidationError("The confirmed action exceeds the effect limit")
-            except ValidationError:
+            except ValidationError as error:
+                self.store.adapter.refused(unpack(bytes(row["wire"]))["body"], error)
                 outcome, reason, effects = "rejected", "financial-validation", []
         proposal_body = unpack(bytes(row["wire"]))["body"]
         if effects and self.store.adapter is not None and proposal_body["kind"].endswith(".add") and proposal_body["groups"].get("source"):

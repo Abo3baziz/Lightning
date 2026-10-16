@@ -72,6 +72,8 @@ class CashAdapter:
         self.allowed = False
         self.denied = None
         self.captured = []
+        # The home's own screens get back what the service returned, or its refusal.
+        self.results, self.errors = {}, {}
         self.c.db.undo = None  # Journal undo is a new proposal; legacy row restoration is disabled.
         self.rows = Replicator(self.db, store.config["profile"], resolve=store.resolve)
         self.db.conn.set_authorizer(None)  # Fixed local DDL below; protection returns at the end.
@@ -230,8 +232,10 @@ class CashAdapter:
         if proposal["kind"].startswith("command."):
             commands.validate(proposal["kind"], proposal["groups"])
             with self.writing():
-                commands.run(self, proposal["kind"], proposal["record"], proposal["groups"])
-            return self._result()
+                result = commands.run(self, proposal["kind"], proposal["record"], proposal["groups"])
+            effect_rows = self._result()
+            self._keep(self.results, proposal, result)
+            return effect_rows
         if not proposal["kind"].startswith("transaction."):
             raise ValidationError("Only cash transactions are supported here")
         if not effect["deleted"]:
@@ -287,6 +291,16 @@ class CashAdapter:
         if not 1 <= len(result["rows"]) <= MAX_ROWS:
             raise ValidationError("This action changed nothing, or more than one effect can carry")
         return result
+
+    @staticmethod
+    def _keep(store, proposal, value):
+        from .codec import origin_id
+        store[origin_id(proposal["origin"])] = value
+        while len(store) > 32:
+            store.pop(next(iter(store)))
+
+    def refused(self, proposal, error):
+        self._keep(self.errors, proposal, getattr(error, "message", str(error)))
 
     def row_token(self, slot):
         return self.db.scalar("SELECT hash FROM journal_fp WHERE uuid=?", (slot,))
