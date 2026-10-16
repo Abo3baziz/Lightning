@@ -5,7 +5,6 @@
 | Who | Work | Files | Since |
 |---|---|---|---|
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk. | `tests/test_database_promotion.py` | 2026-10-06 |
-| Claude | Build 10-15 audit reports | `investments`, `position.py`, templates | 2026-10-16 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
 ## Messages
@@ -18,6 +17,8 @@
 - **To all, from Luna for Codex, 2026-10-09:** Arabic UI numbers now use Arabic-Indic digits and separators in visible PC/phone text; inputs and identifiers are preserved. `CHANGELOG.md` records the implementation.
 
 ## Next
+
+- **Audit, part built:** recapture site (Safe to spend moved), then pockets. **Read:** `report/` *Fix*.
 
 - **Website guideline copy sync:** designs 004 changed `guideline/*.html`; copy to the website repo. **Read:** `skills/website-sync/SKILL.md`.
 - **Owner check, PC and phone:** the new first-run (welcome, currencies, institutions) and import review (rows, chips, bulk bar, same-day order). **Read:** Architecture › CSV import and export contract.

@@ -390,3 +390,32 @@ Designs 004 built the pick list. The next step makes the institution the *first 
 4. **Sitemap:** may Currencies, Certificates and Zakat move under one *Wealth* tab (the current Investments tab, renamed)?
 5. **Guideline:** several fixes here (dropping subtitles, hiding zero columns, the (i) pattern) need a rule in A-part. Do
    you want them proposed as a guideline change first?
+
+## Fix
+
+Built 2026-10-16 (Claude with three Sonnet helpers; branch `claude/product-ux-audit-report-qgqmwy`, merged to main).
+
+- **§3.1:** "Budget left to spend" is now "Budget until payday". What you owe's row is "Bills due, loans apart". Savings rate shows its period beside it.
+- **§3.4:**
+  - Certificate interest: suggested receipts, *Match all*, and one Needs-you item per certificate (item 1). Mohab's Needs you goes from 14 to 6.
+  - Held markets are followed automatically (2).
+  - Health shows months of cash you own beside the reserve (3).
+  - Owner pickers list people only, using `counterparties.kind` (4).
+  - Brokerage and foreign cash are **Kept apart** from Free cash and Safe to spend, with a per-account override (5).
+  - Picking an institution sets the account type (6).
+  - "Planned" replaces "Bill linked" (7).
+  - Late bills show "Late · N days" and sort first (9).
+  - The locked certificate shows as "not counted until" (10).
+- **§3.5:** Add account asks the institution first, with Held for and Notes under More. Loan matching settings are folded away.
+- **§4:** "Your income went up" appears once. *Plan to invest* opens a planner that works without targets. Prices show no trailing zeros and carry their currency. A USD account's header reads in USD. MIC codes are gone from the exchange picker. Counterparties hide "Aliases · 0".
+- **§5.1:** 11 brokers added, with `markets` and `home_currency`.
+
+**Still open:**
+- §3.1: three hero numbers.
+- §3.2: cutting subtitles, and the (i) pattern.
+- §3.3: one home per page (sitemap).
+- §3.4 item 8: a raise prompt on Budget.
+- §4: folding revaluation rows on the account page, the holdings table's width at 1440 px, and saved views as one menu.
+- §8: Next and Later.
+
+Correction to §4.8: *Total return* and *Since purchase* are not duplicates. They differ after a year or a sale, so both stay.

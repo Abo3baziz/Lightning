@@ -323,3 +323,27 @@ the way the broker reports them.
    list carry each broker's default markets?
 7. **Margin:** refuse negative pockets for now?
 8. **Order:** should Phases 0-2 come before switching on the Europe and Gulf price packs (today `publish=False`)?
+
+## Fix
+
+Built 2026-10-16 (merged to main):
+
+- **Phase 0, complete:**
+  - A foreign holding's price, average cost (220.63 USD, not 215) and trade prices are shown in its own currency.
+  - A USD account's header reads in USD, with ≈ EGP beside it.
+  - Prices show their currency.
+  - Foreign money counts foreign investments.
+  - Held markets are followed automatically.
+  - Exchange names appear without MIC codes.
+  - **Kept apart** (`0065_account_spendable.sql`): brokerage and foreign cash leave Free cash and Safe to spend, with a per-account override.
+- **Phase 1, partly done:**
+  - A listing can trade in another currency than its exchange (`create_investment(currency=)`, catalogue currency used).
+  - USD funds are possible.
+  - Exchanges without an FX source are not offered (`offered_venues`, ISK).
+  - KWD, BHD, OMR and JOD keep 3 decimals.
+- **Institutions:** 11 brokers now carry `markets` and `home_currency`, as data only.
+
+**Open:**
+- Phase 1: per-listing price scale. GBX→GBP happens at the TradingView source, and the pack catalogue for London and the Gulf is not in the picker yet.
+- Phases 2-6: pockets, events, broker import, analysis views, lots.
+- §13 questions for the owner.
