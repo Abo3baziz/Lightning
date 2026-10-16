@@ -239,8 +239,9 @@ class JournalHome:
                 return "wait", "dependency", []
         slot = target_slot(body["kind"], body["groups"])
         base = body["bases"]["args"]
-        if slot is None:
-            if self.store.adapter.row_token(command(body["kind"]).creates + ":" + canonical(body["record"]).decode()):
+        if slot is None:  # A command that creates nothing (several records at once) has no slot to check.
+            creates = command(body["kind"]).creates
+            if creates and self.store.adapter.row_token(creates + ":" + canonical(body["record"]).decode()):
                 return "rejected", "record-exists", []
         elif not force and (self.store.adapter.row_token(slot) != base if base is not None else not body["dependencies"]):
             return "review", "conflict", []

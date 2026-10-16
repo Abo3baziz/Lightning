@@ -295,6 +295,8 @@ class CashAdapter:
         """Typed exact replay on replicas, with no normal save/rule/automation call."""
         with self.writing():
             self.rows.apply(domain)
+            self.rows.reset()  # The effect names every touched row, deletes included; triggers could not name those.
+            self.rows.remember(domain["rows"])
             changed = set()
             for row in domain["rows"]:
                 if row["table"] == "transactions" and row["values"] is not None:
