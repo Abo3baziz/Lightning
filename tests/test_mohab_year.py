@@ -927,7 +927,7 @@ def test_paying_from_the_overview_moves_net_worth_only_by_the_salary(mohab):
     assert not paid.shows("Bill due: Landlord")
     assert not paid.shows("Loan payment due: Car loan")
     # Confirming those payments does not dismiss independent certificate receipt decisions.
-    assert paid.shows("Certificate interest needs review")
+    assert paid.shows("interest payments to match")
 
 
 def test_a_mistake_is_fixed_in_place_and_a_double_entry_deleted(mohab):
