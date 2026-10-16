@@ -13,6 +13,7 @@ from lightning.sync.identity import verify_signature
 MAX_MESSAGE = 64 * 1024
 ZERO_HASH = "0" * 64
 GROUP = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
+COMMAND = re.compile(r"command\.[a-z][a-z_]{0,31}\.[a-z][a-z_]{0,31}")
 
 
 class JournalError(ValueError):
@@ -100,7 +101,8 @@ def proposal(value):
     uuid(value["generation"])
     uuid(value["record"])
     origin(value["origin"])
-    if type(value["kind"]) is not str or value["kind"] not in {"dummy.add", "dummy.edit", "dummy.delete", "transaction.add", "transaction.edit", "transaction.delete"}:
+    if type(value["kind"]) is not str or (value["kind"] not in {"dummy.add", "dummy.edit", "dummy.delete", "transaction.add", "transaction.edit", "transaction.delete"}
+                                          and COMMAND.fullmatch(value["kind"]) is None):
         raise JournalError("Unsupported entry kind; update the device or home")
     if type(value["kind_version"]) is not int or value["kind_version"] != 1:
         raise JournalError("Unsupported entry version; update the device or home")

@@ -90,12 +90,12 @@ class JournalHome:
                 raise JournalError("Origin is not currently trusted")
             authenticate(envelope, member["public_key"])
             proposal(body)
-            if body["kind"].startswith("transaction.") and self.store.adapter is None:
+            if not body["kind"].startswith("dummy.") and self.store.adapter is None:
                 raise JournalError("Unsupported financial adapter")
-            if self.store.adapter is not None and not body["kind"].startswith("transaction."):
+            if self.store.adapter is not None and not self.store.adapter.supports(body["kind"]):
                 raise JournalError("Unsupported financial entry kind")
             if self.store.adapter is not None and not body["kind"].endswith(".delete"):
-                self.store.adapter.validate_groups(body["groups"], complete=body["kind"].endswith(".add"))
+                self.store.adapter.check(body["kind"], body["groups"], complete=body["kind"].endswith(".add"))
             retired = (body["generation"] != self.store.config["generation"] and self.store.authority is not None
                        and self.store.authority.admits_original(body))
             if not retired:
@@ -169,6 +169,8 @@ class JournalHome:
                 return committed
 
     def _consider(self, body, *, force=False):
+        if body["kind"].startswith("command."):
+            return self._consider_command(body, force=force)
         dependencies = []
         for dependency in body["dependencies"]:
             row = self.status(origin_id(dependency))
@@ -224,6 +226,25 @@ class JournalHome:
                     return "accepted-as-existing", "existing", [dict(record=body["record"], groups={}, tokens=matches[0]["tokens"], deleted=False, alias=matches[0]["record"])]
                 return "review", "possible-duplicate", []
         return "accepted", "accepted", [effect]
+
+    def _consider_command(self, body, *, force=False):
+        """A command waits for review when its target row changed since the
+        device saw it; an earlier pending command of its own is its base."""
+        from .commands import command, target_slot
+        for dependency in body["dependencies"]:
+            state = self.status(origin_id(dependency))
+            if state is not None and state["status"] == "rejected":
+                return "rejected", "dependency-rejected", []
+            if state is None or state["status"] not in {"accepted", "accepted-as-existing"}:
+                return "wait", "dependency", []
+        slot = target_slot(body["kind"], body["groups"])
+        base = body["bases"]["args"]
+        if slot is None:
+            if self.store.adapter.row_token(command(body["kind"]).creates + ":" + canonical(body["record"]).decode()):
+                return "rejected", "record-exists", []
+        elif not force and (self.store.adapter.row_token(slot) != base if base is not None else not body["dependencies"]):
+            return "review", "conflict", []
+        return "accepted", "accepted", [dict(record=body["record"], groups={}, tokens={}, deleted=False)]
 
     def _finish(self, row, outcome, reason, effects):
         if outcome not in {"accepted", "accepted-as-existing", "rejected"}:

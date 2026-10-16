@@ -19,11 +19,16 @@ from .codec import JournalError, canonical, fields, uuid
 SCHEMA = 2
 # Synchronized tables of the areas enabled so far. A table joins when its area
 # does; any write to a table outside this set is refused during confirmation.
-SYNCED = ("counterparties", "transactions", "ledger_entries")
+def _synced():
+    from .areas import AREAS
+    return tuple(dict.fromkeys(table for area in AREAS for table in area.TABLES))
+
+
+SYNCED = _synced()
 # Services clear these as a no-op on uncovered records; changing a row aborts.
 GUARDED = ("reserve_transaction_links",)
 # Baseline catalog rows are referenced by UUID but not replicated yet.
-CATALOG = ("accounts", "financial_assets", "categories", "asset_classes")
+CATALOG = ()
 # Replicas start from the home's checkpoint (J6b), so identities are copied. A
 # natural key still keeps an identity stable when a service rewrites a row
 # (a reposted line keeps its UUID); other new rows get random UUIDs.

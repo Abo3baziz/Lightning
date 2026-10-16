@@ -110,6 +110,39 @@ class JournalDevice:
         self._offer(wire)
         return wire
 
+    def command(self, action, /, *, record=None, **args):
+        """Save a covered service action as a proposal; the home runs it."""
+        from .commands import command, target_slot
+        kind, groups = "command." + action, dict(args=args)
+        self.adapter.check(kind, groups)
+        entry = command(kind)
+        if entry.target:
+            record = args[entry.target[1]]
+        record = record or str(uuid4())
+        slot = target_slot(kind, groups)
+        base = self.adapter.row_token(slot) if slot else None
+        dependencies = []
+        for wire in self.store.pending():
+            item = unpack(wire)["body"]
+            if item["record"] == record:
+                dependencies, base = [item["origin"]], None  # Based on our own pending change.
+        wire = self.store.save(kind=kind, record=record, groups=groups, bases={"args": base},
+                               dependencies=dependencies, signer=self.identity.sign)
+        self._offer(wire)
+        return wire
+
+    def pending_commands(self):
+        result = []
+        for wire in self.store.pending():
+            body = unpack(wire)["body"]
+            if body["kind"].startswith("command."):
+                identifier = origin_id(body["origin"])
+                state = self.home.status(identifier) if self.home else self.store.db.one(
+                    "SELECT status,reason FROM journal_remote_states WHERE proposal_id=?", (identifier,))
+                result.append(dict(proposal_id=identifier, name=body["kind"][len("command."):], args=body["groups"]["args"],
+                                   state="Needs review" if state and state["status"] == "review" else "Pending"))
+        return result
+
     def _offer(self, wire):
         """On the home, confirm at once when possible. The edit is already durably
         saved, so a held upload (staging limit, frozen authority) means waiting."""
@@ -129,6 +162,8 @@ class JournalDevice:
         blocker = False
         for wire in self.store.pending():
             proposal = unpack(wire)["body"]
+            if proposal["kind"].startswith("command."):
+                continue  # Shown by pending_commands, not as register rows.
             target = self.store.resolve(proposal["record"])
             item = confirmed.setdefault(target, dict(record=target, groups={}, confirmed=None, reason=""))
             item["groups"] = item["groups"] | proposal["groups"] if not proposal["kind"].endswith("delete") else item["groups"]
@@ -149,6 +184,8 @@ class JournalDevice:
                     continue
                 wire = self.store.db.scalar("SELECT wire FROM journal_outbox WHERE proposal_id=?", (decision["proposal_id"],))
                 proposal = unpack(bytes(wire))["body"]
+                if proposal["kind"].startswith("command."):
+                    continue
                 current = self.store.record(proposal["record"])
                 shown = (current["groups"] if current else {}) if proposal["kind"].endswith(".delete") else proposal["groups"]
                 confirmed[decision["proposal_id"]] = dict(record=proposal["record"], groups=shown,

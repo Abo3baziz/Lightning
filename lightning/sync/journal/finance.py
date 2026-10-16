@@ -18,6 +18,7 @@ from lightning.core.ledger import Effect, PostingLine, validate_posting
 from lightning.core.money import from_e6
 
 from .codec import JournalError, canonical, digest, fields, number, uuid
+from . import commands
 from .effects import GUARDED, MAX_ROWS, SCHEMA, Replicator
 from .store import JournalStore, SCHEMA as STORE_SCHEMA
 
@@ -81,9 +82,6 @@ class CashAdapter:
         self.rows.install()
         with self.db.transaction():
             self.db.execute("CREATE TABLE IF NOT EXISTS journal_fp(uuid TEXT PRIMARY KEY,hash TEXT NOT NULL)")
-            for entity in ("accounts", "financial_assets", "categories"):
-                for row in self.db.all(f"SELECT id FROM {entity}"):
-                    self.uid(entity, row["id"])
             rows = list(self.rows.all_rows())  # Binds every baseline row's identity.
             if (self.db.scalar("SELECT COUNT(*) FROM journal_fp") != len(rows)
                     or self.db.scalar("SELECT 1 FROM journal_fp WHERE uuid NOT LIKE '%:%' LIMIT 1")):
@@ -139,6 +137,15 @@ class CashAdapter:
         if getattr(self, "cached", False):
             return self.rows.fingerprint(cached=not full)
         return Replicator(self.db, self.store.config["profile"]).fingerprint(cached=False)
+
+    def supports(self, kind):
+        return kind.startswith("transaction.") or kind in commands.KINDS
+
+    def check(self, kind, groups, *, complete=False):
+        if kind.startswith("command."):
+            commands.validate(kind, groups)
+        else:
+            self.validate_groups(groups, complete=complete)
 
     def validate_groups(self, groups, *, complete=False):
         if set(groups) - {"money", "category", "details", "source"}:
@@ -220,6 +227,11 @@ class CashAdapter:
         return digest(money | {"amount": format(Decimal(money["amount"]), ".2f")})
 
     def confirm(self, proposal, effect):
+        if proposal["kind"].startswith("command."):
+            commands.validate(proposal["kind"], proposal["groups"])
+            with self.writing():
+                commands.run(self, proposal["kind"], proposal["record"], proposal["groups"])
+            return self._result()
         if not proposal["kind"].startswith("transaction."):
             raise ValidationError("Only cash transactions are supported here")
         if not effect["deleted"]:
@@ -268,10 +280,16 @@ class CashAdapter:
                         line.category_id, line.memo, line.fx_rate, line.owner_id) for line in txn.lines]
                     self.c.transactions.repost(txn.id, money["date"], lines, details["description"],
                                                details["counterparty"], details["notes"])
+        return self._result()
+
+    def _result(self):
         result = dict(schema=SCHEMA, rows=self.captured)
         if not 1 <= len(result["rows"]) <= MAX_ROWS:
-            raise ValidationError("This action exceeds the experimental effect coverage")
+            raise ValidationError("This action changed nothing, or more than one effect can carry")
         return result
+
+    def row_token(self, slot):
+        return self.db.scalar("SELECT hash FROM journal_fp WHERE uuid=?", (slot,))
 
     def apply(self, domain):
         """Typed exact replay on replicas, with no normal save/rule/automation call."""

@@ -54,13 +54,13 @@ def _stage(source, folder, expected_hash, expected_size):
 
 
 def catalog(adapter):
-    result = hashlib.sha256(b"lightning-journal-catalog-v1\n")
-    for entity, columns in (("accounts", ("code", "name", "currency", "account_type")),
-                            ("categories", ("code", "name", "movement", "is_system")),
-                            ("financial_assets", ("code", "currency", "is_cash"))):
+    """Reference rows every device must share but the journal does not replicate."""
+    from .effects import CATALOG, WALL_CLOCK
+    result = hashlib.sha256(b"lightning-journal-catalog-v2\n")
+    for entity in CATALOG:
         result.update(entity.encode("ascii") + b"\n")
-        for row in adapter.db.all(f"SELECT {','.join(columns)} FROM {entity} ORDER BY code"):
-            result.update(canonical(dict(row)) + b"\n")
+        for row in adapter.db.all(f"SELECT * FROM {entity} ORDER BY rowid"):
+            result.update(canonical({key: row[key] for key in row.keys() if key not in WALL_CLOCK | {"id"}}) + b"\n")
     return result.hexdigest()
 
 
