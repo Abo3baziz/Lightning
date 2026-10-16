@@ -17,7 +17,7 @@ from lightning.core.errors import ValidationError
 from .codec import JournalError, canonical, fields, uuid
 
 
-from .areas.spec import AMOUNT, DATE, FLAG, LONG, TEXT, Command, choice, optional, ref  # noqa: F401
+from .areas.spec import AMOUNT, DATE, FLAG, INT, LONG, MONTH, RATE, TEXT, Command, choice, items, optional, ref  # noqa: F401
 
 
 def _registry():
@@ -46,37 +46,59 @@ def validate(kind, groups):
     """Exact argument shape; services still decide every business rule."""
     entry = command(kind)
     fields(groups, ("args",))
-    args = groups["args"]
-    fields(args, entry.args)
-    for name, spec in entry.args.items():
-        value = args[name]
-        if spec.startswith("?"):
-            if value is None:
-                continue
-            spec = spec[1:]
-        if spec.startswith("ref:"):
-            uuid(value)
-        elif spec.startswith("choice:"):
-            if value not in spec[len("choice:"):].split("|"):
-                raise ValidationError(f"Choose a supported {name.replace('_', ' ')}")
-        elif spec == FLAG:
-            if type(value) is not bool:
-                raise ValidationError("Choose yes or no")
-        elif type(value) is not str or len(value) > (4000 if spec == LONG else 200):
-            raise ValidationError("Text is missing or too long")
-        elif spec == DATE:
-            try:
-                if date.fromisoformat(value).isoformat() != value:
-                    raise ValueError
-            except ValueError as error:
-                raise ValidationError("Enter a valid date") from error
-        elif spec == AMOUNT:
-            try:
-                amount = Decimal(value)
-                if not amount.is_finite() or abs(amount) > Decimal("9000000000") or amount.as_tuple().exponent < -2:
-                    raise ValueError
-            except (InvalidOperation, ValueError) as error:
-                raise ValidationError("Enter an amount up to 9 billion with at most two decimal places") from error
+    _check(entry.args, groups["args"])
+
+
+def _check(specs, args):
+    fields(args, specs)
+    for name, spec in specs.items():
+        _value(name, spec, args[name])
+
+
+def _value(name, spec, value):
+    if type(spec) is tuple:  # ("items", {field: spec}): a bounded list of records.
+        if type(value) is not list or len(value) > 50:
+            raise ValidationError("Too many lines")
+        for item in value:
+            _check(spec[1], item)
+        return
+    if spec.startswith("?"):
+        if value is None:
+            return
+        spec = spec[1:]
+    if spec.startswith("ref:"):
+        uuid(value)
+    elif spec.startswith("choice:"):
+        if value not in spec[len("choice:"):].split("|"):
+            raise ValidationError(f"Choose a supported {name.replace('_', ' ')}")
+    elif spec == FLAG:
+        if type(value) is not bool:
+            raise ValidationError("Choose yes or no")
+    elif spec == INT:
+        if type(value) is not int or not -(2**53) < value < 2**53:
+            raise ValidationError("Enter a whole number")
+    elif type(value) is not str or len(value) > (4000 if spec == LONG else 200):
+        raise ValidationError("Text is missing or too long")
+    elif spec == DATE:
+        try:
+            if date.fromisoformat(value).isoformat() != value:
+                raise ValueError
+        except ValueError as error:
+            raise ValidationError("Enter a valid date") from error
+    elif spec == MONTH:
+        try:
+            if len(value) != 7 or date.fromisoformat(value + "-01").isoformat()[:7] != value:
+                raise ValueError
+        except ValueError as error:
+            raise ValidationError("Enter a valid month") from error
+    elif spec in (AMOUNT, RATE):
+        try:
+            amount = Decimal(value)
+            if (not amount.is_finite() or abs(amount) > Decimal("9000000000")
+                    or amount.as_tuple().exponent < (-6 if spec == RATE else -2)):
+                raise ValueError
+        except (InvalidOperation, ValueError) as error:
+            raise ValidationError("Enter an amount up to 9 billion with at most two decimal places") from error
 
 
 def target_slot(kind, groups):
@@ -87,18 +109,24 @@ def target_slot(kind, groups):
     return table + ":" + canonical(groups["args"][name]).decode()
 
 
+def _local(adapter, spec, value):
+    if type(spec) is tuple:
+        return [{name: _local(adapter, inner, item[name]) for name, inner in spec[1].items()} for item in value]
+    bare = spec.lstrip("?")
+    return adapter.local(bare[len("ref:"):], value) if bare.startswith("ref:") and value is not None else value
+
+
 def run(adapter, kind, record, groups):
     """Inside the adapter's writing(): call the service with local ids."""
     entry = command(kind)
-    values = {}
-    for name, spec in entry.args.items():
-        value = groups["args"][name]
-        bare = spec.lstrip("?")
-        values[name] = adapter.local(bare[len("ref:"):], value) if bare.startswith("ref:") and value is not None else value
+    values = {name: _local(adapter, spec, groups["args"][name]) for name, spec in entry.args.items()}
+    if entry.adapt is not None:
+        values = entry.adapt(values)  # Shape lists into what the service signature takes.
     service, method = entry.call.split(".")
     result = getattr(getattr(adapter.c, service), method)(**values)
     if entry.creates:
-        if getattr(result, "id", None) is None:
+        created = result if type(result) is int else getattr(result, "id", None)
+        if type(created) is not int:
             raise JournalError("The service did not return the created record")
-        adapter.bind(entry.creates, record, result.id)
+        adapter.bind(entry.creates, record, created)
     return result
