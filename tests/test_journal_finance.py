@@ -310,9 +310,12 @@ def test_reviewed_sms_csv_link_remembers_both_sources_and_decimal_spelling_is_eq
     assert len(pc.view()) == 1
 
 
-def test_old_encrypted_reply_cannot_acknowledge_a_new_request(devices):
+def test_old_encrypted_reply_cannot_acknowledge_a_new_request(devices, monkeypatch):
+    from lightning.sync.journal import local
     from lightning.sync.journal.local import LocalChannel
     hd, pc = devices
+    monkeypatch.setattr(local, "REPLY_BUDGET", 1)  # One commit per reply forces a second request.
+    hd.save(groups(hd, "-3"))
     key = os.urandom(32)
     client = LocalChannel(pc, transport_key=key, peers={hd.identity.device_id: hd.identity.public_key})
     server = LocalChannel(hd, transport_key=key, peers={pc.identity.device_id: pc.identity.public_key})

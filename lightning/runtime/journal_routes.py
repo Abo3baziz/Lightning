@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 from lightning.sync.journal.codec import JournalError
 from lightning.sync.journal.discovery import discover, local_address
-from lightning.sync.journal.local import CatchupPaused, MembershipUpdateRequired, PinnedLocalClient
+from lightning.sync.journal.local import CatchupPaused, MembershipUpdateRequired, PinnedLocalClient, UploadHeld
 
 
 class LocalFirstSync:
@@ -48,8 +48,8 @@ class LocalFirstSync:
                         control = self.client_factory(endpoint.replace('/exchange','/membership/exchange'),self.certificate,timeout=1)
                         await self.channel.membership.catch_up(control,self.home_id)
                         await self.channel.synchronize(request,home_id=self.home_id,max_requests=20)
-            except CatchupPaused:
-                # The LAN works; a bounded round paused at its saved cursor.
+            except (CatchupPaused, UploadHeld):
+                # The LAN works; a bounded round paused at its saved cursor, or held edits stay pending.
                 self._route("local")
                 return True
             except (OSError, TimeoutError):

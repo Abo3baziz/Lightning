@@ -191,28 +191,45 @@ def test_backoff_uses_bounded_background_windows_and_foreground_can_check_ready(
     assert retry.failures == 0 and retry.next_attempt == now[0] + 30
 
 
-def test_capability_mismatch_keeps_origin_queue_and_does_not_advance_home(devices):
+def test_capability_mismatch_keeps_origin_queue_and_does_not_advance_home(devices, monkeypatch):
+    from lightning.sync.journal import compatibility
     from lightning.sync.journal.compatibility import UpdateRequired
-    from lightning.sync.journal.codec import seal, unpack
     home, pc = devices
     carrier = Carrier()
     hp, pp = peers(devices, carrier)
     original = pc.save(groups(pc))
+    real = compatibility.capabilities
+    monkeypatch.setattr(compatibility, "capabilities", lambda store: real(store) | (dict(entry_kinds={}) if store is home.store else {}))
     async def request(wire):
-        answer = hp.channel.handle(wire)
-        _, payload = pp.channel.open(answer)
-        assert "result" in payload
-        payload["result"]["entry_kinds"] = {}
-        return hp.channel.protect(payload, pc.identity.device_id)
+        return hp.channel.handle(wire)
     with pytest.raises(UpdateRequired) as error:
         asyncio.run(pp.channel.synchronize(request, home_id=home.identity.device_id))
     assert error.value.target == "home"
     assert pc.store.pending() == [original]
     assert home.store.cursor()["revision"] == 0
+    assert home.c.db.scalar("SELECT COUNT(*) FROM journal_inbox") == 0  # Refused before receiving anything.
 
 
-def test_bounded_catchup_resumes_without_reapplying_an_edit(devices):
+def test_forged_reply_capabilities_are_checked_before_any_commit_is_applied(devices):
+    from lightning.sync.journal.compatibility import UpdateRequired
+    home, pc = devices
+    carrier = Carrier()
+    hp, pp = peers(devices, carrier)
+    original = pc.save(groups(pc))
+    async def request(wire):
+        _, payload = pp.channel.open(hp.channel.handle(wire))
+        payload["result"]["capabilities"]["entry_kinds"] = {}
+        return hp.channel.protect(payload, pc.identity.device_id)
+    with pytest.raises(UpdateRequired) as error:
+        asyncio.run(pp.channel.synchronize(request, home_id=home.identity.device_id))
+    assert error.value.target == "home"
+    assert pc.store.pending() == [original] and pc.store.cursor()["revision"] == 0
+
+
+def test_bounded_catchup_resumes_without_reapplying_an_edit(devices, monkeypatch):
+    from lightning.sync.journal import local
     from lightning.sync.journal.local import CatchupPaused
+    monkeypatch.setattr(local, "REPLY_BUDGET", 1)  # One commit per reply.
     home, pc = devices
     carrier = Carrier()
     hp, pp = peers(devices, carrier)
@@ -221,7 +238,7 @@ def test_bounded_catchup_resumes_without_reapplying_an_edit(devices):
     async def request(wire):
         return hp.channel.handle(wire)
     with pytest.raises(CatchupPaused):
-        asyncio.run(pp.channel.synchronize(request, home_id=home.identity.device_id, max_requests=2))
+        asyncio.run(pp.channel.synchronize(request, home_id=home.identity.device_id, max_requests=1))
     assert pc.store.cursor()["revision"] == 1
     asyncio.run(pp.channel.synchronize(request, home_id=home.identity.device_id, max_requests=10))
     assert pc.store.cursor()["revision"] == 3

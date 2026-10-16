@@ -8,8 +8,8 @@ from __future__ import annotations
 import asyncio
 
 from lightning.sync.journal.cloud import (CloudUnavailable, MailboxClient, MailboxExchange,
-                                          MailboxPeer, RetryWindow)
-from lightning.sync.journal.local import CatchupPaused, LocalChannel
+                                          MailboxPeer, ReplyPending, RetryWindow)
+from lightning.sync.journal.local import CatchupPaused, LocalChannel, UploadHeld
 from lightning.sync.journal.membership import Membership
 from lightning.sync.journal.owner import public_key
 from types import SimpleNamespace
@@ -50,6 +50,9 @@ class JournalInternet:
                             from lightning.sync.journal.codec import JournalError
                             raise JournalError("Current home membership is missing; repair authority")
                         await self.channel.synchronize(MailboxExchange(self.peer), home_id=home_id, max_requests=20)
+            except (ReplyPending, UploadHeld):
+                self.retry.waiting()  # Not a carrier failure: the home has not caught up yet.
+                return False
             except (CloudUnavailable, CatchupPaused, OSError, TimeoutError):
                 self.retry.result(False)
                 return False
