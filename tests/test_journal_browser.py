@@ -143,8 +143,13 @@ def test_named_device_numeric_pairing_layout(journal_server,width,phone):
         if phone:
             assert code.bounding_box()["height"] >= 48
         code.fill(state["code"])
-        page.get_by_label("Profile password").fill("Pairing password")
         page.get_by_role("button",name="Pair with",exact=False).click()
+        # Matching digits come first; only then is the profile password asked for.
+        page.get_by_text("Does the home show this number?",exact=True).wait_for()
+        assert not page.get_by_label("Profile password").count()
+        page.get_by_role("button",name="Yes, the numbers match").click()
+        page.get_by_label("Profile password").fill("Pairing password")
+        page.get_by_role("button",name="Continue").click()
         page.get_by_text("Confirm on the home. This screen will continue automatically.",exact=True).wait_for()
         assert page.locator("[data-pairing-pending] strong").inner_text().replace(" ","").isdigit()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
