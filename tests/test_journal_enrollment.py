@@ -55,12 +55,16 @@ def test_first_device_pairs_once_resumes_ciphertext_download_and_joins_exact_led
     client = NewJournalReplica(root,"New laptop",search=search,client_factory=factory)
     async def run():
         found = await client.find()
-        digits = await client.join(found[0]["id"],hs.screen()["code"],"Pairing password")
+        digits = await client.join(found[0]["id"],hs.screen()["code"])
         assert not (root/'ledger.db').exists()
         with pytest.raises(JournalError):
             await client.finish("Pairing password")
         assert digits == hs.screen()["digits"]
         hs.confirm(digits)
+        with pytest.raises(JournalError):
+            await client.finish("Pairing password")
+        client.compare(digits)
+        await client.prove("Pairing password")
         assert not await client.finish("Pairing password",budget=1)
         first_chunk = downloads[0]
         if failure == "identity":
