@@ -29,11 +29,10 @@
 <main class="main phone-content">
   {% if request.state.device_line|default('') %}<div class="flash device-line" role="status"><span>{{ request.state.device_line|tr(locale) }}</span>{% if request.state.device_action == 'hand-back' %}<form method="post" action="/sync/hand-back"><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"><button class="btn primary" type="submit">{{ 'Hand back'|tr(locale) }}</button></form>{% elif request.state.device_action == 'take-back' %}<a class="btn" href="/profiles/devices">{{ 'Devices'|tr(locale) }}</a>{% endif %}</div>{% endif %}
   <div class="phone-header">{% block heading %}{% endblock %}</div>
-  <div class="phone-page-actions">{% block top_actions %}{% endblock %}</div>
+  <div class="phone-page-actions">{% include "partials/history.html" %}{% block top_actions %}{% endblock %}</div>
   {% include "partials/section_tabs.html" %}
   {% if msg %}<div class="flash" role="status" aria-live="polite" aria-atomic="true">{{ msg|tr(locale) }}</div>{% endif %}
   {% if error %}<div class="flash error" role="alert" aria-live="assertive" aria-atomic="true">{{ error|tr(locale) }}</div>{% endif %}
-  {% include "partials/history.html" %}
   {% include "partials/checked_history.html" %}
   {% block content %}{% endblock %}
   {# C05.2 (3.27): adding is one tap from every section's first page; it asks which account, then opens the sheet. #}
@@ -66,7 +65,7 @@
 <div id="busy-toast" class="busy-toast" role="status" aria-live="polite" hidden{% if prices_running %} data-watch="/investments/prices/online/status" data-watch-label="Fetching month-end prices…"{% endif %}><span class="busy-square" aria-hidden="true"></span><span class="busy-text"></span><a class="busy-link" href="/investments/prices" hidden>{{ 'Show'|tr(locale) }}</a></div>
 <script nonce="{{ request.state.csp_nonce|default('') }}" src="/static/arabic-numbers.js?v=5"></script>
 <script nonce="{{ request.state.csp_nonce|default('') }}" src="/static/info-tips.js?v=1"></script>
-<script nonce="{{ request.state.csp_nonce|default('') }}" src="/static/app.js?v=40"></script>
+<script nonce="{{ request.state.csp_nonce|default('') }}" src="/static/app.js?v=41"></script>
 <script nonce="{{ request.state.csp_nonce|default('') }}" src="/static/phone-fields.js?v=6"></script>
 {% if request.state.secure_profiles|default(false) %}<script nonce="{{ request.state.csp_nonce|default('') }}" src="/static/session.js?v=4"></script>{% endif %}
 </body>

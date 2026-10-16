@@ -364,3 +364,5 @@ Round 2, 2026-10-16. The owner answered §13: one row per broker; convert then b
 - In the USD lens, the allocation card and brokerage cash stay in EGP.
 - Phase 6: lots and corporate actions.
 - Turning on the Europe and Gulf packs once their sources are licensed.
+
+Feedback batch 004, ticket 107 (owner): one tab per brokerage account plus a main tab aggregating all in EGP; each brokerage limited to markets using its sub-account currency. Same design as above; it needs thinking through before building.
