@@ -671,7 +671,7 @@ class BankImportService:
             errors = exc.errors
         return self.summary(batch_id) | {"errors": errors, "ambiguous_reserves": ambiguous_reserves}
 
-    def _create_once(self, name: str, alias: str | None = None) -> int:
+    def _create_once(self, name: str, alias: str | None = None, kind: str | None = None) -> int:
         """A counterparty typed as new on several rows is created once per batch; a name that already exists is used."""
         name = " ".join(str(name).split())
         key = name.casefold()
@@ -681,6 +681,8 @@ class BankImportService:
             return created[key]
         if key in pending:
             return pending[key]
+        if kind == "PERSON":
+            return self.counterparties.ensure_person(name)
         existing = self.counterparties.resolve(name)
         if existing:
             return existing["id"]
@@ -705,22 +707,24 @@ class BankImportService:
             party = self.counterparties.get(int(choice.split(":", 1)[1]))
             if not party or not party["active"]:
                 raise ValidationError(f"CSV row {line}: choose an active owner.", "whom")
+            self.counterparties.ensure_person(party["name"])
             return party["name"], None
         if choice.startswith("new:") and choice[4:].strip():
-            new_id = self._create_once(choice[4:])
+            new_id = self._create_once(choice[4:], kind="PERSON")
             return self.counterparties.get(new_id)["name"], new_id
         if typed:
-            party = self.counterparties.resolve(typed)
-            if not party or not party["active"]:
+            party = self.counterparties.get(self.counterparties.ensure_person(typed))
+            if not party["active"]:
                 raise ValidationError(f"CSV row {line}: choose a saved active Counterparty in Whom.", "whom")
             return party["name"], None
         if not (category and category.code == "EXP.SYSTEM.CUSTODY"):
             return None, None
         if canonical and canonical["active"]:
+            self.counterparties.ensure_person(canonical["name"])
             return canonical["name"], None
         if not is_transfer and cp_text and not similar:
             # The person named on the row owns it; a name that is new and like no other is saved.
-            new_id = self._create_once(cp_text)
+            new_id = self._create_once(cp_text, kind="PERSON")
             return self.counterparties.get(new_id)["name"], new_id
         raise ValidationError(f"CSV row {line}: choose who owns this money.", "whom")
 

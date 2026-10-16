@@ -314,7 +314,7 @@ def _render_review(request, c, account_id: int, batch, rows, *, summary, form=No
     accounts_here = [a for a in c.accounts.list(active_only=True) if a.id != account_id and a.currency == account.currency]
     return render(request, "bank_import_preview.html", account=account, batch=batch, rows=rows,
                   groups=groups, counts=counts, categories=_categories(c),
-                  counterparties=c.counterparties.list_active(), account_choices=accounts_here,
+                  counterparties=c.counterparties.list_active(), owners=c.counterparties.list_people(), account_choices=accounts_here,
                   summary=summary, msg=msg, error=error, status_code=status_code)
 
 

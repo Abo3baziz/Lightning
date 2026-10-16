@@ -512,7 +512,7 @@ def _form(request: Request, kind: str, values: dict, txn=None, error: LightningE
                   hint=KINDS[kind][1], values=values, txn=txn,
                   holding_accounts=c.investments.investment_accounts(), all_accounts=c.accounts.list(active_only=True),
                   assets=c.assets.investments(active_only=True),
-                  counterparties=c.counterparties.list_active(), owners=c.counterparties.list_owners(),
+                  counterparties=c.counterparties.list_active(), owners=c.counterparties.list_people(),
                   error=error.message if error else "", error_field=(error.field or "") if error else "")
 
 

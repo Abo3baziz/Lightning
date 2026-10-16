@@ -158,7 +158,7 @@ async def edit_ownership_change(request: Request, txn_id: int):
               "from_owner_id": str(from_owner), "to_owner_id": str(to_owner),
               "category_id": str(category_id), "notes": txn.notes}
     return render(request, "accounts/ownership.html", account=account, values=values,
-                  owners=c.counterparties.list_active(),
+                  owners=c.counterparties.list_people(),
                   categories=[cat for cat in c.categories.pickable() if cat.movement.value == "OUTFLOW"],
                   action=f"/transactions/{txn_id}/ownership/edit", error="", error_field="", txn_id=txn_id)
 
@@ -200,7 +200,7 @@ async def save_ownership_change(request: Request, txn_id: int):
     except (LightningError, ValueError) as exc:
         error = exc if isinstance(exc, LightningError) else ValidationError("Check the date, amount, and choices.")
         return render(request, "accounts/ownership.html", status_code=400, account=account, values=values,
-                      owners=c.counterparties.list_active(),
+                      owners=c.counterparties.list_people(),
                       categories=[cat for cat in c.categories.pickable() if cat.movement.value == "OUTFLOW"],
                       action=action, error=error.message, error_field=error.field or "", txn_id=txn_id)
 

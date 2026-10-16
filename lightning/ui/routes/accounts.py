@@ -33,11 +33,12 @@ def _form_context(request: Request, values: dict, account=None, error: Lightning
         account=account,
         currencies=c.currencies.list(),
         institution_options=c.institutions.options(),
+        institution_hints=c.institutions.form_hints(),
         base=c.base_currency,
         types=sorted(((t.value, TYPE_LABELS[t]) for t in OFFERED_TYPES), key=lambda row: row[1].casefold()),
         # where each type shows up in "What your wealth is made of", in plain words
         groups=groups,
-        counterparties=c.counterparties.list_active(),
+        counterparties=c.counterparties.list_people(),
         error=error.message if error else "",
         error_field=(error.field or "") if error else "",
     )
@@ -320,7 +321,7 @@ async def new_ownership_change(request: Request, account_id: int):
     values = {"mode": "assign", "date": today().isoformat(), "amount": "", "from_owner_id": "",
               "to_owner_id": "", "category_id": "", "notes": ""}
     return render(request, "accounts/ownership.html", account=account, values=values,
-                  owners=c.counterparties.list_active(),
+                  owners=c.counterparties.list_people(),
                   categories=[cat for cat in c.categories.pickable() if cat.movement.value == "OUTFLOW"],
                   action=f"/accounts/{account_id}/ownership/new", error="", error_field="")
 
@@ -359,7 +360,7 @@ async def save_ownership_change(request: Request, account_id: int):
     except (LightningError, ValueError) as exc:
         error = exc if isinstance(exc, LightningError) else ValidationError("Check the date, amount, and choices.")
         return render(request, "accounts/ownership.html", status_code=400, account=account, values=values,
-                      owners=c.counterparties.list_active(),
+                      owners=c.counterparties.list_people(),
                       categories=[cat for cat in c.categories.pickable() if cat.movement.value == "OUTFLOW"],
                       action=action, error=error.message, error_field=error.field or "")
     return redirect(f"/transactions/{txn.id}", f"Saved {txn.ref}. Ownership in {account.label} is updated.")

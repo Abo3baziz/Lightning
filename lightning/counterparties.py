@@ -12,6 +12,7 @@ from lightning.core.errors import ConflictError, NotFoundError, ValidationError
 from lightning.database.connection import Database
 
 MAX_ALIASES_PER_COUNTERPARTY = 20
+KINDS = ("PERSON", "BUSINESS")
 
 
 def normalize(value: str) -> str:
@@ -60,16 +61,39 @@ class CounterpartyService:
         """Counterparties available in picker controls, in display order."""
         return self.db.all("SELECT id,name,default_category_id FROM counterparties WHERE active=1 ORDER BY name COLLATE NOCASE")
 
-    def list_owners(self):
-        """People already recorded as owners on ledger lines; merchants stay out of owner pickers."""
+    def list_people(self):
+        """People only: the names owner pickers ("Held for") offer. Shops and employers stay out."""
         return self.db.all(
-            "SELECT DISTINCT c.id,c.name,c.default_category_id FROM counterparties c "
-            "JOIN ledger_entries le ON le.owner_id=c.id WHERE c.active=1 ORDER BY c.name COLLATE NOCASE"
+            "SELECT id,name,default_category_id FROM counterparties WHERE active=1 AND kind='PERSON' "
+            "ORDER BY name COLLATE NOCASE"
         )
+
+    list_owners = list_people
+
+    def set_kind(self, counterparty_id: int, kind: str | None) -> None:
+        """Mark a name as a PERSON or a BUSINESS (None clears the mark)."""
+        kind = (kind or "").strip().upper() or None
+        if kind is not None and kind not in KINDS:
+            raise ValidationError("Choose person or business.", "kind")
+        cur = self.db.execute("UPDATE counterparties SET kind=?,updated_at=? WHERE id=?",
+                              (kind, now_iso(), counterparty_id))
+        if cur.rowcount != 1:
+            raise NotFoundError("Counterparty not found.")
+
+    def ensure_person(self, name: str) -> int:
+        """The id of the person this owner name means: a saved name is used (and counts as a person if it was
+        not yet marked), a new name is saved as a person."""
+        found = self.resolve(name)
+        if found:
+            if found["kind"] is None:
+                self.db.execute("UPDATE counterparties SET kind='PERSON',updated_at=? WHERE id=?",
+                                (now_iso(), found["id"]))
+            return int(found["id"])
+        return self.create(name, kind="PERSON")
 
     def list_all(self):
         """All saved Counterparties for management, including archived entries."""
-        return self.db.all("SELECT id,name,default_category_id,active FROM counterparties ORDER BY name COLLATE NOCASE")
+        return self.db.all("SELECT id,name,default_category_id,active,kind FROM counterparties ORDER BY name COLLATE NOCASE")
 
     def rename(self, counterparty_id: int, name: str, default_category_id: int | None = None) -> None:
         name = " ".join((name or "").split())
@@ -137,18 +161,21 @@ class CounterpartyService:
                 best[row["name"]] = max(best.get(row["name"], 0), ratio)
         return sorted(best.items(), key=lambda item: (-item[1], item[0].casefold()))[:limit]
 
-    def create(self, name: str, default_category_id: int | None = None, alias: str | None = None) -> int:
+    def create(self, name: str, default_category_id: int | None = None, alias: str | None = None,
+               kind: str | None = None) -> int:
         name = " ".join((name or "").split())
         key = normalize(name)
         if not key:
             raise ValidationError("Enter a counterparty name.", "counterparty")
+        if kind is not None and kind not in KINDS:
+            raise ValidationError("Choose person or business.", "kind")
         if self.resolve(name):
             raise ConflictError(f"{name} already matches a saved counterparty. Choose it instead.", "counterparty")
         now = now_iso()
         with self.db.transaction():
             cur = self.db.execute(
-                "INSERT INTO counterparties(name,normalized_name,default_category_id,created_at,updated_at) "
-                "VALUES (?,?,?,?,?)", (name, key, default_category_id, now, now)
+                "INSERT INTO counterparties(name,normalized_name,default_category_id,created_at,updated_at,kind) "
+                "VALUES (?,?,?,?,?,?)", (name, key, default_category_id, now, now, kind)
             )
             counterparty_id = cur.lastrowid
             self._link_historical(counterparty_id, name)

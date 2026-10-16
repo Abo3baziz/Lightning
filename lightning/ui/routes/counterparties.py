@@ -51,6 +51,13 @@ async def create_counterparty(request: Request):
             selected = c.counterparties.get(int(counterparty_id))
             c.counterparties.rename(int(counterparty_id), name, category_id)
             return redirect("/counterparties", f"Updated {selected['name']}.")
+        elif action.startswith("kind:"):
+            selected = c.counterparties.get(int(counterparty_id))
+            if not selected:
+                raise ValidationError("Choose a saved counterparty.")
+            kind = action.split(":", 1)[1]
+            c.counterparties.set_kind(int(counterparty_id), kind)
+            return redirect("/counterparties", f"{selected['name']} is now marked as a {'person' if kind == 'PERSON' else 'business'}.")
         elif action == "activate":
             c.counterparties.set_active(int(counterparty_id), True)
             return redirect("/counterparties", "Counterparty activated.")
@@ -79,7 +86,7 @@ async def create_counterparty(request: Request):
             c.counterparties.remove_alias(int(counterparty_id), int(alias_id))
             return redirect("/counterparties", f"Removed alias from {selected['name']}.")
         elif action == "create":
-            c.counterparties.create(name, category_id)
+            c.counterparties.create(name, category_id, kind=str(form.get("kind", "")).strip().upper() or None)
         elif action.startswith("existing:"):
             selected_id = int(action.split(":", 1)[1])
             selected = c.counterparties.get(selected_id)

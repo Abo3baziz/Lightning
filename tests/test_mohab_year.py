@@ -660,6 +660,11 @@ def _exercise_cash_ownership(o: Mohab) -> None:
     b = o.b
     account = b.go("CIB Payroll")
     gross_before = money(account.after("In this account"))
+    # Mom was saved by an import as a plain name. Before money can be held for her, he says she is a person.
+    names = b.open("/counterparties")
+    mom_id = re.search(r'name="counterparty_id" value="(\d+)">\s*<input type="text" name="name" value="Mom"', names.html).group(1)
+    assert b.client.post("/counterparties", data={"counterparty_id": mom_id, "counterparty_action": "kind:PERSON"}).status_code == 200
+    account = b.go("CIB Payroll")
     b.click("Change ownership")
     assignment = b.submit({"mode": Choose("Change who owns this money"), "date": "2027-09-30", "amount": "500",
                            "from_owner_id": Choose("You"), "to_owner_id": Choose("Mom")}, button="Save")

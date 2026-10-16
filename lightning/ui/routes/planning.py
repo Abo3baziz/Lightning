@@ -302,11 +302,20 @@ def _item_form(request: Request, c, values: dict, item=None, error: str = "", er
                   kinds=kinds, is_loan=kind == PlanKind.LOAN.value,
                   frequencies=[(f.value, FREQUENCY_LABELS[f]) for f in Frequency],
                   weekend_moves=[(m.value, WEEKEND_MOVE_LABELS[m]) for m in WeekendMove],
-                  accounts=accounts,
+                  accounts=accounts, matching_open=_matching_open(values, kind, error_field),
                   categories=_category_options(c, movement), counterparties=c.counterparties.list_active(),
                   error=error, error_field=error_field, back=back, form_action=form_action,
                   promotion=promotion, promotion_currency=promotion["currency"] if promotion else None,
                   amount_currency=selected_account.currency if selected_account else c.transactions.base_currency)
+
+
+def _matching_open(values: dict, kind: str, error_field: str | None) -> bool:
+    """The Matching disclosure opens only when a setting differs from the default or has an error."""
+    if error_field in ("match_window_days", "match_tolerance_pct", "weekend_move"):
+        return True
+    default_tolerance = "1" if kind == PlanKind.LOAN.value else "10"
+    defaults = {"match_window_days": "7", "match_tolerance_pct": default_tolerance, "weekend_move": "none"}
+    return any(str(values.get(key) or default) != default for key, default in defaults.items())
 
 
 @router.get("/from-transaction/{txn_id:int}")

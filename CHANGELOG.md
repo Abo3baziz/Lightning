@@ -10,6 +10,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: Add account asks the institution first (its kind sets the type, the name is suggested; Held for and Notes sit under More); owner pickers list people only (`counterparties.kind`, migration `0064_counterparty_kind.sql`, person/business toggle in Counterparties); plan Matching settings fold away; broker list gains 11 brokers with `markets` and `home_currency`.
 - 2026-10-15 · Claude: two owner-requested reports, nothing fixed: an outside review of every tab (figures, wording, links, wiring, next steps) and a design for brokerages across exchanges and currencies (pockets, listings, workflows, analysis); `report/`.
 
 - 2026-10-15 · Claude: Page jump stays bottom right and appears only near the corner or while scrolling; the PC loading note matches the phone (muted square, bottom right, 300 ms);
