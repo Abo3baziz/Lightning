@@ -12,68 +12,26 @@ import sqlite3
 from contextlib import contextmanager
 from decimal import Decimal
 from datetime import date
-from uuid import UUID, uuid5
 
 from lightning.core.errors import ValidationError
 from lightning.core.ledger import Effect, PostingLine, validate_posting
 from lightning.core.money import from_e6
 
 from .codec import JournalError, canonical, digest, fields, number, uuid
-from .store import JournalStore, SCHEMA
+from .effects import GUARDED, MAX_ROWS, SCHEMA, Replicator
+from .store import JournalStore, SCHEMA as STORE_SCHEMA
 
-HEADER = "ref type date description counterparty status source notes created_at updated_at counterparty_id".split()
-LINE = "line_no date account_id asset_id quantity_e6 unit_price_e6 amount_e6 fx_rate_e6 amount_base_e6 effect category_id memo cleared owner_id".split()
-PARTY = "name normalized_name default_category_id active created_at updated_at".split()
-REFS = {"account_id": "accounts", "asset_id": "financial_assets", "category_id": "categories",
-        "owner_id": "counterparties", "counterparty_id": "counterparties", "default_category_id": "categories"}
 
 
 def validate_domain(value):
-    fields(value, ("schema", "transactions", "counterparties"))
-    if type(value["schema"]) is not int or value["schema"] != 1:
-        raise JournalError("Unsupported transaction effect schema")
-    if type(value["transactions"]) is not list or not 1 <= len(value["transactions"]) <= 4:
-        raise JournalError("Invalid transaction effects")
-    if type(value["counterparties"]) is not list or len(value["counterparties"]) > 8:
-        raise JournalError("Invalid counterparty effects")
-    seen = set()
-    for transaction in value["transactions"]:
-        fields(transaction, ("uuid", "header", "lines"))
-        uuid(transaction["uuid"])
-        if transaction["uuid"] in seen:
-            raise JournalError("Duplicate transaction effect")
-        seen.add(transaction["uuid"])
-        fields(transaction["header"], HEADER)
-        if any(type(transaction["header"][key]) is not str for key in HEADER if key not in REFS):
-            raise JournalError("Transaction header fields must be text")
-        if type(transaction["lines"]) is not list or not 1 <= len(transaction["lines"]) <= 32:
-            raise JournalError("Invalid posting count")
-        if transaction["header"]["type"] not in ("OPN", "IN", "OUT", "TRF"):
-            raise JournalError("Unsupported transaction type")
-        if transaction["header"]["status"] not in ("POSTED", "VOID"):
-            raise JournalError("Invalid transaction status")
-        for index, line in enumerate(transaction["lines"], 1):
-            fields(line, LINE)
-            if line["line_no"] != index:
-                raise JournalError("Noncontiguous postings")
-            for field in ("quantity_e6", "unit_price_e6", "amount_e6", "fx_rate_e6", "amount_base_e6", "cleared"):
-                if type(line[field]) is not int:
-                    raise JournalError("Posting values must be exact integers")
-            if any(type(line[key]) is not str for key in ("date", "effect", "memo")):
-                raise JournalError("Posting labels must be text")
-            if line["cleared"] not in (0, 1):
-                raise JournalError("Invalid cleared flag")
-            for field in REFS.keys() & line.keys():
-                if line[field] is not None:
-                    uuid(line[field])
-        if transaction["header"]["counterparty_id"] is not None:
-            uuid(transaction["header"]["counterparty_id"])
-    for party in value["counterparties"]:
-        fields(party, ("uuid", "values"))
-        uuid(party["uuid"])
-        fields(party["values"], PARTY)
-        if party["values"]["default_category_id"] is not None:
-            uuid(party["values"]["default_category_id"])
+    """Shape only; `Replicator.validate` checks every row against this device's schema."""
+    fields(value, ("schema", "rows"))
+    if type(value["schema"]) is not int or value["schema"] != SCHEMA:
+        raise JournalError("Unsupported effect schema; update this device")
+    if type(value["rows"]) is not list or not 1 <= len(value["rows"]) <= MAX_ROWS:
+        raise JournalError("Invalid row effects")
+    for row in value["rows"]:
+        fields(row, ("table", "key", "values"))
 
 
 def initialize(container, *, profile, generation, device, incarnation, home_key, origin_key, role,
@@ -91,7 +49,7 @@ def initialize(container, *, profile, generation, device, incarnation, home_key,
     if role not in ("home", "replica"):
         raise JournalError("Invalid journal role")
     with db.transaction():
-        for statement in SCHEMA:
+        for statement in STORE_SCHEMA:
             db.execute(statement)
         config = dict(version=2, profile=profile, generation=generation, device=device,
                       incarnation=incarnation, home_key=home_key, origin_key=origin_key, role=role)
@@ -110,29 +68,27 @@ def attach(container):
 class CashAdapter:
     def __init__(self, container, store):
         self.c, self.store, self.db = container, store, container.db
-        self.namespace = UUID(store.config["profile"])
         self.allowed = False
         self.denied = None
+        self.captured = []
         self.c.db.undo = None  # Journal undo is a new proposal; legacy row restoration is disabled.
+        self.rows = Replicator(self.db, store.config["profile"], resolve=store.resolve)
         self.db.conn.set_authorizer(None)  # Fixed local DDL below; protection returns at the end.
         for row in self.db.all("SELECT name FROM sqlite_temp_master WHERE type='trigger' AND name LIKE 'undo_%'"):
             self.db.execute('DROP TRIGGER "' + row[0].replace('"', '""') + '"')
-        # Every write to the ledger records which transaction it touched, so a
-        # confirmation diffs and fingerprints only those, never the whole ledger.
-        self.db.execute("CREATE TEMP TABLE IF NOT EXISTS journal_touched(id INTEGER PRIMARY KEY)")
-        for table, column in (("transactions", "id"), ("ledger_entries", "transaction_id")):
-            for event, rows in (("INSERT", ("NEW",)), ("UPDATE", ("NEW", "OLD")), ("DELETE", ("OLD",))):
-                body = " ".join(f"INSERT OR IGNORE INTO journal_touched VALUES({row}.{column});" for row in rows)
-                self.db.execute(f"CREATE TEMP TRIGGER IF NOT EXISTS journal_touch_{table}_{event.lower()} AFTER {event} ON main.{table} BEGIN {body} END")
+        # Every write records the rows it touched, so a confirmation publishes and
+        # fingerprints only those, never the whole ledger.
+        self.rows.install()
         with self.db.transaction():
             self.db.execute("CREATE TABLE IF NOT EXISTS journal_fp(uuid TEXT PRIMARY KEY,hash TEXT NOT NULL)")
-            for entity in ("accounts", "financial_assets", "categories", "counterparties", "transactions"):
-                for row in self.db.all(f"SELECT * FROM {entity}"):
+            for entity in ("accounts", "financial_assets", "categories"):
+                for row in self.db.all(f"SELECT id FROM {entity}"):
                     self.uid(entity, row["id"])
-            if self.db.scalar("SELECT COUNT(*) FROM journal_fp") != self.db.scalar("SELECT COUNT(*) FROM transactions"):
+            rows = list(self.rows.all_rows())  # Binds every baseline row's identity.
+            if (self.db.scalar("SELECT COUNT(*) FROM journal_fp") != len(rows)
+                    or self.db.scalar("SELECT 1 FROM journal_fp WHERE uuid NOT LIKE '%:%' LIMIT 1")):
                 self.db.execute("DELETE FROM journal_fp")
-                for row in self.db.all("SELECT id FROM transactions"):
-                    self._remember(row[0])
+                self.rows.remember(rows)
         self.cached = True
         self.db.conn.set_authorizer(self._authorize)
 
@@ -140,7 +96,7 @@ class CashAdapter:
         if action in (sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
             if table.startswith("journal_"):
                 return sqlite3.SQLITE_OK
-            if self.allowed and (table in {"transactions", "ledger_entries", "counterparties", "audit_log", "reserve_transaction_links"} or table.startswith("transactions_fts")):
+            if self.allowed and (table in self.rows.tables or table in GUARDED or table == "audit_log" or table.startswith("transactions_fts")):
                 return sqlite3.SQLITE_OK
             self.denied = table
             return sqlite3.SQLITE_DENY
@@ -150,18 +106,16 @@ class CashAdapter:
     def writing(self):
         self.denied = None
         self.allowed = True
+        self.captured = []
         self.db.conn.set_authorizer(self._authorize)
         try:
-            self.db.execute("DELETE FROM journal_touched")
+            self.rows.reset()
             yield
-            for txn_id in self.touched():
-                self._remember(txn_id)
-            if self.db.scalar("SELECT 1 FROM journal_touched WHERE id NOT IN (SELECT id FROM transactions) LIMIT 1"):
-                self.db.execute("""DELETE FROM journal_fp WHERE uuid NOT IN (SELECT j.uuid FROM journal_ids j
-                                   JOIN transactions t ON t.id=j.local_id WHERE j.entity='transactions')""")
-            self.db.execute("DELETE FROM journal_touched")
+            self.captured = self.rows.capture()
+            self.rows.remember(self.captured)
+            self.rows.reset()
         except self.db.driver.DatabaseError as error:
-            if self.denied:
+            if self.denied or "journal: area not covered" in str(error):
                 raise ValidationError("This action writes an area not covered by the experimental journal") from error
             raise
         finally:
@@ -171,68 +125,20 @@ class CashAdapter:
             self.db.conn.set_authorizer(self._authorize)
 
     def uid(self, entity, local_id):
-        if local_id is None:
-            return None
-        known = self.db.scalar("SELECT uuid FROM journal_ids WHERE entity=? AND local_id=?", (entity, local_id))
-        if known:
-            return known
-        row = self.db.one(f"SELECT * FROM {entity} WHERE id=?", (local_id,))
-        if row is None:
-            raise ValidationError("A referenced record is missing")
-        natural = row["ref"] if entity == "transactions" else row["normalized_name"] if entity == "counterparties" else row["code"]
-        value = str(uuid5(self.namespace, f"{entity}:{natural}"))
-        self.bind(entity, value, local_id)
-        return value
+        return self.rows.uid(entity, local_id)
 
     def bind(self, entity, value, local_id):
-        self.db.execute("INSERT INTO journal_ids VALUES(?,?,?)", (entity, value, local_id))
+        self.rows.bind(entity, value, local_id)
 
     def local(self, entity, value):
-        if value is None:
-            return None
-        uuid(value)
-        if entity == "transactions":
-            value = self.store.resolve(value)
-        result = self.db.scalar("SELECT local_id FROM journal_ids WHERE entity=? AND uuid=?", (entity, value))
-        if result is None:
-            raise ValidationError("A referenced record is not in the confirmed copy")
-        return result
-
-    def _encode(self, row, columns):
-        return {key: self.uid(REFS[key], row[key]) if key in REFS else row[key] for key in columns}
-
-    def transaction(self, txn_id):
-        row = self.db.one("SELECT * FROM transactions WHERE id=?", (txn_id,))
-        return dict(uuid=self.uid("transactions", txn_id), header=self._encode(row, HEADER),
-                    lines=[self._encode(line, LINE) for line in self.db.all(
-                        "SELECT * FROM ledger_entries WHERE transaction_id=? ORDER BY line_no", (txn_id,))])
-
-    def touched(self):
-        return [row[0] for row in self.db.all("SELECT t.id FROM journal_touched t JOIN transactions x ON x.id=t.id ORDER BY t.id")]
-
-    @staticmethod
-    def _hash(transaction):
-        # Wall-clock metadata is retained in exact effects, but not in the ledger fingerprint.
-        transaction["header"].pop("created_at")
-        transaction["header"].pop("updated_at")
-        return hashlib.sha256(canonical(transaction)).hexdigest()
-
-    def _remember(self, txn_id):
-        transaction = self.transaction(txn_id)
-        self.db.execute("INSERT OR REPLACE INTO journal_fp VALUES(?,?)", (transaction["uuid"], self._hash(transaction)))
-
-    @staticmethod
-    def _combine(hashes):
-        # A sum of per-transaction hashes: order-free, so one change updates it in place.
-        total = sum(int(value, 16) for value in hashes) % 2**256
-        return hashlib.sha256(b"lightning-cash-journal-v2\n" + total.to_bytes(32, "big")).hexdigest()
+        return self.rows.local(entity, value)
 
     def fingerprint(self, *, full=False):
-        """Cached per-transaction hashes on an attached adapter; `full` (and any
-        unattached checkpoint reader) recomputes every transaction from the ledger."""
-        if getattr(self, "cached", False) and not full:
-            return self._combine(row[0] for row in self.db.all("SELECT hash FROM journal_fp"))
-        return self._combine(self._hash(self.transaction(row[0])) for row in self.db.all("SELECT id FROM transactions"))
+        """Cached per-row hashes on an attached adapter; `full` (and any unattached
+        checkpoint reader) recomputes every synchronized row from the ledger."""
+        if getattr(self, "cached", False):
+            return self.rows.fingerprint(cached=not full)
+        return Replicator(self.db, self.store.config["profile"]).fingerprint(cached=False)
 
     def validate_groups(self, groups, *, complete=False):
         if set(groups) - {"money", "category", "details", "source"}:
@@ -362,47 +268,25 @@ class CashAdapter:
                         line.category_id, line.memo, line.fx_rate, line.owner_id) for line in txn.lines]
                     self.c.transactions.repost(txn.id, money["date"], lines, details["description"],
                                                details["counterparty"], details["notes"])
-            changed = [self.transaction(txn_id) for txn_id in self.touched()]
-            used = {t["header"]["counterparty_id"] for t in changed} - {None}
-            parties = [{"uuid": party, "values": self._encode(self.db.one("SELECT * FROM counterparties WHERE id=?",
-                        (self.local("counterparties", party),)), PARTY)} for party in sorted(used)]
-        result = dict(schema=1, transactions=changed, counterparties=parties)
-        try:
-            validate_domain(result)
-        except JournalError as error:
-            raise ValidationError("This action exceeds the experimental transaction coverage") from error
+        result = dict(schema=SCHEMA, rows=self.captured)
+        if not 1 <= len(result["rows"]) <= MAX_ROWS:
+            raise ValidationError("This action exceeds the experimental effect coverage")
         return result
 
     def apply(self, domain):
         """Typed exact replay on replicas, with no normal save/rule/automation call."""
-        validate_domain(domain)
         with self.writing():
-            for party in domain["counterparties"]:
-                self._upsert("counterparties", party["uuid"], party["values"], PARTY)
-            for transaction in domain["transactions"]:
-                txn_id = self._upsert("transactions", transaction["uuid"], transaction["header"], HEADER)
-                self.db.execute("DELETE FROM ledger_entries WHERE transaction_id=?", (txn_id,))
-                postings = []
-                for line in transaction["lines"]:
-                    values = {key: self.local(REFS[key], value) if key in REFS else value for key, value in line.items()}
-                    postings.append(PostingLine(account_id=values["account_id"], asset_id=values["asset_id"],
-                        quantity=from_e6(values["quantity_e6"]), unit_price=from_e6(values["unit_price_e6"]),
-                        amount=from_e6(values["amount_e6"]), fx_rate=from_e6(values["fx_rate_e6"]),
-                        amount_base=from_e6(values["amount_base_e6"]), effect=Effect(values["effect"]),
-                        category_id=values["category_id"], memo=values["memo"], is_cash=True, owner_id=values["owner_id"]))
-                    self.db.execute(f"INSERT INTO ledger_entries(transaction_id,{','.join(LINE)}) VALUES({','.join('?' for _ in range(len(LINE)+1))})",
-                                    (txn_id, *(values[column] for column in LINE)))
-                validate_posting(postings)
-
-    def _upsert(self, entity, value, row, columns):
-        values = {key: self.local(REFS[key], item) if key in REFS else item for key, item in row.items()}
-        local_id = self.db.scalar("SELECT local_id FROM journal_ids WHERE entity=? AND uuid=?", (entity, value))
-        if local_id is None:
-            cursor = self.db.execute(f"INSERT INTO {entity}({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",
-                                     tuple(values[column] for column in columns))
-            local_id = cursor.lastrowid
-            self.bind(entity, value, local_id)
-        else:
-            self.db.execute(f"UPDATE {entity} SET {','.join(column+'=?' for column in columns)} WHERE id=?",
-                            (*[values[column] for column in columns], local_id))
-        return local_id
+            self.rows.apply(domain)
+            changed = set()
+            for row in domain["rows"]:
+                if row["table"] == "transactions" and row["values"] is not None:
+                    changed.add(self.local("transactions", row["key"]))
+                elif row["table"] == "ledger_entries" and row["values"] is not None:
+                    changed.add(self.local("transactions", row["values"]["transaction_id"]))
+            for txn_id in sorted(changed):
+                validate_posting([PostingLine(account_id=line["account_id"], asset_id=line["asset_id"],
+                    quantity=from_e6(line["quantity_e6"]), unit_price=from_e6(line["unit_price_e6"]),
+                    amount=from_e6(line["amount_e6"]), fx_rate=from_e6(line["fx_rate_e6"]),
+                    amount_base=from_e6(line["amount_base_e6"]), effect=Effect(line["effect"]),
+                    category_id=line["category_id"], memo=line["memo"], is_cash=True, owner_id=line["owner_id"])
+                    for line in self.db.all("SELECT * FROM ledger_entries WHERE transaction_id=? ORDER BY line_no", (txn_id,))])

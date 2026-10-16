@@ -216,6 +216,17 @@ No production protocol switch before complete write coverage. Early stages use i
 | J5 — Trust and recovery | Registry, reviewed owner-authorization construction, cooperative move, lost-home recovery, transport-key rotation, restored identities and retired-branch reconciliation. Complete fault/security gates before enabling replacement. |
 | J6 — Product cutover | All writable areas covered, compatible upgrades and backups, ordinary Windows/Android acceptance, Mohab's year, security/durability review. Freeze legacy lends; receive all returns or explicitly retain stranded copies; take a verified baseline; pair/upgrade peers into the new protocol. Never run v1 lending and this protocol on one live profile. |
 
+**J6 build order (Claude, 2026-10-16).** J6 is built in steps, each merged when green:
+
+| Step | Deliverable |
+|---|---|
+| J6a — Generic exact effects (built) | One replicator for every synchronized table: UUID row identity (integer ids via `journal_ids`, other keys as key columns with references mapped), touched-row triggers, typed row upserts/deletes in reference order, per-row fingerprint. Cash becomes the first area on it. |
+| J6b — Checkpoint baselines | Every replica, including the lab and tests, starts from the home's verified checkpoint; independent baselines are retired. |
+| J6c — Areas | Command families with field groups and service preconditions: master data (accounts, categories, counterparties, rules), foreign currency and conversions, plans/bills/loans/reserves/budgets, investments, shared settings. |
+| J6d — Home automation | Rules, price fills, bill matching and revaluation run only on the home and commit as effects. |
+| J6e — Upgrades and backups | Migration barrier, per-release compatibility table, journal-profile backup and restore. |
+| J6f — Cutover | Convert a v1 profile (freeze lends, receive returns, verified baseline), pair peers, Mohab's year on a journal profile, Windows/Android acceptance, security/durability review. |
+
 No borrowing fallback inside a journal profile. An area still awaiting coverage remains disabled there; the ordinary v1 profile stays on its existing implementation until cutover. A stranded pre-journal copy is preserved for explicit comparison/import, never guessed into an operation history.
 
 ## 11. Acceptance

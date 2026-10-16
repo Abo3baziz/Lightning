@@ -10,6 +10,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: journal J6a: generic exact row effects (`sync/journal/effects.py`) replace the cash-only schema: touched rows of synchronized tables replay
+  exactly with UUID references, per-row fingerprints, generic checkpoint repair; a cash edit is 7,952 bytes in one round (was 12,284 in five).
 - 2026-10-16 · Claude: journal transport and pairing: one combined sync round (20 offline edits: 64 → 3 mailbox wake cycles), downloads continue when upload is held;
   pairing shows matching digits before any password proof leaves the device. Confirmation now 102 SQL statements at any ledger size (was 33,100 at 1,500).
 - 2026-10-16 · Claude: journal hardening: undo reverses only its own change and conflicts go to review; a recovered home answers resent prefix edits;

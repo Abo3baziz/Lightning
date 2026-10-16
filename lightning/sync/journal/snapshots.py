@@ -13,7 +13,8 @@ from lightning.database.connection import Database
 from lightning.database.snapshot import snapshot, verify_connection
 
 from .codec import JournalError, ZERO_HASH, authenticate, canonical, cursor as validate_cursor, fields, hash_value, number, seal, unpack
-from .finance import CashAdapter, PARTY
+from .effects import SCHEMA, Replicator
+from .finance import CashAdapter
 from .store import JournalStore
 
 
@@ -130,7 +131,7 @@ def repair(store, source, manifest, *, source_key, fault=lambda phase: None):
         cursor = db.one("SELECT revision,hash FROM journal_commits ORDER BY revision DESC LIMIT 1")
         if (dict(cursor) if cursor else dict(revision=0, hash=ZERO_HASH)) != body["cursor"]:
             raise JournalError("Snapshot cursor mismatch")
-        transactions = [adapter.transaction(row[0]) for row in db.all("SELECT id FROM transactions")]
+        wanted = list(Replicator(db, config["profile"]).all_rows())
         # Keep the prior encrypted copy as comparison evidence before changing any
         # domain data. Queue/counter preservation below is a single DB transaction.
         evidence = Path(store.db.path).parent / f".before-journal-repair-{uuid4().hex}.db"
@@ -141,20 +142,10 @@ def repair(store, source, manifest, *, source_key, fault=lambda phase: None):
             store.db.conn.set_authorizer(store.adapter._authorize)
         with store.db.transaction():
             with store.adapter.writing():
-                keep = {transaction["uuid"] for transaction in transactions}
-                for row in store.db.all("SELECT uuid,local_id FROM journal_ids WHERE entity='transactions'"):
-                    if row["uuid"] not in keep:
-                        store.db.execute("DELETE FROM ledger_entries WHERE transaction_id=?", (row["local_id"],))
-                        store.db.execute("DELETE FROM transactions WHERE id=?", (row["local_id"],))
-                        store.db.execute("DELETE FROM journal_ids WHERE entity='transactions' AND uuid=?", (row["uuid"],))
-            for transaction in transactions:
-                party_uuid = transaction["header"]["counterparty_id"]
-                parties = []
-                if party_uuid:
-                    local = db.scalar("SELECT local_id FROM journal_ids WHERE entity='counterparties' AND uuid=?", (party_uuid,))
-                    row = db.one("SELECT * FROM counterparties WHERE id=?", (local,))
-                    parties.append(dict(uuid=party_uuid, values=adapter._encode(row, PARTY)))
-                store.adapter.apply(dict(schema=1, transactions=[transaction], counterparties=parties))
+                keep = {(row["table"], canonical(row["key"])) for row in wanted}
+                stale = [dict(row, values=None) for row in store.adapter.rows.all_rows()
+                         if (row["table"], canonical(row["key"])) not in keep]
+                store.adapter.rows.apply(dict(schema=SCHEMA, rows=stale + wanted), bounded=False)
             fault("snapshot_domain")
             for table in ("journal_records", "journal_aliases", "journal_commits", "journal_sources"):
                 store.db.execute(f"DELETE FROM {table}")
