@@ -226,6 +226,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
                          "price_date": end, "price_source": "BALANCE"})
     cash = ZERO
     cash_unavailable = False
+    cash_by_currency: dict[str, Decimal] = {}
     for cash_asset_id, quantity in cash_quantities.items():
         valuation = reporting.value_of(cash_asset_id, quantity, end)
         asset = assets.get_asset(cash_asset_id)
@@ -234,6 +235,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
             cash_unavailable = True
         else:
             cash += valuation.value
+            cash_by_currency[asset.currency] = cash_by_currency.get(asset.currency, ZERO) + valuation.value
     unresolved = db.scalar("SELECT COUNT(*) FROM transactions t JOIN ledger_entries le ON le.transaction_id=t.id "
                            "LEFT JOIN investment_dividend_assets da ON da.transaction_id=t.id "
                            "WHERE t.status='POSTED' AND t.type='DIV' AND le.owner_id IS NULL AND da.asset_id IS NULL "
@@ -242,6 +244,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
     return {"new_money": new_money, "withdrawn": withdrawn, "net_money": new_money-withdrawn,
             "dividends": dividends, "tax": tax, "fees": fees, "realized": period_realized, "holdings": holdings,
             "investment_cash": None if cash_unavailable else cash, "cost": total_cost,
+            "investment_cash_by_currency": cash_by_currency,
             "value": None if holdings_unavailable else total_value,
             "unrealized": None if holdings_unavailable else unrealized,
             "missing": missing, "at_cost": at_cost, "unresolved_dividends": unresolved}
