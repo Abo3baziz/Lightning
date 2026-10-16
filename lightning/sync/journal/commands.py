@@ -127,7 +127,7 @@ def run(adapter, kind, record, groups):
     service, method = entry.call.split(".")
     result = getattr(getattr(adapter.c, service), method)(**values)
     if entry.creates:
-        created = result if type(result) is int else getattr(result, "id", None)
+        created = result if type(result) is int else result.get("id") if isinstance(result, dict) else getattr(result, "id", None)
         if type(created) is not int:
             raise JournalError("The service did not return the created record")
         adapter.bind(entry.creates, record, created)

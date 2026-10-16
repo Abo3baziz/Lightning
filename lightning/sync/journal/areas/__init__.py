@@ -3,6 +3,6 @@
 Add an area by writing its module and naming it here. A service action that
 writes any table outside every enabled area's TABLES is refused by the home.
 """
-from . import cash, master
+from . import cash, currency, master
 
-AREAS = (cash, master)
+AREAS = (cash, currency, master)
