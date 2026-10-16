@@ -5,7 +5,6 @@
 | Who | Work | Files | Since |
 |---|---|---|---|
 | Claude | Journal: 7 review fixes, then J6 (owner asked 10-16). | `lightning/sync/journal/`, `lightning/runtime/journal*`, `lightning/ui/journal*`, `tests/test_*journal*` | 2026-10-16 |
-| Claude | Feedback batch 004 (tickets 96–112): undo icon, error pages, tickers, Overview, prices, bulk edit. | `lightning/ui/` (not journal), `lightning/investments/`, `tests/test_feedback_batch_004.py` | 2026-10-16 |
 | Codex | Journal J4–J6; guideline sync. | `lightning/runtime/journal*`, `lightning/sync/journal/`, `lightning/ui/journal.py`, `lightning/ui/journal_views/`, `lightning/ui/static/journal.js`, `tests/test_journal*`, `cloudflare/`, `../Lightning_website/guideline/` | 2026-10-16 |
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk. | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
