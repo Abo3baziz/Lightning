@@ -240,7 +240,8 @@ class JournalHome:
         slot = target_slot(body["kind"], body["groups"])
         base = body["bases"]["args"]
         if slot is None:
-            if self.store.adapter.row_token(command(body["kind"]).creates + ":" + canonical(body["record"]).decode()):
+            creates = command(body["kind"]).creates  # Commands that only change a keyed row have no new record.
+            if creates and self.store.adapter.row_token(creates + ":" + canonical(body["record"]).decode()):
                 return "rejected", "record-exists", []
         elif not force and (self.store.adapter.row_token(slot) != base if base is not None else not body["dependencies"]):
             return "review", "conflict", []

@@ -26,14 +26,21 @@ def _synced():
 
 SYNCED = _synced()
 # Services clear these as a no-op on uncovered records; changing a row aborts.
-GUARDED = ("reserve_transaction_links",)
+GUARDED = ()
 # Baseline catalog rows are referenced by UUID but not replicated yet.
 CATALOG = ()
 # Replicas start from the home's checkpoint (J6b), so identities are copied. A
 # natural key still keeps an identity stable when a service rewrites a row
 # (a reposted line keeps its UUID); other new rows get random UUIDs.
+def _from_areas(name):
+    from .areas import AREAS
+    return {key: value for area in AREAS for key, value in getattr(area, name, {}).items()}
+
+
 NATURAL = {"transactions": ("ref",), "counterparties": ("normalized_name",), "accounts": ("code",),
-           "financial_assets": ("code",), "categories": ("code",), "asset_classes": ("code",)}
+           "financial_assets": ("code",), "categories": ("code",), "asset_classes": ("code",)} | _from_areas("NATURAL")
+# References an area's table keeps without a declared foreign key: {table: {column: target}}.
+EXTRA_REFS = _from_areas("REFS")
 MAX_ROWS = 64
 WALL_CLOCK = {"created_at", "updated_at"}
 
@@ -49,7 +56,7 @@ class Table:
         self.key = [row["name"] for row in sorted(info, key=lambda row: row["pk"]) if row["pk"]]
         self.rowid = self.key == ["id"] and self.types["id"] == "INTEGER"
         self.columns = [row["name"] for row in info if not (self.rowid and row["name"] == "id")]
-        self.refs = {row["from"]: row["table"] for row in db.all(f"PRAGMA foreign_key_list({name})")}
+        self.refs = {row["from"]: row["table"] for row in db.all(f"PRAGMA foreign_key_list({name})")} | EXTRA_REFS.get(name, {})
         if set(self.types.values()) - {"INTEGER", "TEXT"}:
             raise JournalError(f"{name} has a column type the journal cannot carry yet")
 
@@ -115,8 +122,17 @@ class Replicator:
             return self.uid(table.name, row["id"])
         return [self.uid(table.refs[column], row[column]) if column in table.refs else row[column] for column in table.key]
 
+    def _ref(self, table, column, value):
+        target = table.refs[column]
+        if (column in EXTRA_REFS.get(table.name, {}) and value is not None
+                and not self.db.scalar("SELECT 1 FROM journal_ids WHERE entity=? AND local_id=?", (target, value))
+                and not self.db.scalar(f"SELECT 1 FROM {target} WHERE id=?", (value,))):
+            # An undeclared reference left by a removed record (reserve history): a stable placeholder.
+            return str(uuid5(self.namespace, f"orphan:{target}:{value}"))
+        return self.uid(target, value)
+
     def encode(self, table, row):
-        return {column: self.uid(table.refs[column], row[column]) if column in table.refs else row[column]
+        return {column: self._ref(table, column, row[column]) if column in table.refs else row[column]
                 for column in table.columns}
 
     # -- capture --------------------------------------------------------------
@@ -228,6 +244,8 @@ class Replicator:
                 if local_id is not None:
                     self.db.execute(f"DELETE FROM {table.name} WHERE id=?", (local_id,))
                     self.db.execute("DELETE FROM journal_ids WHERE entity=? AND local_id=?", (table.name, local_id))
+                    if self.db.has_table("journal_fp"):  # The mapping is gone, so capture cannot forget this row's hash.
+                        self.db.execute("DELETE FROM journal_fp WHERE uuid=?", (table.name + ":" + canonical(item["key"]).decode(),))
             else:
                 key = self._local_key(table, item["key"])
                 self.db.execute(f"DELETE FROM {table.name} WHERE " + " AND ".join(f"{column} IS ?" for column in table.key), key)
