@@ -13,6 +13,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - 2026-10-16 · Claude: journal chunked large effects (≤1 MiB per action) and bank-statement import as commands; Mohab's year on a journal home now passes import.
 - 2026-10-16 · Claude: journal areas for settings, people, investments, CDs, gam'eya and physical items (with Sonnet agents); write-coverage audit
   (`tools/journal_coverage.py`: 77 of 149 POST routes covered), graceful uncovered writes, `tools/journal_mohab.py` gauge; lab `--app` opens the real screens.
+- 2026-10-16 · Claude: feedback batch 004 (tickets 96–112): mass edit applies (answering its question no longer re-submits the row); Undo/Redo are header icons with Ctrl+Z; one error page and a branded phone start; shares by ticker, funds apart from EGX; overspending shows a rose card; Net cash flow bars; months as one grid; the Cash planning budget shortfall links to Budget.
+  Open (reports filed): shared prices not published (owner action), website forms, extra Total column (needs a screenshot).
 - 2026-10-16 · Claude: the plain app (`run.bat`, `python -m lightning`) starts again without `cryptography`: `journal/codec.py` imports
   signature checks only when verifying; `tests/test_plain_install.py` keeps it so.
 - 2026-10-16 · Claude: journal areas for currencies, conversions, reserves, plans, bills, instalments and budgets (with two Sonnet agents); the app's own

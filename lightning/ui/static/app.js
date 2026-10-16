@@ -627,6 +627,18 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// Ctrl+Z undoes and Ctrl+Shift+Z (or Ctrl+Y) redoes the last action, except while typing in a field.
+document.addEventListener("keydown", (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const key = e.key.toLowerCase();
+  const operation = key === "z" ? (e.shiftKey ? "redo" : "undo") : key === "y" ? "redo" : "";
+  if (!operation || e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  const button = document.querySelector(`[data-history="${operation}"]`);
+  if (!button) return;
+  e.preventDefault();
+  button.click();
+});
+
 let dateFieldCount = 0;
 const normalizeDateField = (input) => {
   if (!input.value.trim()) { input.setCustomValidity(""); return true; }
@@ -708,6 +720,8 @@ document.addEventListener("click", (e) => {
 document.addEventListener("pointerdown", (event) => {
   const row = document.querySelector("tr.editing[data-txn]");
   if (!row || row.contains(event.target) || event.target.closest(".date-popup, .counterparty-results, .category-results")) return;
+  // A question open over the row ("Change 2 selected rows?") is answered, not treated as leaving the row (ticket 96).
+  if (event.target.closest("dialog") || document.querySelector("dialog[open]")) return;
   const form = document.getElementById("f-edit");
   if (!form || form.dataset.submitting === "true" || !form.checkValidity()) return;
   event.preventDefault();

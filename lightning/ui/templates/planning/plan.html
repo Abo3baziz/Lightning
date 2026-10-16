@@ -12,7 +12,10 @@
 <section class="card wide-card"><div class="overview-split">
   <section><div class="overview-block-head"><div><h3>{{ "From free cash to safe to spend"|tr(locale) }}</h3></div></div>
     {{ waterfall(p.build) }}
-    {% if f.safe_to_spend < 0 %}<p class="notice">{{ "Promised payments are larger than your free cash."|tr(locale) }}</p>{% endif %}
+    {# Feedback ticket 102: when only what is left in the budget pushes safe to spend below zero, the way out is the budget. #}
+    {% set budget_part = f.safe_to_spend_parts|selectattr(0, 'equalto', fig.left_in_plan_after_bills.label)|map(attribute=1)|first|default(0) %}
+    {% if f.safe_to_spend < 0 and budget_part < 0 and f.safe_to_spend - budget_part >= 0 %}<p class="notice">{{ "What is still planned to spend in your budget is more than your cash allows."|tr(locale) }} <a class="btn small" href="/budget">{{ 'Adjust your budget'|tr(locale) }}</a></p>
+    {% elif f.safe_to_spend < 0 %}<p class="notice">{{ "Promised payments are larger than your free cash."|tr(locale) }}</p>{% endif %}
     <details class="chart-table"><summary>{{ 'Show the numbers'|tr(locale) }}</summary><table><tbody>{% for name, value in f.safe_to_spend_parts %}<tr><td>{{ name }}</td><td class="num">{{ value|money(not loop.first) }}</td></tr>{% endfor %}<tr><th>{{ fig.safe_to_spend.label }}</th><th class="num">{{ f.safe_to_spend|money }}</th></tr></tbody></table></details></section>
   <section id="plan-next"><div class="overview-block-head"><div><h3>{{ "The next 30 days"|tr(locale) }}</h3><p>{{ as_of }} to {{ window_end }} · money in above the line, payments below</p></div><a class="quiet-link" href="/plan/recurring">{{ 'Recurring'|tr(locale) }}</a></div>
     {% if p.marks %}<div class="timeline{{ ' has-in' if p.marks|selectattr('income')|list }}" role="img" aria-label="Payments in the next 30 days">

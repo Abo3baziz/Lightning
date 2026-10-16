@@ -393,9 +393,14 @@ def _period_stats(c, period, first, as_of, position, cash_flow, change, change_r
         savings_sub = f"{fmt(-cash_flow.net)} more went out than the {fmt(cash_flow.inflows)} that came in"
     else:
         savings_sub = f"kept of {fmt(cash_flow.inflows)} {label('money_in').lower()}"
+    # Feedback ticket 97: spending more than came in is not a negative savings rate. The card says so, in rose.
+    overspent = rate is not None and not thin and cash_flow.net < 0
+    if overspent:
+        savings_sub = f"{fmt(-cash_flow.net)} more went out than the {fmt(cash_flow.inflows)} that came in"
     stats.append({
-        "key": "savings", "surface": "over" if thin else "in", "label": label("savings_rate"),
-        "value": None if thin else rate, "kind": "rate", "empty": "—" if thin else None,
+        "key": "savings", "surface": "over" if thin or overspent else "in",
+        "label": "Spent over money in" if overspent else label("savings_rate"),
+        "value": -rate if overspent else None if thin else rate, "kind": "rate", "empty": "—" if thin else None,
         "badge": {"tone": sign(cash_flow.net), "text": period_name + (" so far" if as_of.day < calendar.monthrange(as_of.year, as_of.month)[1] else "")},
         "figure": cash_flow.net, "sub": savings_sub,
         "spark": visuals.savings_rate_spark(c, as_of), "spark_tone": "in",

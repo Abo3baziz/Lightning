@@ -1,12 +1,12 @@
 {% if action_history and (action_history.undo or action_history.redo) %}
-<div class="actions" aria-label="{{ 'Action history'|tr(locale) }}">
 {% for operation in ('undo', 'redo') %}{% set step = action_history.get(operation) %}{% if step %}
-<form method="post" action="/history/{{ operation }}">
+<form class="history-form" method="post" action="/history/{{ operation }}">
   <input type="hidden" name="__session" value="{{ session_token|default('') }}">
   <input type="hidden" name="group_id" value="{{ step.id }}">
   <input type="hidden" name="back" value="{{ path }}">
-  <button class="btn small" type="submit">{{ ('Undo' if operation == 'undo' else 'Redo')|tr(locale) }} · {{ step.label|tr(locale) }}</button>
+  {% set words = ('Undo' if operation == 'undo' else 'Redo')|tr(locale) %}
+  {% set keys = 'Ctrl+Z' if operation == 'undo' else 'Ctrl+Shift+Z' %}
+  <button class="btn icon-btn history-btn" type="submit" data-history="{{ operation }}" title="{{ words }} · {{ step.label|tr(locale) }} ({{ keys }})" aria-label="{{ words }} · {{ step.label|tr(locale) }}"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">{% if operation == 'undo' %}<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>{% else %}<path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>{% endif %}</svg></button>
 </form>
 {% endif %}{% endfor %}
-</div>
 {% endif %}
