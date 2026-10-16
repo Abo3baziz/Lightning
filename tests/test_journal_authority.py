@@ -373,3 +373,30 @@ def test_successor_rotates_transport_in_same_profile_commit_and_retry_keeps_the_
     finally:
         for control in controls:
             control.close()
+
+
+def test_recovered_home_answers_a_resent_prefix_proposal_with_its_original_decision(devices, tmp_path):
+    home, pc = devices
+    owner, controls = memories(devices, tmp_path)
+    original = home.save(groups(home, "-40"))
+    pc.sync_with(home.home)
+    wire = change(home, pc, owner, mode="recover")
+    class Registry:
+        async def publish(self, request):
+            pass
+    try:
+        asyncio.run(controls[1].recover(pc.store, wire, Registry()))
+        pc.home = JournalHome(pc.store, pc.identity.sign)
+        pc.home.approve_origin(home.identity.device_id, home.store.config["incarnation"], home.identity.public_key)
+        identifier = unpack(original)["body"]["origin"]
+        assert pc.home.receive(original) == "accepted"
+        assert pc.home.process() == []
+        assert pc.home.status(f'{identifier["device"]}/{identifier["incarnation"]}/{identifier["seq"]}')["status"] == "accepted"
+        later = home.store.save(kind="transaction.add", record=str(uuid4()), groups=groups(home, "-5"),
+                                bases=dict.fromkeys(("money", "category", "details")), signer=home.identity.sign)
+        pc.home.receive(later)
+        assert len(pc.home.process()) == 1
+        assert next(item for item in pc.balances() if item["name"] == "Bank")["balance"] == 955
+    finally:
+        for control in controls:
+            control.close()

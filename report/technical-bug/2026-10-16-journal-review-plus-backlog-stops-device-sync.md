@@ -2,7 +2,7 @@
 title: A review on the home plus 256 queued edits stops that device receiving any confirmed changes
 category: technical-bug
 area: journal
-status: reported
+status: investigating
 created: 2026-10-16
 reporter: Claude
 skills: none
@@ -25,3 +25,7 @@ Expected:
 - Download changes even when upload hits the staging limit (or stop uploading at the window and continue the round).
 - Report a staging refusal as "saved, waiting", never as a failed save.
 - Consider limiting fuzzy duplicate review to captured payments (with a `source`) or to different origins, per the proposal's SMS/CSV row; a manual same-day repeat from one device is usually intentional.
+
+## Fix
+
+Claude, `claude/journal-hardening`: a held upload on the home no longer reports a saved edit as failed, and fuzzy duplicate review needs a captured payment. Still open: download changes when upload is held (transport round, in progress).

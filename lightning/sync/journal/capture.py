@@ -125,9 +125,7 @@ class JournalCapture:
                 bases=dict.fromkeys(values), signer=self.device.identity.sign)
             identifier = origin_id(unpack(wire)["body"]["origin"])
             self.db.execute("UPDATE journal_candidates SET proposal_id=?,groups_json=? WHERE id=?", (identifier, canonical(values).decode(), candidate_id))
-        if self.device.home:
-            self.device.home.receive(wire)
-            self.device.home.process()
+        self.device._offer(wire)
         return identifier
 
     def progress(self, batch):

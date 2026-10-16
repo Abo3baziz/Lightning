@@ -10,6 +10,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: journal hardening: undo reverses only its own change and conflicts go to review; a recovered home answers resent prefix edits;
+  one failing proposal waits alone (`home-error`); manual same-day repeats post; confirmation diffs and fingerprints only touched transactions.
 - 2026-10-16 · Claude: reviewed the edit journal (J1–J5): 7 reports under `report/` (area journal): undo overwrites later edits, recovery replays
   the prefix and jams the successor, one service error halts all confirmation, review backlog stalls sync, offline-crackable first pairing, mailbox and confirmation cost.
 - 2026-10-16 · Claude: **One row per broker, a cash pocket per currency** (`0067_broker_pockets.sql`, `accounts.parent_id`): a listing in another currency is held in that currency's pocket, made on demand; *Paid in another currency* converts then buys (two linked documents); no margin;

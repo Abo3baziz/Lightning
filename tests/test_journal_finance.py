@@ -99,11 +99,8 @@ def test_transfer_and_split_are_atomic_and_validation_refusal_advances_sequence(
     assert len(pc.c.db.all("SELECT * FROM ledger_entries WHERE transaction_id=(SELECT MAX(id) FROM transactions)")) == 2
     bad = pc.save(groups(pc, splits=[splits[0]]))
     pc.sync_with(hd.home)
-    identifier = origin_id(unpack(bad)["body"]["origin"])
-    state = hd.home.review_state(identifier)
-    hd.home.review(command_id=str(uuid4()), proposal_id=identifier, token=state["token"], choice="apply")
-    pc.sync_with(hd.home)
-    assert hd.home.status(origin_id(unpack(bad)["body"]["origin"]))["status"] == "rejected"
+    # A manual same-day repeat is not a duplicate suspect; the bad split is refused outright.
+    assert hd.home.status(origin_id(unpack(bad)["body"]["origin"])) == dict(status="rejected", reason="financial-validation")
     assert hd.store.fingerprint() == pc.store.fingerprint()
 
 
@@ -501,6 +498,88 @@ def test_child_of_a_duplicate_uses_the_alias_decision_tokens_not_later_values(de
     pc.sync_with(hd.home)
     assert hd.home.status(origin_id(unpack(child)["body"]["origin"]))["status"] == "review"
     assert next(item for item in pc.balances() if item["name"] == "Bank")["balance"] == 985
+
+
+
+def test_undo_reverses_only_its_own_change_and_a_later_change_goes_to_review(devices):
+    hd, pc = devices
+    record = unpack(pc.save(groups(pc)))["body"]["record"]
+    pc.sync_with(hd.home)
+    edit = pc.save({"money": groups(pc, "-25.00")["money"]}, record=record)
+    pc.sync_with(hd.home)
+    health = hd.adapter.uid("categories", hd.c.categories.get_by_code("EXP.PERSONAL.HEALTH").id)
+    hd.save({"category": dict(category=health, splits=[])}, record=record)
+    pc.sync_with(hd.home)
+    pc.undo(origin_id(unpack(edit)["body"]["origin"]))
+    pc.sync_with(hd.home)
+    current = hd.store.record(record)["groups"]
+    assert current["money"]["amount"] == "-10.00" and current["category"]["category"] == health
+    # Undoing the addition after another device changed it waits for review instead of deleting.
+    hd.save({"money": groups(hd, "-30.00")["money"]}, record=record)
+    first = hd.store.db.scalar("SELECT proposal_id FROM journal_commits ORDER BY revision LIMIT 1")
+    pc.sync_with(hd.home)
+    undo = pc.undo(first)
+    pc.sync_with(hd.home)
+    assert hd.home.status(origin_id(unpack(undo)["body"]["origin"]))["status"] == "review"
+    assert not hd.store.record(record)["deleted"]
+
+
+def test_manual_same_day_repeats_post_without_review(devices):
+    hd, pc = devices
+    pc.save(groups(pc, "-50.00"))
+    pc.save(groups(pc, "-50.00"))
+    pc.sync_with(hd.home)
+    assert [item["state"] for item in pc.view()] == ["Confirmed", "Confirmed"]
+    assert next(item for item in pc.balances() if item["name"] == "Bank")["balance"] == 900
+
+
+def test_unexpected_service_error_holds_only_its_origin(devices, monkeypatch):
+    hd, pc = devices
+    real = hd.c.transactions.record_in_account
+    def flaky(**values):
+        if values["amount"] == "-13.00":
+            raise RuntimeError("unexpected")
+        return real(**values)
+    monkeypatch.setattr(hd.c.transactions, "record_in_account", flaky)
+    stuck = pc.save(groups(pc, "-13.00"))
+    pc.sync_with(hd.home)
+    assert hd.home.status(origin_id(unpack(stuck)["body"]["origin"])) == dict(status="review", reason="home-error")
+    hd.save(groups(hd, "-7.00"))
+    assert next(item for item in hd.balances() if item["name"] == "Bank")["balance"] == 993
+    state = hd.home.review_state(origin_id(unpack(stuck)["body"]["origin"]))
+    hd.home.review(command_id=str(uuid4()), proposal_id=state["proposal_id"], token=state["token"], choice="reject")
+    pc.save(groups(pc, "-2.00"))
+    pc.sync_with(hd.home)
+    assert hd.store.fingerprint() == pc.store.fingerprint()
+    assert next(item for item in pc.balances() if item["name"] == "Bank")["balance"] == 991
+
+
+def test_a_held_upload_on_the_home_is_saved_not_an_error(devices, monkeypatch):
+    from lightning.sync.journal import home as home_module
+    hd, pc = devices
+    record = unpack(hd.save(groups(hd)))["body"]["record"]
+    draft = hd.draft(record)
+    pc.sync_with(hd.home)
+    pc.save({"money": groups(pc, "-20.00")["money"]}, record=record)
+    pc.sync_with(hd.home)
+    hd.submit_draft(draft, groups(hd, "-30.00"))  # Conflicts: its origin now waits for review.
+    monkeypatch.setattr(home_module, "MAX_GAP", 2)
+    for amount in ("-1.00", "-2.00", "-3.00"):
+        hd.save(groups(hd, amount))
+    assert len(hd.store.pending()) == 4
+
+
+def test_confirmation_reads_only_the_touched_transactions(devices):
+    hd, pc = devices
+    for index in range(40):
+        hd.save(groups(hd, f"-{index + 1}.00"))
+    statements = []
+    hd.store.db.conn.set_trace_callback(statements.append)
+    hd.save(groups(hd, "-99.00"))
+    hd.store.db.conn.set_trace_callback(None)
+    assert len(statements) < 400
+    pc.sync_with(hd.home)
+    assert hd.store.fingerprint() == pc.store.fingerprint() == hd.adapter.fingerprint(full=True) == pc.adapter.fingerprint(full=True)
 
 
 def test_persistent_launcher_opens_both_windows_and_auto_syncs_over_tls(tmp_path, monkeypatch):

@@ -53,9 +53,7 @@ class JournalDevice:
                 if row["submission_hash"] != request_hash:
                     raise JournalError("This form was already saved. Open the transaction again")
                 wire = bytes(row["wire"])
-                if self.home:
-                    self.home.receive(wire)
-                    self.home.process()
+                self._offer(wire)
                 return wire
             original = json.loads(row["groups_json"])
             if delete:
@@ -74,12 +72,12 @@ class JournalDevice:
                 bases={group: tokens.get(group) for group in changed},
                 dependencies=json.loads(row["dependencies_json"]), signer=self.identity.sign)
             self.store.db.execute("UPDATE journal_drafts SET wire=?,submission_hash=? WHERE id=?", (wire, request_hash, identifier))
-        if self.home:
-            self.home.receive(wire)
-            self.home.process()
+        self._offer(wire)
         return wire
 
-    def save(self, groups, *, record=None, delete=False):
+    def save(self, groups, *, record=None, delete=False, bases=None):
+        """`bases` overrides the confirmed tokens a change is checked against (undo
+        checks against the result of the action it reverses, not the latest)."""
         record = record or str(uuid4())
         record = self.store.resolve(record)
         current = self.store.record(record)
@@ -95,7 +93,10 @@ class JournalDevice:
             groups = dict.fromkeys(values)
         else:
             self.adapter.validate_groups(groups, complete=current is None and pending_parent is None)
+        explicit = bases
         bases = {group: current["tokens"].get(group) if current else None for group in groups}
+        if explicit is not None:
+            bases = {group: explicit.get(group) for group in groups}
         dependencies = []
         if pending_parent:
             dependencies = [pending_parent["origin"]]
@@ -106,10 +107,18 @@ class JournalDevice:
                     bases[group] = None
         wire = self.store.save(kind="transaction." + ("delete" if delete else "edit" if current or pending_parent else "add"),
             record=record, groups=groups, bases=bases, dependencies=dependencies, signer=self.identity.sign)
-        if self.home is not None:
-            self.home.receive(wire)
-            self.home.process()
+        self._offer(wire)
         return wire
+
+    def _offer(self, wire):
+        """On the home, confirm at once when possible. The edit is already durably
+        saved, so a held upload (staging limit, frozen authority) means waiting."""
+        if self.home is not None:
+            try:
+                self.home.receive(wire)
+                self.home.process()
+            except JournalError:
+                pass
 
     def view(self):
         confirmed = {}
@@ -127,7 +136,8 @@ class JournalDevice:
                 "SELECT status,reason FROM journal_remote_states WHERE proposal_id=?", (origin_id(proposal["origin"]),))
             item["state"] = "Awaiting deletion" if proposal["kind"].endswith("delete") else "Needs review" if state and state["status"] == "review" else "Pending"
             reasons = {"queued": "Waiting for the home", "conflict": "Another device changed this value",
-                       "possible-duplicate": "This may be a payment already recorded"}
+                       "possible-duplicate": "This may be a payment already recorded",
+                       "home-error": "The home could not apply this edit; review it there"}
             item["reason"] = "Waiting for an earlier edit to be reviewed" if blocker else reasons.get(state["reason"], "Waiting for the home") if state else "Saved on this device"
             blocker = blocker or bool(state and state["status"] == "review")
             item["proposal_id"] = origin_id(proposal["origin"])
@@ -165,16 +175,31 @@ class JournalDevice:
             self.store.mark_displayed(identifier)
 
     def undo(self, proposal_id):
-        history = [unpack(bytes(row[0]))["body"] for row in self.store.db.all("SELECT wire FROM journal_commits ORDER BY revision")]
-        target = next((item for item in history if item["proposal_id"] == proposal_id), None)
+        """Reverse only what that action changed, checked against its own result:
+        a later change to the same values on any device goes to review."""
+        from .codec import digest
+        row = self.store.db.one("SELECT revision,wire FROM journal_commits WHERE proposal_id=?", (proposal_id,))
+        target = unpack(bytes(row["wire"]))["body"] if row else None
         if target is None or target["outcome"] != "accepted":
             raise JournalError("Only a retained accepted action can be undone")
         effect = target["effects"][0]
-        prior = next((item["effects"][0] for item in reversed(history) if item["revision"] < target["revision"]
-                      and item["effects"] and item["effects"][0]["record"] == effect["record"]), None)
+        record = self.store.resolve(effect["record"])
+        prior = None
+        for (wire,) in self.store.db.all("SELECT wire FROM journal_commits WHERE revision<? ORDER BY revision DESC", (row["revision"],)):
+            item = unpack(bytes(wire))["body"]
+            if item["effects"] and "alias" not in item["effects"][0] and self.store.resolve(item["effects"][0]["record"]) == record:
+                prior = item["effects"][0]
+                break
         if prior is None:
-            return self.save({}, record=effect["record"], delete=True)
-        return self.save(prior["groups"], record=None if effect["deleted"] else effect["record"])
+            return self.save({}, record=record, delete=True, bases=effect["tokens"])
+        if effect["deleted"]:
+            return self.save({group: value for group, value in prior["groups"].items() if group != "source"})
+        changed = [group for group, token in effect["tokens"].items()
+                   if token == digest(dict(proposal=target["proposal_hash"], group=group)) and group in prior["groups"]]
+        if not changed:
+            raise JournalError("That action changed nothing that can be undone")
+        return self.save({group: prior["groups"][group] for group in changed},
+                         record=record, bases=effect["tokens"])
 
     def choices(self):
         accounts = {account.name: self.adapter.uid("accounts", account.id) for account in self.c.accounts.list(active_only=True)

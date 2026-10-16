@@ -24,6 +24,29 @@ class JournalHome:
         if store.config["role"] != "home":
             raise JournalError("Only the home confirms proposals")
         self.store, self.db, self.signer, self.fault = store, store.db, signer, fault
+        self._inherit()
+
+    def _inherit(self):
+        """Signed commits are receipts too: a home that took over from a lost or
+        moved predecessor answers a resent prefix proposal with its original
+        decision, and each origin resumes after its last decided sequence."""
+        decided = {}
+        with self.db.transaction():
+            for row in self.db.all("SELECT proposal_id,wire FROM journal_commits"):
+                device, incarnation, seq = row["proposal_id"].split("/")
+                decided.setdefault((device, incarnation), set()).add(int(seq))
+                stale = self.db.one("SELECT status FROM journal_inbox WHERE proposal_id=? AND status IN ('staged','review')", (row["proposal_id"],))
+                if stale:
+                    body = unpack(bytes(row["wire"]))["body"]
+                    self.db.execute("UPDATE journal_inbox SET status=?,reason=?,review_token=NULL WHERE proposal_id=?",
+                                    (body["outcome"], body["reason"], row["proposal_id"]))
+            for member in self.db.all("SELECT device,incarnation,progress FROM journal_origins"):
+                progress, seqs = member["progress"], decided.get((member["device"], member["incarnation"]), set())
+                while progress + 1 in seqs:
+                    progress += 1
+                if progress != member["progress"]:
+                    self.db.execute("UPDATE journal_origins SET progress=? WHERE device=? AND incarnation=?",
+                                    (progress, member["device"], member["incarnation"]))
 
     def approve_origin(self, device, incarnation, public_key):
         """Laboratory enrollment only; production pairing must authenticate this."""
@@ -43,6 +66,7 @@ class JournalHome:
                 return
             self.db.execute("INSERT INTO journal_origins(device,incarnation,public_key) VALUES(?,?,?)",
                             (device, incarnation, public_key))
+        self._inherit()
 
     def revoke_origin(self, device, incarnation):
         """Local admission gate only, not production transport-key revocation."""
@@ -79,6 +103,11 @@ class JournalHome:
                 self.store._check_cursor(body["cursor"])
             payload_hash = digest(body)
             known = self.db.one("SELECT hash,status FROM journal_inbox WHERE proposal_id=?", (identifier,))
+            if known is None:
+                inherited = self.db.scalar("SELECT wire FROM journal_commits WHERE proposal_id=?", (identifier,))
+                if inherited is not None:
+                    receipt = unpack(bytes(inherited))["body"]
+                    known = dict(hash=receipt["proposal_hash"], status=receipt["outcome"])
             if known:
                 if known["hash"] != payload_hash:
                     raise JournalError("Proposal identity reused with different content")
@@ -112,14 +141,24 @@ class JournalHome:
                     if row is None or row["status"] != "staged":
                         continue
                     body = unpack(bytes(row["wire"]))["body"]
-                    result = self._consider(body)
+                    try:
+                        with self.db.transaction():
+                            result = self._consider(body)
+                            if result[0] in ("wait", "review"):
+                                wire = None
+                            else:
+                                wire = self._finish(row, *result)
+                    except Exception as error:
+                        if isinstance(error, self.db.OperationalError) or not self.db.conn.in_transaction:
+                            raise  # Storage failure: stop, keep everything for retry.
+                        result = ("review", "home-error")
                     if result[0] == "wait":
                         continue
                     if result[0] == "review":
+                        # Only this origin waits; others keep confirming.
                         self.db.execute("UPDATE journal_inbox SET status='review',reason=?,review_token=? WHERE proposal_id=?",
                                         (result[1], self._review_token(row), row["proposal_id"]))
                         continue
-                    wire = self._finish(row, *result)
                 # Nothing escapes the transaction before it is durably committed.
                 self.fault("decision_committed")
                 committed.append(wire)
@@ -132,10 +171,10 @@ class JournalHome:
     def _consider(self, body, *, force=False):
         dependencies = []
         for dependency in body["dependencies"]:
-            row = self.db.one("SELECT status FROM journal_inbox WHERE proposal_id=?", (origin_id(dependency),))
-            if row is not None and row[0] == "rejected":
+            row = self.status(origin_id(dependency))
+            if row is not None and row["status"] == "rejected":
                 return "rejected", "dependency-rejected", []
-            if row is None or row[0] not in {"accepted", "accepted-as-existing"}:
+            if row is None or row["status"] not in {"accepted", "accepted-as-existing"}:
                 return "wait", "dependency", []
             commit = self._decision(origin_id(dependency))
             for effect in unpack(commit)["body"]["effects"]:
@@ -190,7 +229,7 @@ class JournalHome:
         if outcome not in {"accepted", "accepted-as-existing", "rejected"}:
             raise JournalError("Only terminal decisions advance origin progress")
         if effects and self.store.adapter is not None and outcome == "accepted":
-            from lightning.core.errors import ValidationError
+            from lightning.core.errors import LightningError as ValidationError
             try:
                 with self.db.transaction():
                     domain = self.store.adapter.confirm(unpack(bytes(row["wire"]))["body"], effects[0])
@@ -235,7 +274,13 @@ class JournalHome:
 
     def status(self, proposal_id):
         row = self.db.one("SELECT status,reason FROM journal_inbox WHERE proposal_id=?", (proposal_id,))
-        return dict(row) if row else None
+        if row:
+            return dict(row)
+        inherited = self.db.scalar("SELECT wire FROM journal_commits WHERE proposal_id=?", (proposal_id,))
+        if inherited is None:
+            return None
+        body = unpack(bytes(inherited))["body"]
+        return dict(status=body["outcome"], reason=body["reason"])
 
     def decision(self, proposal_id):
         """Return the original signed terminal decision, including after restart."""

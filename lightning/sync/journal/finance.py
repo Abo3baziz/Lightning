@@ -114,12 +114,26 @@ class CashAdapter:
         self.allowed = False
         self.denied = None
         self.c.db.undo = None  # Journal undo is a new proposal; legacy row restoration is disabled.
+        self.db.conn.set_authorizer(None)  # Fixed local DDL below; protection returns at the end.
         for row in self.db.all("SELECT name FROM sqlite_temp_master WHERE type='trigger' AND name LIKE 'undo_%'"):
             self.db.execute('DROP TRIGGER "' + row[0].replace('"', '""') + '"')
+        # Every write to the ledger records which transaction it touched, so a
+        # confirmation diffs and fingerprints only those, never the whole ledger.
+        self.db.execute("CREATE TEMP TABLE IF NOT EXISTS journal_touched(id INTEGER PRIMARY KEY)")
+        for table, column in (("transactions", "id"), ("ledger_entries", "transaction_id")):
+            for event, rows in (("INSERT", ("NEW",)), ("UPDATE", ("NEW", "OLD")), ("DELETE", ("OLD",))):
+                body = " ".join(f"INSERT OR IGNORE INTO journal_touched VALUES({row}.{column});" for row in rows)
+                self.db.execute(f"CREATE TEMP TRIGGER IF NOT EXISTS journal_touch_{table}_{event.lower()} AFTER {event} ON main.{table} BEGIN {body} END")
         with self.db.transaction():
+            self.db.execute("CREATE TABLE IF NOT EXISTS journal_fp(uuid TEXT PRIMARY KEY,hash TEXT NOT NULL)")
             for entity in ("accounts", "financial_assets", "categories", "counterparties", "transactions"):
                 for row in self.db.all(f"SELECT * FROM {entity}"):
                     self.uid(entity, row["id"])
+            if self.db.scalar("SELECT COUNT(*) FROM journal_fp") != self.db.scalar("SELECT COUNT(*) FROM transactions"):
+                self.db.execute("DELETE FROM journal_fp")
+                for row in self.db.all("SELECT id FROM transactions"):
+                    self._remember(row[0])
+        self.cached = True
         self.db.conn.set_authorizer(self._authorize)
 
     def _authorize(self, action, table, column, database, trigger):
@@ -138,7 +152,14 @@ class CashAdapter:
         self.allowed = True
         self.db.conn.set_authorizer(self._authorize)
         try:
+            self.db.execute("DELETE FROM journal_touched")
             yield
+            for txn_id in self.touched():
+                self._remember(txn_id)
+            if self.db.scalar("SELECT 1 FROM journal_touched WHERE id NOT IN (SELECT id FROM transactions) LIMIT 1"):
+                self.db.execute("""DELETE FROM journal_fp WHERE uuid NOT IN (SELECT j.uuid FROM journal_ids j
+                                   JOIN transactions t ON t.id=j.local_id WHERE j.entity='transactions')""")
+            self.db.execute("DELETE FROM journal_touched")
         except self.db.driver.DatabaseError as error:
             if self.denied:
                 raise ValidationError("This action writes an area not covered by the experimental journal") from error
@@ -186,15 +207,32 @@ class CashAdapter:
                     lines=[self._encode(line, LINE) for line in self.db.all(
                         "SELECT * FROM ledger_entries WHERE transaction_id=? ORDER BY line_no", (txn_id,))])
 
-    def fingerprint(self):
-        state = hashlib.sha256(b"lightning-cash-journal-v1\n")
-        transactions = [self.transaction(row[0]) for row in self.db.all("SELECT id FROM transactions")]
-        for transaction in sorted(transactions, key=lambda item: item["uuid"]):
-            # Wall-clock metadata is retained in exact effects, but not in the ledger fingerprint.
-            transaction["header"].pop("created_at")
-            transaction["header"].pop("updated_at")
-            state.update(canonical(transaction) + b"\n")
-        return state.hexdigest()
+    def touched(self):
+        return [row[0] for row in self.db.all("SELECT t.id FROM journal_touched t JOIN transactions x ON x.id=t.id ORDER BY t.id")]
+
+    @staticmethod
+    def _hash(transaction):
+        # Wall-clock metadata is retained in exact effects, but not in the ledger fingerprint.
+        transaction["header"].pop("created_at")
+        transaction["header"].pop("updated_at")
+        return hashlib.sha256(canonical(transaction)).hexdigest()
+
+    def _remember(self, txn_id):
+        transaction = self.transaction(txn_id)
+        self.db.execute("INSERT OR REPLACE INTO journal_fp VALUES(?,?)", (transaction["uuid"], self._hash(transaction)))
+
+    @staticmethod
+    def _combine(hashes):
+        # A sum of per-transaction hashes: order-free, so one change updates it in place.
+        total = sum(int(value, 16) for value in hashes) % 2**256
+        return hashlib.sha256(b"lightning-cash-journal-v2\n" + total.to_bytes(32, "big")).hexdigest()
+
+    def fingerprint(self, *, full=False):
+        """Cached per-transaction hashes on an attached adapter; `full` (and any
+        unattached checkpoint reader) recomputes every transaction from the ledger."""
+        if getattr(self, "cached", False) and not full:
+            return self._combine(row[0] for row in self.db.all("SELECT hash FROM journal_fp"))
+        return self._combine(self._hash(self.transaction(row[0])) for row in self.db.all("SELECT id FROM transactions"))
 
     def validate_groups(self, groups, *, complete=False):
         if set(groups) - {"money", "category", "details", "source"}:
@@ -251,10 +289,16 @@ class CashAdapter:
                 collision = known["payload_hash"] != self.source_token(groups["money"])
                 return [dict(record=existing["record"], proven=not collision, collision=collision, tokens=existing["tokens"])]
         result = []
-        for row in self.db.all("SELECT record_id FROM journal_records WHERE deleted=0"):
+        new_money = groups.get("money", {})
+        # A look-alike is only suspicious when a capture is involved; two manual
+        # entries with the same amount on one day are usually two real payments.
+        for row in self.db.all("""SELECT record_id FROM journal_records WHERE deleted=0
+                AND json_extract(groups_json,'$.money.date') IS ? AND json_extract(groups_json,'$.money.account') IS ?
+                AND (? OR json_extract(groups_json,'$.source') IS NOT NULL)""",
+                (new_money.get("date"), new_money.get("account"), bool(source))):
             existing = self.store.record(row[0])
             same_source = bool(groups.get("source") and groups["source"] == existing["groups"].get("source"))
-            old_money, new_money = existing["groups"].get("money", {}), groups.get("money", {})
+            old_money = existing["groups"].get("money", {})
             same_money = all(old_money.get(key) == new_money.get(key) for key in ("account", "other_account", "date"))
             try:
                 same_money = same_money and Decimal(old_money["amount"]) == Decimal(new_money["amount"])
@@ -280,7 +324,6 @@ class CashAdapter:
             local_id = self.local("transactions", effect["record"])
             if self.db.scalar("SELECT COUNT(*) FROM reserve_transaction_links WHERE transaction_id=?", (local_id,)):
                 raise ValidationError("Linked reserve actions are not enabled in this experiment")
-        before = {row[0]: self.transaction(row[0]) for row in self.db.all("SELECT id FROM transactions")}
         with self.writing():
             if effect["deleted"]:
                 self.c.transactions.void(self.local("transactions", effect["record"]))
@@ -319,11 +362,10 @@ class CashAdapter:
                         line.category_id, line.memo, line.fx_rate, line.owner_id) for line in txn.lines]
                     self.c.transactions.repost(txn.id, money["date"], lines, details["description"],
                                                details["counterparty"], details["notes"])
-            changed = [self.transaction(row[0]) for row in self.db.all("SELECT id FROM transactions")
-                       if row[0] not in before or self.transaction(row[0]) != before[row[0]]]
-            parties = [{"uuid": self.uid("counterparties", row["id"]), "values": self._encode(row, PARTY)}
-                       for row in self.db.all("SELECT * FROM counterparties")
-                       if self.uid("counterparties", row["id"]) in {t["header"]["counterparty_id"] for t in changed}]
+            changed = [self.transaction(txn_id) for txn_id in self.touched()]
+            used = {t["header"]["counterparty_id"] for t in changed} - {None}
+            parties = [{"uuid": party, "values": self._encode(self.db.one("SELECT * FROM counterparties WHERE id=?",
+                        (self.local("counterparties", party),)), PARTY)} for party in sorted(used)]
         result = dict(schema=1, transactions=changed, counterparties=parties)
         try:
             validate_domain(result)

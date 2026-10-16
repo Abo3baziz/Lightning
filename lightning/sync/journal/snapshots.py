@@ -161,7 +161,7 @@ def repair(store, source, manifest, *, source_key, fault=lambda phase: None):
                 for row in db.all(f"SELECT * FROM {table}"):
                     columns = list(row.keys())
                     store.db.execute(f"INSERT INTO {table}({','.join(columns)}) VALUES({','.join('?' for _ in columns)})", tuple(row))
-            if store.fingerprint() != body["fingerprint"] or store.cursor() != body["cursor"]:
+            if store.adapter.fingerprint(full=True) != body["fingerprint"] or store.cursor() != body["cursor"]:
                 raise JournalError("Checkpoint did not converge")
             # Reconcile saved local decisions only from the signed retained stream.
             for row in store.db.all("SELECT wire FROM journal_commits"):
