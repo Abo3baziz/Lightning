@@ -24,7 +24,7 @@
 {% if attention %}
 <details class="card phone-needs" aria-labelledby="needs-heading">
   <summary><span class="needs-you-dot" aria-hidden="true"></span><b id="needs-heading">{{ "Needs you"|tr(locale) }}</b><span class="needs-you-count">{{ attention|length }}</span></summary>
-  <div class="phone-rows">{% for item in attention %}<a class="phone-row" href="{{ item.href }}"{% if item.popup %} data-popup-open{% endif %}><span>{{ item.label }}<small>{{ item.detail }}</small></span><b class="phone-row-action">{{ item.action or '›' }}</b></a>{% endfor %}</div>
+  <div class="phone-rows">{% for item in attention %}<a class="phone-row" href="{{ item.href }}"{% if item.popup %} data-popup-open{% endif %}><span>{{ item.label }}<small>{{ item.detail }}</small></span>{% if item.late_days %}<span class="plan-status plan-status-late">{{ ("Late · 1 day" if item.late_days == 1 else "Late · {n} days")|tr(locale, n=item.late_days) }}</span> {% endif %}<b class="phone-row-action">{{ item.action or '›' }}</b></a>{% endfor %}</div>
 </details>
 {% else %}<div class="card phone-needs is-empty"><span class="needs-you-dot" aria-hidden="true"></span><b>{{ "Nothing needs you today"|tr(locale) }}</b></div>{% endif %}
 
@@ -75,7 +75,7 @@
     <div class="phone-fold-body">
     <div class="phone-rows">
       <div class="phone-row"><span>{{ fig.free_cash.label }}</span><b>{{ pos.free_cash|money if pos.free_cash is not none else 'Unavailable' }}</b></div>
-      {% for item in pos.locked_holdings %}<div class="phone-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }}<small>{{ "locked until {date}"|tr(locale, date=item.locked_until) }}</small></span><b>{{ item.value|money }}</b></div>{% endfor %}
+      {% for item in pos.locked_holdings %}<div class="phone-row locked-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }} <small>{{ "not counted until {date}"|tr(locale, date=item.locked_until) }}</small></span><b class="muted">{{ item.value|money }}</b></div>{% endfor %}
       <details class="phone-row-more phone-fold"><summary class="phone-row"><span>{{ fig.holdings_after_sale.label }} <span class="phone-chevron" aria-hidden="true">›</span></span><b>{{ pos.holdings_after_sale|money }}</b></summary><div class="phone-fold-body"><div class="phone-rows">
       {% for cls in pos.classes if cls.value %}<a class="phone-row" data-popup-open href="/birdview/class/{{ cls.id }}?as_of={{ as_of }}"><span>{{ cls.name }}<small>{% if cls.locked_until %}{{ "locked until {date}"|tr(locale, date=cls.locked_until) }}{% else %}{{ '%g'|format(cls.factor) }}%{% endif %}</small></span><b>{{ cls.after_sale|money }}</b></a>{% endfor %}
       </div></div></details>

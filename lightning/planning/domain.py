@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal
 from enum import StrEnum
 
@@ -102,6 +103,12 @@ class Payment:
     @property
     def amount(self) -> Decimal:
         return self.item.amount if self.amount_override is None else self.amount_override
+
+    def days_late(self, as_of) -> int:
+        """Whole days past its date while it is still unpaid (0 when due today or later, or settled)."""
+        if not self.outstanding:
+            return 0
+        return max((as_of - date.fromisoformat(self.due_date)).days, 0)
 
     @property
     def outstanding(self) -> bool:

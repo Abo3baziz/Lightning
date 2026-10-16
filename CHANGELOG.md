@@ -14,6 +14,9 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
   held markets are followed automatically; exchanges without a rate source (ISK) are not offered and MIC codes are gone from pickers; a listing may trade in another currency than its exchange (USD fund, USD line in London); KWD/BHD/OMR/JOD keep 3 decimals.
 - 2026-10-16 · Claude: **Kept apart**: brokerage and foreign-currency cash no longer count in Free cash, Safe to spend or the payday pool (still in what you own and If you sold today); ⋯ › Count its cash as spendable overrides it per account (`0065_account_spendable.sql`, `Position.kept_apart`). Mohab's Safe to spend 40,937 → 40,537 (THNDR's 400).
 - 2026-10-16 · Claude: Add account asks the institution first (its kind sets the type, the name is suggested; Held for and Notes sit under More); owner pickers list people only (`counterparties.kind`, migration `0064_counterparty_kind.sql`, person/business toggle in Counterparties); plan Matching settings fold away; broker list gains 11 brokers with `markets` and `home_currency`.
+- 2026-10-16 · Claude: Audit wording and display: locked certificates read "not counted until <date>" (muted, spaced); "Planned" replaces "Bill linked"; "Late · N days" chip, late first; Weekly review heading once; savings-rate period beside the figure.
+  "Budget until payday" and "Bills due, loans apart" renamed; Health shows months in cash you own; the planner splits by your current mix without targets and takes the Overview's free cash; no "Aliases · 0".
+
 - 2026-10-15 · Claude: two owner-requested reports, nothing fixed: an outside review of every tab (figures, wording, links, wiring, next steps) and a design for brokerages across exchanges and currencies (pockets, listings, workflows, analysis); `report/`.
 
 - 2026-10-15 · Claude: Page jump stays bottom right and appears only near the corner or while scrolling; the PC loading note matches the phone (muted square, bottom right, 300 ms);

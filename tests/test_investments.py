@@ -644,3 +644,21 @@ def test_a_one_day_hold_says_day_not_days(inv, monkeypatch):
     portfolio = client.get("/investments?period=month&month=2026-09").text
     assert "Held 1 day" in holding and "Held 1 day" in portfolio
     assert "Held 1 days" not in holding + portfolio
+
+
+def test_planner_without_targets_splits_by_the_current_mix(inv):
+    from lightning.investments.report import suggest_by_current_mix
+    assert suggest_by_current_mix({"Stocks": D("750"), "Gold": D("250"), "Cash": ZERO}, D("1000")) == {
+        "Stocks": D("750.00"), "Gold": D("250.00")}
+    split = suggest_by_current_mix({"A": D("1"), "B": D("1"), "C": D("1")}, D("100"))
+    assert sum(split.values()) == D("100") and suggest_by_current_mix({}, D("100")) == {}
+    c, accounts, _, comi, gold_fund = inv
+    c.investments.buy_total("2026-09-10", accounts["thndr"].id, comi.id, "10", "3000")
+    c.investments.buy_total("2026-09-10", accounts["thndr"].id, gold_fund.id, "10", "1000")
+    c.assets.set_price(comi.id, "2026-12-31", "300")
+    c.assets.set_price(gold_fund.id, "2026-12-31", "100")
+    assert c.investments.target_weights() == {}
+    page = TestClient(create_app(c)).get("/investments/planner?amount=4000").text
+    assert 'value="4000"' in page  # the Overview passes its free cash
+    assert "By your current mix" in page and "Set target allocation first" not in page
+    assert "3,000" in page and "1,000" in page  # 75% and 25% of 4,000, to the classes it holds

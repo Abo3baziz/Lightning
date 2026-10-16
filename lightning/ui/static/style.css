@@ -3413,3 +3413,6 @@ html[dir="rtl"] td[dir="ltr"], html[dir="rtl"] li.code { text-align: right; }
 /* A closed 'More' / 'Matching' disclosure inside a form: rare settings stay out of the way. */
 .form-more { margin:14px 0 0; }
 .form-more > .form-grid { margin-top:12px; }
+.locked-row small { display:block; }
+.locked-row b { color:var(--muted); font-weight:400; }
+.plan-status-late { background:var(--rose-soft, #FCEEF3); color:var(--rose-strong, #C93D72); }

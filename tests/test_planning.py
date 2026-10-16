@@ -221,7 +221,7 @@ def test_a_due_bill_inside_a_budget_is_not_counted_twice(c, setup, monkeypatch):
     assert c.planning.what_you_owe(day).bills_due == Decimal("12000")
     assert october.budget_spending == 0
     parts = dict(c.forecaster.forecast(day).safe_to_spend_parts)
-    assert "Budget left to spend" not in parts  # nothing left once the due rent is counted
+    assert "Budget until payday" not in parts  # nothing left once the due rent is counted
 
 
 def test_manual_link_suggests_only_plausible_transactions(c, setup, monkeypatch):
@@ -363,7 +363,7 @@ def test_safe_to_spend_counts_every_month_until_the_next_income(c, setup, monkey
     parts = dict(f.safe_to_spend_parts)
     # All of November (3,000) and the 15 days of December before the pay (3,000 × 15/31).
     assert f.next_income_date == "2026-12-16"
-    assert parts["Budget left to spend"] == -(Decimal("3000") + Decimal("1451.61")) - f.months[0].budget_spending
+    assert parts["Budget until payday"] == -(Decimal("3000") + Decimal("1451.61")) - f.months[0].budget_spending
     assert f.safe_to_spend == f.free_cash + sum(v for k, v in parts.items() if k != "Free cash")
 
 

@@ -1,5 +1,6 @@
 """Shared date range contract for Overview and Birdview."""
 
+import calendar
 from dataclasses import dataclass
 from datetime import date
 
@@ -21,6 +22,18 @@ class Period:
     @property
     def end_text(self) -> str:
         return fmt_date(self.end)
+
+    @property
+    def tag(self) -> str:
+        """The period in the fewest words, to sit beside a figure: '2026-10 so far', '2026-09', 'Year to date'."""
+        if self.key == "month":
+            last = calendar.monthrange(self.start.year, self.start.month)[1]
+            return self.start_text[:7] + (" so far" if self.end.day < last or self.end.month != self.start.month else "")
+        if self.key == "ytd":
+            return "Year to date"
+        if self.key == "all":
+            return "All time"
+        return f"{self.start_text} to {self.end_text}"
 
     @property
     def start_display(self) -> str:

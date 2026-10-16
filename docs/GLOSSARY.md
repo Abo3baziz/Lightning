@@ -220,8 +220,8 @@ Every figure a screen shows is listed here once. **From** says which layer its i
 | **Carryover** | Unused plan from last month, added to this month when carryover is on. | Left in plan last month | `budgeting.domain.BudgetLine.opening_carryover` |
 | **Planned** | What you plan to spend this month. The month's total also counts background estimates for untracked categories; one from a single month of spending is low confidence and shows a "!" that says why. | Base budget + Carryover | `budgeting.domain.BudgetLine.available` |
 | **Left in plan** | What is left of the plan; the Overview and Budget show the same month figure, and a negative one reads "Over plan". One-off categories are left out of Spent. | Planned − Spent | `budgeting.domain.BudgetLine.remaining` |
-| **Safe to spend** | Free cash after what is promised before your next income. An estimate. Budget left to spend, Saving for goals, Emergency fund top-up and Rest of savings target count for every month until that income (only the days before it in the month it lands), so a long gap between pays is covered. | Free cash − Bills and loan payments before next income − Budget left to spend − Saving for goals − Emergency fund top-up − Rest of savings target | `planning.forecast.CashForecaster._safe_to_spend` |
-| **Budget left to spend** | This month's left in plan less the scheduled bills it already covers, so a bill is never counted twice. | Left in plan − Bills inside the plan | `planning.domain.ForecastMonth.budget_spending` |
+| **Safe to spend** | Free cash after what is promised before your next income. An estimate. Budget until payday, Saving for goals, Emergency fund top-up and Rest of savings target count for every month until that income (only the days before it in the month it lands), so a long gap between pays is covered. | Free cash − Bills and loan payments before next income − Budget until payday − Saving for goals − Emergency fund top-up − Rest of savings target | `planning.forecast.CashForecaster._safe_to_spend` |
+| **Budget until payday** | This month's left in plan less the scheduled bills it already covers, so a bill is never counted twice. | Left in plan − Bills inside the plan | `planning.domain.ForecastMonth.budget_spending` |
 
 ### Entry-form fields
 
@@ -298,7 +298,7 @@ These names no longer appear on screens. Each is now called:
 | Realized gain | Gain from sales |
 | Change in unrealized gain | Price change on what you hold |
 | New money in | Money added |
-| Left in plan after bills | Budget left to spend |
+| Left in plan after bills | Budget until payday |
 | Deposits and holdings after sale (estimate) | Holdings after sale (estimate) |
 | Investments if sold (estimate) | Holdings after sale (estimate) |
 | New money added this period | Money added |
@@ -528,7 +528,7 @@ Asset class and exposure are separate. Account kinds describe the container: cas
 | FX part | جزء العملة |
 | Safe to spend | المتاح الآمن للصرف |
 | Bills inside the plan | الفواتير ضمن الخطة |
-| Budget left to spend | المتبقي من الميزانية للصرف |
+| Budget until payday | الميزانية لحد الراتب |
 | Bills and loan payments before next income | الفواتير والأقساط قبل الدخل القادم |
 | Saving for goals | الادخار للأهداف |
 | Rest of savings target | باقي هدف الادخار |

@@ -19,7 +19,8 @@ from ..web import container, redirect, render
 from ...assets.catalog import instruments
 from ..periods import parse_period
 from ...investments.report import (PLANNER_MODES, build_investment_report, investing_rate, investment_period, saved_and_invested,
-                                    period_growth, results_by_asset, suggest_contributions, normalized_target_weights)
+                                    period_growth, results_by_asset, suggest_contributions, suggest_by_current_mix,
+                                    normalized_target_weights)
 from .. import charts
 from lightning.core.figures import label
 from lightning.market.packs import chosen, read_zip
@@ -369,7 +370,8 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
 
 @router.get("/planner")
 async def planner_popup(request: Request):
-    return await _render_planner(request)
+    # The Overview's "Plan to invest" passes its free cash: /investments/planner?amount=208602
+    return await _render_planner(request, str(request.query_params.get("amount") or "10000"))
 
 
 @router.post("/planner")
@@ -403,7 +405,9 @@ async def _render_planner(request: Request, raw_amount: str="10000"):
     targets = c.investments.target_weights()
     planning_targets = normalized_target_weights(targets)
     target_total=sum(targets.values(),ZERO)
-    suggestions=suggest_contributions(dict(values),targets,amount,mode)
+    by_current_mix = not planning_targets and total > ZERO  # no targets: split by what is held now
+    suggestions = (suggest_by_current_mix(dict(values), amount) if by_current_mix
+                   else suggest_contributions(dict(values),targets,amount,mode))
     tones={cls.name:charts.class_tone(cls.code) for cls in c.assets.list_classes()}  # each class in its own colour
     rows=[]
     for bucket in sorted(set(values)|set(targets),key=lambda b:(-values.get(b,ZERO),b.casefold())):
@@ -413,7 +417,7 @@ async def _render_planner(request: Request, raw_amount: str="10000"):
                      "after":(value+suggested)/(total+amount)*100 if total+amount else ZERO})
     return render(request,"investments/planner.html",amount=amount,mode=mode,rows=rows,target_total=target_total,
                   monthly_goal=c.settings.get("investment_monthly_goal") or "",
-                  planner_ready=bool(planning_targets),allocation_sum=sum((r["suggested"] for r in rows),ZERO))
+                  planner_ready=bool(planning_targets) or by_current_mix, by_current_mix=by_current_mix,allocation_sum=sum((r["suggested"] for r in rows),ZERO))
 
 
 @router.get("/holding/{asset_id:int}")
