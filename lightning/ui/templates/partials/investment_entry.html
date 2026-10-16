@@ -1,4 +1,4 @@
-{# Buy, sell or a dividend in a brokerage account: the PC register and the phone account page (C11.2) share it. #}
+{# Buy, sell, a dividend, a broker fee, interest on cash or a move to another broker: the PC register and the phone account page (C11.2) share it. #}
 {% if can_invest and account.active %}
 <section class="card investment-entry-card">
   <h2 class="investment-entry-heading">{{ "Add investment transaction"|tr(locale) }}</h2>
@@ -9,7 +9,7 @@
     <input id="investment-action" type="hidden" name="trade_action" value="{{ investment_entry.get('trade_action', 'buy') }}">
     <div class="investment-row investment-row-top">
       <div class="investment-segment" role="group" aria-label="{{ 'Type'|tr(locale) }}">
-        {% for value, label in [('buy', 'Buy'), ('sell', 'Sell'), ('dividend', 'Dividend')] %}<button type="button" class="seg-button {{ 'is-active' if investment_entry.get('trade_action', 'buy') == value }}" data-trade-action="{{ value }}" aria-pressed="{{ 'true' if investment_entry.get('trade_action', 'buy') == value else 'false' }}">{{ label|tr(locale) }}</button>{% endfor %}
+        {% for value, label in [('buy', 'Buy'), ('sell', 'Sell'), ('dividend', 'Dividend')] + ([('fee', 'Fee'), ('interest', 'Interest'), ('move', 'Move')] if account.account_type.value == 'BROKERAGE' else []) %}<button type="button" class="seg-button {{ 'is-active' if investment_entry.get('trade_action', 'buy') == value }}" data-trade-action="{{ value }}" aria-pressed="{{ 'true' if investment_entry.get('trade_action', 'buy') == value else 'false' }}">{{ label|tr(locale) }}</button>{% endfor %}
       </div>
       <div class="field {{ 'has-error' if investment_error_field == 'date' }}">
         <label for="investment-date">{{ 'Date'|tr(locale) }}</label>
@@ -38,6 +38,12 @@
           <option value="per_share" {{ 'selected' if investment_entry.get('dividend_basis') == 'per_share' }}>{{ "Dividend per share / unit"|tr(locale) }}</option>
         </select>
       </div>
+      <div class="field {{ 'has-error' if investment_error_field == 'to_account' }}" id="investment-move-field" hidden>
+        <label for="investment-move-to">{{ "Move to"|tr(locale) }}</label>
+        <select id="investment-move-to" name="to_account_id" disabled><option value="">{{ "Choose a broker…"|tr(locale) }}</option>
+          {% for a in move_targets %}<option value="{{ a.id }}" {{ 'selected' if investment_entry.get('to_account_id') == a.id|string }}>{{ a.label }}</option>{% endfor %}
+        </select>
+      </div>
       <div class="field {{ 'has-error' if investment_error_field == 'total' }}">
         <label id="investment-total-label" for="investment-total">{{ 'Amount'|tr(locale) }}</label>
         <input id="investment-total" type="text" name="total" value="{{ investment_entry.get('total', '') }}" placeholder="0.00" inputmode="decimal" class="money-input">
@@ -48,6 +54,14 @@
         <label class="investment-fee-mode" id="investment-fees-toggle-field"><input id="investment-fees-included" type="checkbox" name="fees_included" value="0" data-fees-excluded {{ 'checked' if investment_entry.get('fees_included') == '0' }}>{{ "Add fees on top instead"|tr(locale) }}</label>
       </div>
     </div>
+    <details class="investment-tax" id="investment-tax-field" {{ 'open' if investment_entry.get('tax_withheld') }} hidden>
+      <summary>{{ "Tax was taken"|tr(locale) }}</summary>
+      <div class="field {{ 'has-error' if investment_error_field == 'tax' }}">
+        <label for="investment-tax">{{ "Tax withheld"|tr(locale) }}</label>
+        <input id="investment-tax" type="text" name="tax_withheld" value="{{ investment_entry.get('tax_withheld', '') }}" placeholder="0.00" inputmode="decimal" class="money-input" disabled>
+        <p class="help">{{ "Then enter the full dividend above. Leave empty if you record what you received."|tr(locale) }}</p>
+      </div>
+    </details>
     <p id="investment-pay-line" class="muted small investment-pay-line" aria-live="polite"></p>
     <div class="form-grid investment-row-foot">
       <div class="field investment-owner-field">

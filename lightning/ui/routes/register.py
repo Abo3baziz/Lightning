@@ -376,6 +376,9 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         holdings=holdings,
         composition=account_composition(account_asset_breakdown, account_value, account_owned_value, account_held_value) if account_asset_breakdown else None,
         can_invest=can_invest, trade_choices=trade_choices,
+        move_targets=[a for a in c.accounts.list(active_only=True)
+                      if account and a.id != account.id and a.account_type == AccountType.BROKERAGE
+                      and a.currency == account.currency] if can_invest and account.account_type == AccountType.BROKERAGE else [],
         investment_entry=investment_entry, investment_error_field=investment_error_field,
         cash_accounts=[a for a in c.accounts.list(active_only=True) if account and a.id != account.id]
                       if can_invest and account.account_type.value != "BROKERAGE" else [],
@@ -611,18 +614,29 @@ async def create_investment_entry(request: Request, account_id: int):
     form = await request.form()
     values = {key: str(form.get(key, "")).strip() for key in
               ("date", "instrument_key", "trade_action", "units", "total", "dividend_basis", "unit_price", "price_basis", "fees",
-               "fees_included", "cash_account_id", "notes", "whom")}
+               "fees_included", "cash_account_id", "notes", "whom", "tax_withheld", "to_account_id")}
     values["instrument_label"] = str(form.get("instrument_label", ""))
     values["is_others"] = "1" if (form.get("is_others") or values.get("whom")) else ""
     try:
         if account.account_type not in INVESTMENT_ACCOUNT_TYPES:
             raise ValidationError("Investment entries can only be added to an investment account.")
+        action = values["trade_action"] or "buy"
+        if action not in {"buy", "sell", "dividend", "fee", "interest", "move"}:
+            raise ValidationError("Choose Buy, Sell, Dividend, Fee, Interest or Move.", "trade_action")
+        if action in {"fee", "interest"}:  # the broker's own cash: no instrument
+            day = fmt_date(parse_date(values["date"], "date"))
+            with c.db.transaction():
+                txn = (c.investments.broker_fee if action == "fee" else c.investments.broker_interest)(
+                    day, account.id, values["total"], values["notes"])
+            return txn, values
         key = values["instrument_key"]
         if not key:
             raise ValidationError("Type a stock or fund and choose it from the results.", "instrument")
-        action = values["trade_action"] or "buy"
-        if action not in {"buy", "sell", "dividend"}:
-            raise ValidationError("Choose Buy, Sell, or Dividend.", "trade_action")
+        if action == "move":
+            if not values["to_account_id"].isdigit():
+                raise ValidationError("Choose the broker to move the shares to.", "to_account")
+            if not values["units"]:
+                raise ValidationError("Enter how many units to move.", "units")
         units = to_decimal(values["units"], "units") if values["units"] and action != "dividend" else None
         if units is not None and units < ZERO:
             raise ValidationError("Enter units as a positive quantity; choose Sell for a sale.", "units")
@@ -663,6 +677,10 @@ async def create_investment_entry(request: Request, account_id: int):
             if asset.currency != account.currency:
                 raise ValidationError(f"{asset.name} is priced in {asset.currency}; this account is in {account.currency}. "
                                       f"Use a {asset.currency} account.", "instrument")
+            if action == "move":
+                txn = c.investments.move_units(values["date"], account.id, int(values["to_account_id"]), asset.id,
+                                               values["units"], values["notes"])
+                return txn, values
             owner = None
             owner_id = None
             if values["is_others"]:
@@ -703,7 +721,7 @@ async def create_investment_entry(request: Request, account_id: int):
                         raise ValidationError(f"{who.capitalize()} must hold shares of this investment on that date to receive a dividend.", "instrument")
                     dividend_amount = (dividend_amount * held_units).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                 txn = c.investments.dividend(values["date"], account.id, asset.id, dividend_amount,
-                                             values["notes"], owner_id=owner_id)
+                                             values["notes"], owner_id=owner_id, tax=values["tax_withheld"])
             elif units > ZERO:
                 basis = values["price_basis"]
                 if basis == "unit_price" or (unit_price and not total):

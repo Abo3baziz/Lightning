@@ -168,7 +168,7 @@ async def portfolio(request: Request):
         if total:
             share = yours/total
             row["realized"] += (holding.realized-(old.realized if old else ZERO))*share
-            row["dividends"] += (holding.dividends-(old.dividends if old else ZERO))*share
+            row["dividends"] += (holding.net_dividends-(old.net_dividends if old else ZERO))*share
     asset_class_rows = sorted(((name, row) for name, row in class_totals.items() if row["yours"] > ZERO),
                               key=lambda item: (-item[1]["yours"], item[0].casefold()))
     assets = c.assets.all_investment_preferences()
@@ -433,7 +433,7 @@ async def holding_detail(request: Request, asset_id: int):
         own_units=max(ZERO,h.quantity-Decimal(str(custody["units"])))
         factor=own_units/h.quantity
         h=replace(h,quantity=own_units,cost_basis=h.owned_cost_basis,realized=h.owned_realized,
-                  dividends=h.dividends*factor,value=(h.value*factor if h.value is not None else None),xirr=None,
+                  dividends=h.dividends*factor,dividend_tax=h.dividend_tax*factor,value=(h.value*factor if h.value is not None else None),xirr=None,
                   display_return=None)
     asset=c.assets.get_asset(asset_id)
     saved_bucket, saved_horizon = c.assets.investment_preferences(asset_id)
@@ -447,7 +447,8 @@ async def holding_detail(request: Request, asset_id: int):
     total_return = h.total_return
     breakdown = charts.waterfall(("What you paid", h.cost_basis),
                                  [("Price change", h.unrealized or ZERO), ("Gain from sales", h.realized),
-                                  ("Dividends and interest", h.dividends)],
+                                  ("Dividends and interest", h.dividends),
+                                  *((("Tax withheld", -h.dividend_tax),) if h.dividend_tax else ())],
                                  ("Value plus what it paid you", h.cost_basis + total_return))
     stale_price=any(row["asset_id"]==asset_id for row in c.reporting.stale_prices(day))
     return render(request,"investments/holding.html",h=h,asset=asset,bucket=bucket,horizon=horizon,day=day,stale_price=stale_price,

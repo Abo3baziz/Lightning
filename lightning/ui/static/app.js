@@ -1180,37 +1180,62 @@ if (tradeCatalogueNode) {
   const sync = () => {
     const actionKind = action?.value || "buy";
     const rawQty = number(units);
-    const qty = actionKind === "dividend" || rawQty === null ? null : (actionKind === "sell" ? -rawQty : rawQty);
+    const qty = actionKind === "dividend" || actionKind === "fee" || actionKind === "interest" || rawQty === null
+      ? null : (actionKind === "sell" ? -rawQty : rawQty);
     const cashTotal = number(total);
     const price = number(unitPrice);
     const fee = number(fees) || 0;
     const included = !feesExcluded?.checked;
     const isDividend = actionKind === "dividend";
+    const isCash = actionKind === "fee" || actionKind === "interest";  // the broker's own cash: no instrument
+    const isMove = actionKind === "move";
+    const isTrade = !isDividend && !isCash && !isMove;
     form.classList.toggle("is-dividend", isDividend);
     form.querySelectorAll("[data-trade-action]").forEach((button) => {
       const active = button.dataset.tradeAction === actionKind;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    if (unitsField) unitsField.hidden = isDividend;
-    units.disabled = isDividend;
-    if (dividendBasisField) dividendBasisField.hidden = !isDividend;
-    if (priceField) priceField.hidden = isDividend;
-    if (feesField) feesField.hidden = isDividend;
-    if (feesToggleField) feesToggleField.hidden = isDividend;
-    if (fees) fees.disabled = isDividend;
-    if (feesExcluded) feesExcluded.disabled = isDividend;
-    if (unitPrice) unitPrice.disabled = isDividend;
+    const showField = (node, on) => { if (node) node.hidden = !on; };
+    const enable = (node, on) => { if (node) node.disabled = !on; };
+    showField(unitsField, isTrade || isMove);
+    enable(units, isTrade || isMove);
+    showField(dividendBasisField, isDividend);
+    showField(priceField, isTrade);
+    showField(feesField, isTrade);
+    showField(feesToggleField, isTrade);
+    enable(fees, isTrade);
+    enable(feesExcluded, isTrade);
+    enable(unitPrice, isTrade);
+    showField(total.closest(".field"), !isMove);
+    enable(total, !isMove);
+    showField(form.querySelector(".instrument-picker"), !isCash);
+    if (search) search.required = !isCash;
+    const taxField = document.getElementById("investment-tax-field");
+    showField(taxField, isDividend);
+    enable(taxField?.querySelector("input"), isDividend);
+    const moveField = document.getElementById("investment-move-field");
+    showField(moveField, isMove);
+    enable(moveField?.querySelector("select"), isMove);
+    ["investment-owner-field", "investment-cash-source"].forEach((name) => {
+      const field = form.querySelector("." + name);
+      showField(field, isTrade || isDividend);
+      field?.querySelectorAll("input, select").forEach((node) => enable(node, isTrade || isDividend));
+    });
     if (isDividend) {
       const perShare = dividendBasis?.value === "per_share";
       amountLabel.textContent = t(perShare ? "Amount per unit" : "Amount");
       total.placeholder = t(perShare ? "Amount per unit" : "Amount received");
     }
+    else if (isCash) {
+      amountLabel.textContent = t(actionKind === "fee" ? "Fee charged" : "Interest received");
+      total.placeholder = "0.00";
+    }
     else {
       amountLabel.textContent = t("Amount");
       total.placeholder = t(actionKind === "sell" ? "Amount received" : "Amount paid");
     }
-    if (qty !== null && Math.abs(qty) > 0) {
+    if (isTrade && qty !== null && Math.abs(qty) > 0) {
       if (basis.value === "unit_price" && price !== null) {
         const gross = Math.abs(qty) * price;
         total.value = formatted(gross + (included ? (qty > 0 ? fee : -fee) : 0), 2);
@@ -1220,7 +1245,7 @@ if (tradeCatalogueNode) {
       }
     }
     let exceeds = false;
-    if (selected && actionKind === "sell" && qty !== null) {
+    if (selected && (actionKind === "sell" || actionKind === "move") && qty !== null) {
       const owned = Number(selected.holding || 0);
       exceeds = Math.abs(qty) > owned;
       positionHint.textContent = exceeds
@@ -1237,7 +1262,7 @@ if (tradeCatalogueNode) {
       let text = "";
       if (isDividend) {
         if (cashTotal !== null && dividendBasis?.value !== "per_share") text = t("You receive {cash} {currency}", {cash: money(cashTotal), currency: cur});
-      } else if (qty !== null && Math.abs(qty) > 0 && cashTotal !== null) {
+      } else if (isTrade && qty !== null && Math.abs(qty) > 0 && cashTotal !== null) {
         const buying = qty > 0;
         const gross = cashTotal + (included ? (buying ? -fee : fee) : 0);
         const cash = buying ? gross + fee : gross - fee;

@@ -10,6 +10,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: investment events on a brokerage account's entry: Dividend gains an optional *Tax was taken* (gross income, tax its own cost, Net gain uses net), plus Fee, Interest and Move to another broker (average cost carries over, no cash, no gain);
+  new category Investment › Tax withheld (`0066_investment_tax_category.sql`); `tests/test_investment_events.py`.
 - 2026-10-16 · Claude: currencies said out loud: a foreign holding's price, average cost and trades in its own currency (holdings table, holding page), a USD account's header in USD and ≈ EGP, Prices with currency and no trailing zeros; Foreign money counts foreign investments;
   held markets are followed automatically; exchanges without a rate source (ISK) are not offered and MIC codes are gone from pickers; a listing may trade in another currency than its exchange (USD fund, USD line in London); KWD/BHD/OMR/JOD keep 3 decimals.
 - 2026-10-16 · Claude: **Kept apart**: brokerage and foreign-currency cash no longer count in Free cash, Safe to spend or the payday pool (still in what you own and If you sold today); ⋯ › Count its cash as spendable overrides it per account (`0065_account_spendable.sql`, `Position.kept_apart`). Mohab's Safe to spend 40,937 → 40,537 (THNDR's 400).

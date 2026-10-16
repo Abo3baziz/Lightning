@@ -85,6 +85,7 @@ CATEGORIES: list[tuple[str, str, dict]] = [
     ("EXP.INVEST.INTEREST", "Interest", {"movement": "INFLOW", "income_class": "INVESTMENT"}),
     ("EXP.INVEST.DIVIDEND", "Dividends", {"movement": "INFLOW", "income_class": "INVESTMENT"}),
     ("EXP.INVEST.FEES", "Investment Fees", {}),
+    ("EXP.INVEST.TAX", "Tax withheld", {}),
     ("EXP.INVEST.OTHER", "Other Investment", {}),
 ]
 
