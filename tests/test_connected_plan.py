@@ -269,6 +269,8 @@ def test_a_raise_in_recurring_is_offered_to_the_plan(c, setup):
     assert inbox["Your income went up"]["popup"] and inbox["Your income went up"]["href"] == f"/budget/raise?month={MONTH}"
     browser = _ScreenClient(create_app(c), "http://testserver")
     assert "Save the difference" in visible_text(browser.get(f"/budget/raise?month={MONTH}").text)
+    budget = visible_text(browser.get(f"/budget?month={MONTH}").text)
+    assert "Your income went up" in budget and "Raise the plan" in budget and "Save the difference" in budget
     page = visible_text(browser.post("/budget/raise", data={"month": MONTH, "choice": "save"}).text)
     assert "Savings target raised to 33.3%" in page and c.health.limit_values()["savings_rate"] == Decimal("33.3")
     assert c.health.take_raise("plan").startswith("The plan now counts your recurring income, 36,000")

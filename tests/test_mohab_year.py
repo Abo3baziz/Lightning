@@ -1194,7 +1194,7 @@ def test_the_years_investments(mohab):
     # 1,025 from the sale + 225 price change + 300 dividends + 12 × 1,833.33 of certificate interest
     assert mohab.answers["year_investing"].shows("Net gain or loss 2026-10-01 to 2027-09-30 +23,550")
     # The interest lands on CIB Payroll from NBE, the certificate's bank, and is still the certificate's return.
-    assert mohab.answers["flat"].shows("NBE 3-year certificate 1 certificate 100,000 100,000 100,000 100,000 17.5% +27,500 +27.5% +24.6%")
+    assert mohab.answers["flat"].shows("1 certificate Set", "100,000 100,000 100,000 100,000 17.5% +27,500 +27.5% +24.6%")
 
 
 def test_data_checks_pass_after_a_year(mohab):

@@ -342,7 +342,8 @@ def _page(request: Request, month: str, values: dict | None = None, error: str =
         notes = keynotes.plan_check(check) + notes
     left_note = keynotes.per_day(month_left, days_left) if c.budgets.has_plan(month) else ""
     flow = c.reporting.cash_flow(period.start, period.end)
-    return render(request, "budget.html", notes=notes, meter_lines=meter_lines, left_note=left_note, check=check,
+    return render(request, "budget.html", notes=notes,
+                  raise_offer=c.health.raise_offer(month) if period.key == "month" else None, meter_lines=meter_lines, left_note=left_note, check=check,
                   savings=flow, saved_split_data=saved_and_invested(flow, build_investment_report(
                       c.db, c.accounts, c.assets, c.reporting, period.start_text, period.end_text)["net_money"]),
                   plan_bar=charts.plan_bar(period_budgeted, period_actual),

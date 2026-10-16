@@ -758,6 +758,10 @@ class ReportingService:
             rows = [r for r in rows if r.txn_id in txn_ids]
         return list(reversed(rows))
 
+    def register_value_updates(self, account_id: int | None, date_from: date | str, date_to: date | str) -> int:
+        """How many rows of the register are system value updates (revaluations)."""
+        return self.q.statement_value_updates(account_id, self._day(date_from), self._day(date_to))
+
     def register_page(self, account_id: int | None, date_from: date | str, date_to: date | str,
                       page: int, page_size: int = 50) -> tuple[list[StatementRow], int, int]:
         """One page of ``register`` (newest first) without reading the rest: (rows, total rows, page).

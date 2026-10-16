@@ -108,6 +108,7 @@ def audit():
                 for path in PAGES:
                     response = page.goto(host.origin + path)
                     assert response is not None and response.status < 400, f"{path}: HTTP {response and response.status}"
+                    page.mouse.move(1, 1)  # a pointer resting on a field would show its hover border
                     result[path] = page.evaluate(COLLECT)
                 browser.close()
         finally:
