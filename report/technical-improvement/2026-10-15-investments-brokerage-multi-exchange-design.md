@@ -347,3 +347,20 @@ Built 2026-10-16 (merged to main):
 - Phase 1: per-listing price scale. GBX→GBP happens at the TradingView source, and the pack catalogue for London and the Gulf is not in the picker yet.
 - Phases 2-6: pockets, events, broker import, analysis views, lots.
 - §13 questions for the owner.
+
+Round 2, 2026-10-16. The owner answered §13: one row per broker; convert then buy; tax optional (net is the default); list each currency; a USD lens; the most popular brokers with their markets; no margin or short selling. On Q8 the decision was ours: these phases first, Europe and Gulf packs later.
+
+- **Phase 2, pockets (`0067_broker_pockets.sql`, `accounts.parent_id`):**
+  - A foreign listing is held in its currency's pocket, made on demand.
+  - *Paid in another currency* converts, then buys.
+  - The sidebar and Accounts show one row per broker. Its page shows cash by currency and every holding, with ⋯ › Add a currency.
+- **Phase 3, events:** optional dividend tax (`0066_investment_tax_category.sql`), broker fee, interest on broker cash, and moving shares between brokers.
+- **Phase 5, views:** By class, account, currency, market and security. Also a By currency card, a USD lens, and the share of the gain that came from exchange rates.
+- **Brokers:** added Al Rajhi Capital, SNB Capital, Derayah, Sahm Capital, Emirates NBD Securities, Charles Schwab International and Trading 212. Interactive Brokers now lists the Gulf.
+
+**Still open:**
+- Phase 4: import of broker statements and positions.
+- Merging today's separate *Dollar brokerage* into a broker as a pocket.
+- In the USD lens, the allocation card and brokerage cash stay in EGP.
+- Phase 6: lots and corporate actions.
+- Turning on the Europe and Gulf packs once their sources are licensed.

@@ -419,3 +419,13 @@ Built 2026-10-16 (Claude with three Sonnet helpers; branch `claude/product-ux-au
 - §8: Next and Later.
 
 Correction to §4.8: *Total return* and *Since purchase* are not duplicates. They differ after a year or a sale, so both stay.
+
+Round 2, 2026-10-16 (the owner said: pick what is sensible):
+
+- §3.4 item 8: a raise prompt on Budget.
+- §3.5: saved views are one *Views* menu.
+- §4.10: value updates are folded on account pages.
+- §4.8: the holdings table fits 1366 px.
+- §3.2: the subtitles named there are gone, and price sources sit behind *Where prices come from*.
+
+**Still open:** three hero numbers (§3.1), one home per page (§3.3), and §8 Next and Later.
