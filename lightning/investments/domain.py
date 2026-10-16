@@ -4,7 +4,7 @@ How the numbers work (average cost, the way THNDR shows it):
 - Buy:   cost basis += what you paid (price × units + fees); units += bought.
 - Sell:  cost removed = average cost × units sold; realized gain = what you received (after fees) − cost removed.
 - Value: units × latest price (a price you entered, else the last buy/sell price, else your cost).
-- Unrealized gain = value − cost basis still held.   Total return = unrealized + realized + dividends.
+- Unrealized gain = value − cost basis still held.   Total return = unrealized + realized + dividends (after any tax withheld).
 Nothing here is stored — it is all recalculated from the ledger.
 """
 
@@ -48,6 +48,12 @@ class Position:
     display_return: DisplayReturn | None = None
     invested: Decimal = ZERO  # all purchases, including the cost of units since sold
     owned_invested: Decimal = ZERO
+    dividend_tax: Decimal = ZERO  # tax withheld from the dividends above (they are gross)
+
+    @property
+    def net_dividends(self) -> Decimal:
+        """What the dividends paid after tax withheld: the part that counts as return."""
+        return self.dividends - self.dividend_tax
 
     def owned_result(self, units: Decimal, value: Decimal | None, cost: Decimal) -> dict:
         """Owned lifetime gain and plain return, using the original purchases as denominator.
@@ -56,7 +62,7 @@ class Position:
         follows the same owned-unit allocation as the Investments report.
         """
         share = units / self.quantity if self.quantity else ZERO
-        gain = None if value is None else value - cost + (self.owned_realized or ZERO) + self.dividends * share
+        gain = None if value is None else value - cost + (self.owned_realized or ZERO) + self.net_dividends * share
         invested = self.owned_invested
         return {"gain": gain, "invested": invested,
                 "gain_pct": gain / invested * 100 if gain is not None and invested else None}
@@ -81,7 +87,7 @@ class Position:
 
     @property
     def total_return(self) -> Decimal:
-        return (self.unrealized or ZERO) + self.realized + self.dividends
+        return (self.unrealized or ZERO) + self.realized + self.net_dividends
 
     @property
     def is_open(self) -> bool:
@@ -124,8 +130,12 @@ class Portfolio:
         return sum((p.dividends for p in self.positions), ZERO)
 
     @property
+    def dividend_tax(self) -> Decimal:
+        return sum((p.dividend_tax for p in self.positions), ZERO)
+
+    @property
     def total_return(self) -> Decimal:
-        return self.unrealized + self.realized + self.dividends
+        return self.unrealized + self.realized + self.dividends - self.dividend_tax
 
     def allocation(self, by: str = "asset_class") -> list[tuple[str, Decimal, Decimal]]:
         """(group, value, share %) of the open positions, largest first. by = asset_class | exposure."""

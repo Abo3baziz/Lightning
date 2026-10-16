@@ -29,6 +29,9 @@ from .xirr import xirr
 from .returns import display_return
 
 DIVIDEND_CATEGORY = "EXP.INVEST.DIVIDEND"
+INTEREST_CATEGORY = "EXP.INVEST.INTEREST"
+TAX_CATEGORY = "EXP.INVEST.TAX"  # tax a broker withheld from a dividend
+FEE_CATEGORY = "EXP.INVEST.FEES"  # a broker's own charge: custody, data, inactivity
 CENT = Decimal("0.01")
 
 
@@ -132,7 +135,9 @@ class InvestmentService:
             return self.money_added_transactions(start, end)
         type_filter = ("t.type='DIV'" if kind == "dividends" else
                        "t.type='SEL'" if kind == "sales" else
-                       "(t.type IN ('SEL','DIV') OR c.code IN ('EXP.INVEST.DIVIDEND','EXP.INVEST.INTEREST'))"
+                       "(t.type IN ('SEL','DIV') OR c.code IN ('EXP.INVEST.DIVIDEND','EXP.INVEST.INTEREST') OR "
+                       "(c.code='EXP.INVEST.FEES' AND le.account_id IN (SELECT id FROM accounts "
+                       "WHERE account_type='BROKERAGE')))"
                        if kind == "result" else
                        "t.type IN ('BUY','SEL','TRF','IN','OUT','ADJ')")
         return self.db.all(
@@ -164,7 +169,7 @@ class InvestmentService:
             "FROM transactions t JOIN ledger_entries le ON le.transaction_id=t.id "
             "LEFT JOIN categories c ON c.id=le.category_id "
             f"WHERE t.status='POSTED' AND le.owner_id IS NULL AND le.account_id IN ({marks}) AND t.date BETWEEN ? AND ? "
-            "AND t.type NOT IN ('DIV','OPN','VAL') AND COALESCE(c.code,'') NOT IN ('EXP.INVEST.DIVIDEND','EXP.INVEST.INTEREST') "
+            "AND t.type NOT IN ('DIV','OPN','VAL') AND COALESCE(c.code,'') NOT IN ('EXP.INVEST.DIVIDEND','EXP.INVEST.INTEREST','EXP.INVEST.FEES','EXP.INVEST.TAX') "
             "GROUP BY t.id HAVING SUM(le.amount_base_e6) != 0 ORDER BY t.date,t.id", (*ids, start, end))
         return [dict(r) | {"amount": Decimal(r["amount_e6"]) / Decimal(1_000_000)} for r in rows]
 
@@ -255,21 +260,93 @@ class InvestmentService:
                            owner_id=owner_id)
 
     def dividend(self, date: str, account_id: int, asset_id: int, amount, notes: str = "",
-                 owner_id: int | None = None) -> Transaction:
-        """A cash dividend from an investment, received into the account (money in: Investment Income)."""
+                 owner_id: int | None = None, tax="0") -> Transaction:
+        """A cash dividend from an investment, received into the account (money in: Investment Income).
+
+        ``amount`` is what you received, unless ``tax`` is given: then it is the gross dividend and the tax
+        withheld leaves the same account in the same transaction (net lands in cash)."""
         account_id, _ = self.route(account_id, asset_id)
         account = self.accounts.require_usable(account_id)
         if account.account_type != AccountType.BROKERAGE:
             raise ValidationError("Dividends can only be recorded in a brokerage account.", "account")
         if self.holding_for_owner(account_id, asset_id, date, owner_id) <= ZERO:
             raise ValidationError("A dividend requires shares held by the selected owner on that date.", "instrument")
-        lines, counterparty = self._dividend_lines(account_id, asset_id, amount, on=date)
+        lines, counterparty = self._dividend_lines(account_id, asset_id, amount, on=date, tax=tax)
         if owner_id is not None:
             lines = [replace(line, owner_id=owner_id) for line in lines]
         txn = self.transactions.post(DocType.DIV, date, lines, "", counterparty, notes)
         self.db.execute("INSERT INTO investment_dividend_assets(transaction_id,asset_id) VALUES(?,?)",
                         (txn.id, asset_id))
         return txn
+
+    def broker_fee(self, date: str, account_id: int, amount, notes: str = "") -> Transaction:
+        """A broker's own charge (custody, data, inactivity), paid from the brokerage's cash. It is an
+        investment cost (Investment › Investment Fees): it lowers Net gain, never household spending."""
+        account = self._brokerage_cash_account(account_id, "Fees")
+        value = check_places(to_decimal(amount, "amount"), 2, "amount")
+        if value <= ZERO:
+            raise ValidationError("Enter the fee the broker charged.", "total")
+        category = self.categories.get_by_code(FEE_CATEGORY)
+        cash_asset = self.assets.cash_asset(account.currency)
+        line = PostingLine.cash(account.id, cash_asset.id, -value, Effect.OUTFLOW, category.id, memo="Broker fee",
+                                fx_rate=self._rate(account, date))
+        return self.transactions.post(DocType.OUT, date, [line], "Broker fee", account.label, notes)
+
+    def broker_interest(self, date: str, account_id: int, amount, notes: str = "") -> Transaction:
+        """Interest a broker paid on its uninvested cash (Investment › Interest)."""
+        account = self._brokerage_cash_account(account_id, "Interest")
+        value = check_places(to_decimal(amount, "amount"), 2, "amount")
+        if value <= ZERO:
+            raise ValidationError("Enter the interest you received.", "total")
+        category = self.categories.get_by_code(INTEREST_CATEGORY)
+        cash_asset = self.assets.cash_asset(account.currency)
+        line = PostingLine.cash(account.id, cash_asset.id, value, Effect.INFLOW, category.id,
+                                memo="Interest on cash", fx_rate=self._rate(account, date))
+        return self.transactions.post(DocType.IN, date, [line], "Interest on cash", account.label, notes)
+
+    def move_units(self, date: str, from_account_id: int, to_account_id: int, asset_id: int, quantity,
+                   notes: str = "") -> Transaction:
+        """Move shares from one broker to another: no cash, no gain. The units keep their average cost,
+        so the destination holds them at the cost the source held them at.
+
+        Only your own units move (units held for someone else stay put); physical items and
+        certificates cannot be moved this way, and both accounts must be brokerages in the asset's currency."""
+        source = self._holding_account(from_account_id)
+        target = self._holding_account(to_account_id)
+        asset = self._investment(asset_id)
+        if source.id == target.id:
+            raise ValidationError("Choose a different broker to move the shares to.", "to_account")
+        if source.account_type != AccountType.BROKERAGE or target.account_type != AccountType.BROKERAGE:
+            raise ValidationError("Shares can only be moved between brokerage accounts.", "to_account")
+        self._same_currency(asset, source, target)
+        self._validate_asset_account(source, asset)
+        self._validate_asset_account(target, asset)
+        units = self._units(asset, quantity)
+        day = parse_date(date).isoformat()
+        held = self.holding_for_owner(source.id, asset.id, day)
+        if units > held:
+            raise ValidationError(f"{source.label} holds {_num(held)} {asset.unit}(s) of {asset.name}; "
+                                  f"you cannot move {_num(units)}.", "units")
+        position = next((p for p in self.portfolio(day, source.id).positions
+                         if p.asset_id == asset.id and p.owned_quantity), None)
+        if position is None or position.owned_quantity <= ZERO:
+            raise ValidationError(f"{source.label} holds no {asset.name} of yours to move.", "units")
+        cost = position.owned_cost_basis if units == position.owned_quantity else _money(
+            position.owned_cost_basis * units / position.owned_quantity)
+        per_unit = (cost / units).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+        memo = f"Move {_num(units)} × {asset.code} to {target.label}"
+        back = f"Move {_num(units)} × {asset.code} from {source.label}"
+        lines = [PostingLine.units(source.id, asset.id, -units, -cost, Effect.INTERNAL, per_unit, memo,
+                                   fx_rate=self._rate(source, date)),
+                 PostingLine.units(target.id, asset.id, units, cost, Effect.INTERNAL, per_unit, back,
+                                   fx_rate=self._rate(target, date))]
+        return self.transactions.post(DocType.TRF, date, lines, f"Move {asset.name}", asset.name, notes)
+
+    def _brokerage_cash_account(self, account_id, what: str) -> Account:
+        account = self.accounts.require_usable(account_id)
+        if account.account_type != AccountType.BROKERAGE:
+            raise ValidationError(f"{what} can only be recorded in a brokerage account.", "account")
+        return account
 
     def holding_for_owner(self, account_id: int, asset_id: int, as_of: str, owner_id: int | None = None) -> Decimal:
         """Return signed investment units held by one owner on a date."""
@@ -322,8 +399,9 @@ class InvestmentService:
         if kind == DocType.DIV:
             if self.holding_for_owner(values["account_id"], values["asset_id"], date, owner_id) <= ZERO:
                 raise ValidationError("A dividend requires shares held by the selected owner on that date.", "asset_id")
+            tax = values["tax"] if "tax" in values else self.values_of(txn_id).get("tax", "0")
             lines, counterparty = self._dividend_lines(values["account_id"], values["asset_id"], values["amount"],
-                                                       on=date)
+                                                       on=date, tax=tax)
             if owner_id:
                 lines = [replace(line, owner_id=int(owner_id)) for line in lines]
             updated = self.transactions.repost(txn_id, date, lines, "", counterparty, notes)
@@ -362,7 +440,9 @@ class InvestmentService:
                           fees_included=True, total=abs(c.quantity), cash_account_id=c.account_id)
         elif t.type == DocType.DIV and cash:
             asset_id = self.db.scalar("SELECT asset_id FROM investment_dividend_assets WHERE transaction_id=?", (t.id,))
-            values.update(account_id=cash[0].account_id, asset_id=asset_id, amount=cash[0].quantity)
+            gross = sum((ln.quantity for ln in cash if ln.quantity > ZERO), ZERO)
+            tax = -sum((ln.quantity for ln in cash if ln.quantity < ZERO), ZERO)
+            values.update(account_id=cash[0].account_id, asset_id=asset_id, amount=gross, tax=tax)
         elif t.type == DocType.OPN and units:
             values.update(account_id=units[0].account_id, asset_id=units[0].asset_id, quantity=units[0].quantity,
                           total_cost=units[0].amount)
@@ -382,6 +462,7 @@ class InvestmentService:
         day = fmt_date(as_of) if as_of and not isinstance(as_of, str) else (as_of or fmt_date(today()))
         state: dict[tuple[int, int], dict] = {}
         dividends: dict[tuple[int, str], Decimal] = {}
+        taxes: dict[tuple[int, str], Decimal] = {}
         cashflows: list[tuple[str, Decimal]] = []
         holding_flows: dict[tuple[int, int], list[tuple[str, Decimal]]] = {}
         for line in self.reporting.investment_lines(day, account_id):
@@ -392,7 +473,10 @@ class InvestmentService:
                 asset_code = self.assets.get_asset(asset_id).code
                 key = (line["account_id"], asset_code)
                 dividend = from_e6(line["amount_base_e6"])
-                dividends[key] = dividends.get(key, ZERO) + dividend
+                if dividend < ZERO:  # tax withheld: the dividend stays gross, the tax is its own figure
+                    taxes[key] = taxes.get(key, ZERO) - dividend
+                else:
+                    dividends[key] = dividends.get(key, ZERO) + dividend
                 cashflows.append((line["date"], dividend))
                 asset = self.assets.get_asset(asset_id)
                 holding_flows.setdefault((line["account_id"], asset.id), []).append((line["date"], dividend))
@@ -442,6 +526,7 @@ class InvestmentService:
                 exposure=EXPOSURE_LABELS[asset.exposure], unit=asset.unit, quantity=s["qty"],
                 cost_basis=_money(s["cost"]), realized=_money(s["realized"]),
                 dividends=dividends.pop((acc_id, asset.code), ZERO),
+                dividend_tax=taxes.pop((acc_id, asset.code), ZERO),
                 price=valuation.price if valuation else None,
                 price_date=valuation.price_date if valuation else None,
                 price_source=valuation.source if valuation else "",
@@ -459,7 +544,8 @@ class InvestmentService:
             asset = self.assets.get_asset_by_code(code)
             positions.append(Position(acc_id, self.accounts.get(acc_id).label, asset.id, asset.code, asset.name,
                                       self.assets.display_name(asset.asset_class_id), EXPOSURE_LABELS[asset.exposure],
-                                      asset.unit, ZERO, ZERO, ZERO, amount, None, None, "", ZERO))
+                                      asset.unit, ZERO, ZERO, ZERO, amount, None, None, "", ZERO,
+                                      dividend_tax=taxes.get((acc_id, code), ZERO)))
         positions.sort(key=lambda p: (-(p.value or ZERO), p.asset_name))
         cashflows.extend((day, position.value)
                          for position in positions if position.is_open and position.value is not None)
@@ -585,7 +671,7 @@ class InvestmentService:
                 PostingLine.cash(cash_account.id, cash_asset.id, proceeds, Effect.INTERNAL, memo=memo,
                                  fx_rate=self._rate(cash_account, on))], asset.name
 
-    def _dividend_lines(self, account_id, asset_id, amount, on=None):
+    def _dividend_lines(self, account_id, asset_id, amount, on=None, tax="0"):
         account = self.accounts.require_usable(account_id)
         if account.account_type != AccountType.BROKERAGE:
             raise ValidationError("Dividends can only be recorded in a brokerage account.", "account")
@@ -595,11 +681,22 @@ class InvestmentService:
         value = check_places(to_decimal(amount, "amount"), 2, "amount")
         if value <= ZERO:
             raise ValidationError("Enter the dividend you received.", "amount")
+        withheld = check_places(to_decimal(tax if str(tax or "").strip() else "0", "tax"), 2, "tax")
+        if withheld < ZERO:
+            raise ValidationError("Tax withheld cannot be negative.", "tax")
+        if withheld >= value:
+            raise ValidationError("Tax withheld must be less than the dividend.", "tax")
         category = self.categories.get_by_code(DIVIDEND_CATEGORY)
         cash_asset = self.assets.cash_asset(account.currency)
+        rate = self._rate(account, on or fmt_date(today()))
         # Asset attribution is stored in investment_dividend_assets; memo remains descriptive only.
-        return [PostingLine.cash(account.id, cash_asset.id, value, Effect.INFLOW, category.id, memo=asset.code,
-                                 fx_rate=self._rate(account, on or fmt_date(today())))], asset.name
+        lines = [PostingLine.cash(account.id, cash_asset.id, value, Effect.INFLOW, category.id, memo=asset.code,
+                                  fx_rate=rate)]
+        if withheld:
+            lines.append(PostingLine.cash(account.id, cash_asset.id, -withheld, Effect.OUTFLOW,
+                                          self.categories.get_by_code(TAX_CATEGORY).id,
+                                          memo=f"Tax withheld · {asset.code}", fx_rate=rate))
+        return lines, asset.name
 
     def _holding_lines(self, account: Account, asset: FinancialAsset, quantity, total_cost, on=None):
         self._same_currency(asset, account)

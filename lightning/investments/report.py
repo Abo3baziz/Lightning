@@ -11,7 +11,8 @@ def investment_period(db, accounts, assets, reporting, start: str, end: str):
     """The investment report for a period, with its Result.
 
     Change in unrealized gain = Unrealized gain at the end − Unrealized gain the day before the start.
-    Result = Realized gain + Change in unrealized gain + Dividends and interest (None if a price is missing).
+    Result = Realized gain + Change in unrealized gain + Dividends and interest − Tax withheld − Broker fees
+    (None if a price is missing). Dividends and interest are gross; tax withheld and broker fees are costs.
     """
     from datetime import date, timedelta
     closing = build_investment_report(db, accounts, assets, reporting, start, end)
@@ -20,7 +21,8 @@ def investment_period(db, accounts, assets, reporting, start: str, end: str):
     change = (None if closing["unrealized"] is None or opening["unrealized"] is None
               else closing["unrealized"] - opening["unrealized"])
     closing["unrealized_change"] = change
-    closing["result"] = None if change is None else closing["realized"] + change + closing["dividends"]
+    closing["result"] = None if change is None else (closing["realized"] + change + closing["dividends"]
+                                                      - closing["tax"] - closing["fees"])
     closing["opening"] = opening
     return closing
 
@@ -95,7 +97,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
     placeholders = ",".join("?" for _ in investment_account_ids)
     if not placeholders:
         return {"new_money": ZERO, "withdrawn": ZERO, "net_money": ZERO,
-                "dividends": ZERO, "realized": ZERO, "unresolved_dividends": 0,
+                "dividends": ZERO, "tax": ZERO, "fees": ZERO, "realized": ZERO, "unresolved_dividends": 0,
                 "holdings": [], "investment_cash": ZERO, "missing": [], "at_cost": [], "cost": ZERO,
                 "value": ZERO, "unrealized": ZERO}
     rows = db.all(
@@ -113,7 +115,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
     # Average cost is retained independently for each account and asset.
     books = defaultdict(lambda: {"units": ZERO, "cost": ZERO, "cost_native": ZERO, "realized": ZERO})
     movements = defaultdict(Decimal)
-    dividends = ZERO
+    dividends = tax = fees = ZERO
     cash_quantities = defaultdict(Decimal)
     asset_balances = defaultdict(Decimal)   # (account, cash asset) -> balance held as an asset's value
     # Use asset metadata by id; account boundaries are determined by account type.
@@ -126,10 +128,14 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
                 cash_quantities[row["asset_id"]] += q
             elif row["account_id"] in balance_ids:
                 asset_balances[(row["account_id"], row["asset_id"])] += q
-            if (row["account_id"] in investment_account_ids and
-                    (row["type"] == "DIV" or row["category_code"] in
-                     ("EXP.INVEST.DIVIDEND", "EXP.INVEST.INTEREST")) and row["date"] >= start):
-                dividends += amount
+            if row["account_id"] in investment_account_ids and row["date"] >= start:
+                if row["category_code"] == "EXP.INVEST.TAX":  # withheld from a dividend: a cost, not a lower dividend
+                    tax -= amount
+                elif row["category_code"] == "EXP.INVEST.FEES" and row["account_id"] in brokerage_ids:
+                    fees -= amount  # the broker's own charge
+                elif (row["type"] == "DIV" or row["category_code"] in
+                      ("EXP.INVEST.DIVIDEND", "EXP.INVEST.INTEREST")):
+                    dividends += amount
             continue
         if row["type"] == "DIV":
             # Missing legacy attribution is explicitly unresolved; cash remains in portfolio cash.
@@ -156,7 +162,8 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
     portfolio_ids = investment_account_ids | balance_ids
     for row in rows:
         if (row["date"] < start or row["type"] in ("DIV", "OPN") or row["category_code"] in
-                ("EXP.INVEST.DIVIDEND", "EXP.INVEST.INTEREST")):
+                ("EXP.INVEST.DIVIDEND", "EXP.INVEST.INTEREST", "EXP.INVEST.TAX") or
+                (row["category_code"] == "EXP.INVEST.FEES" and row["account_id"] in brokerage_ids)):
             continue
         acc = row["account_id"]
         if acc in portfolio_ids:
@@ -233,7 +240,7 @@ def build_investment_report(db, accounts, assets, reporting, start: str, end: st
                            "AND le.date BETWEEN ? AND ?", (start,end)) or 0
     # Brokerage cash is reported on its own (investment_cash); it is cash you own, not a holding.
     return {"new_money": new_money, "withdrawn": withdrawn, "net_money": new_money-withdrawn,
-            "dividends": dividends, "realized": period_realized, "holdings": holdings,
+            "dividends": dividends, "tax": tax, "fees": fees, "realized": period_realized, "holdings": holdings,
             "investment_cash": None if cash_unavailable else cash, "cost": total_cost,
             "value": None if holdings_unavailable else total_value,
             "unrealized": None if holdings_unavailable else unrealized,
@@ -299,7 +306,7 @@ def results_by_asset(investments, money_from_others, reporting, opening_day: str
             # Sold out during the period: its sale gain and distributions still
             # belong to the period result, less any gain it carried in.
             realized = holding.realized - (previous.realized if previous else ZERO)
-            dividends = holding.dividends - (previous.dividends if previous else ZERO)
+            dividends = holding.net_dividends - (previous.net_dividends if previous else ZERO)
             if not realized and not dividends:
                 continue
             share = old_share if previous and old_share else Decimal(1)
@@ -315,11 +322,11 @@ def results_by_asset(investments, money_from_others, reporting, opening_day: str
         if previous and previous.value is not None:
             unrealized_change = (owned_value - owned_cost) - (old_value - old_cost)
             realized_change = (holding.realized - previous.realized) * share
-            distribution_change = (holding.dividends - previous.dividends) * share
+            distribution_change = (holding.net_dividends - previous.net_dividends) * share
         else:
             unrealized_change = owned_value - owned_cost
             realized_change = holding.realized * share
-            distribution_change = holding.dividends * share
+            distribution_change = holding.net_dividends * share
         result = unrealized_change + realized_change + distribution_change
         class_results[holding.asset_class.split(" › ")[-1]] += result
         asset_result = asset_results[holding.asset_id]
