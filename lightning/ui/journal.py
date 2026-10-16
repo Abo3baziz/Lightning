@@ -33,13 +33,14 @@ class BoundedJournalBody:
         if scope["type"] != "http" or scope["method"] != "POST":
             return await self.app(scope, receive, send)
         chunks, total = [], 0
+        limit = 4096 if scope["path"] in ("/pairing/exchange", "/membership/exchange") else 64 * 1024 if scope["path"] == "/exchange" else 6 * 1024 * 1024
         while True:
             event = await receive()
             if event["type"] == "http.disconnect":
                 return
             chunk = event.get("body", b"")
             total += len(chunk)
-            if total > 6 * 1024 * 1024:
+            if total > limit:
                 return await PlainTextResponse("The upload is too large.", status_code=413)(scope, receive, send)
             chunks.append(chunk)
             if not event.get("more_body"):
@@ -53,7 +54,7 @@ class BoundedJournalBody:
         await self.app(scope, buffered, send)
 
 
-def create_journal_app(device, *, session_token, channel=None, synchronize=None, sms_source=None):
+def create_journal_app(device, *, session_token, channel=None, synchronize=None, sms_source=None, pairing=None):
     if not isinstance(session_token, str) or len(session_token) < 32:
         raise ValueError("A per-unlock session token is required")
     sync_task = None
@@ -89,7 +90,7 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
 
     @app.middleware("http")
     async def guard(request, call_next):
-        if not request.url.path.startswith("/static/") and request.url.path != "/exchange":
+        if not request.url.path.startswith("/static/") and request.url.path not in ("/exchange", "/pairing/exchange", "/membership/exchange"):
             token = request.cookies.get("journal_session", "")
             if not hmac.compare_digest(token.encode("utf-8"), session_token.encode("utf-8")):
                 return PlainTextResponse("Unlock this experimental profile first.", status_code=401)
@@ -119,7 +120,7 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
         editing = device.canonical_record(editing) if editing else None
         phone = "Mobile" in request.headers.get("user-agent", "") or "Android" in request.headers.get("user-agent", "")
         path = request.url.path
-        page = "entry" if editing or candidate or initial or path == "/add" else "capture" if path.startswith("/capture") else "review" if path.startswith("/review") else "balances" if path == "/balances" else "register"
+        page = "devices" if path.startswith("/devices") else "entry" if editing or candidate or initial or path == "/add" else "capture" if path.startswith("/capture") else "review" if path.startswith("/review") else "balances" if path == "/balances" else "register"
         rows = device.view()
         reviews = []
         if device.home:
@@ -150,12 +151,20 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
                 editing=editing, candidate=candidate, draft=draft, session=session_token, error=error, message=message,
                 split_count=max(4, sum(key.startswith("split_category_") for key in values)),
                 currency=device.c.base_currency, sms_available=sms_source is not None, sms_permission=sms_permission, phone=phone, page=page,
-                version=device.view_version(), sync=device.sync_status()), status_code=400 if error else 200)
+                pairing=pairing.screen() if pairing is not None else dict(enabled=False),
+                version=version(), sync=device.sync_status()), status_code=400 if error else 200)
+
+    def version():
+        from lightning.sync.journal.codec import digest
+        return digest(dict(ledger=device.view_version(), pairing=pairing.screen() if pairing is not None else None))
 
     @app.exception_handler(JournalError)
     @app.exception_handler(LightningError)
     async def failure(request, error):
-        if request.url.path == "/exchange":
+        if request.url.path in ("/exchange", "/pairing/exchange", "/membership/exchange"):
+            from lightning.sync.journal.local import MembershipUpdateRequired
+            if isinstance(error,MembershipUpdateRequired):
+                return PlainTextResponse("Membership update required.",status_code=409,headers={"X-Journal-Action":"membership"})
             return PlainTextResponse("Local journal request refused.", status_code=403)
         return render(request, error=str(error))
 
@@ -164,13 +173,58 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
     @app.get("/capture", response_class=HTMLResponse)
     @app.get("/review", response_class=HTMLResponse)
     @app.get("/balances", response_class=HTMLResponse)
+    @app.get("/devices", response_class=HTMLResponse)
     async def index(request: Request):
         schedule()
         return render(request)
 
     @app.get("/status")
     async def status(request: Request):
-        return JSONResponse({"version": device.view_version()})
+        return JSONResponse({"version": version()})
+
+    @app.post("/pairing/exchange")
+    async def pairing_exchange(request: Request):
+        if pairing is None:
+            return PlainTextResponse("Pairing is not open.",status_code=403)
+        body = await request.body()
+        if len(body) > 4096:
+            return PlainTextResponse("Pairing request refused.",status_code=413)
+        return Response(pairing.exchange(body),media_type="application/octet-stream")
+
+    @app.post("/membership/exchange")
+    async def membership_exchange(request: Request):
+        if pairing is None:
+            return PlainTextResponse("Membership unavailable.",status_code=403)
+        return Response(pairing.membership.control(await request.body()),media_type="application/octet-stream")
+
+    @app.post("/devices/{action}")
+    async def device_action(request: Request, action: str):
+        data = await form(request)
+        if pairing is None:
+            raise JournalError("Nearby pairing is unavailable in this preview")
+        if action == "open":
+            pairing.begin(str(data.get("password","")))
+        elif action == "stop":
+            pairing.stop()
+        elif action == "find":
+            await pairing.find()
+        elif action == "join":
+            await pairing.join(str(data.get("candidate","")),str(data.get("code","")),str(data.get("password","")))
+        elif action == "confirm":
+            pairing.confirm(str(data.get("digits","")))
+        elif action == "check":
+            if data.get("automatic") == "1":
+                try:
+                    await pairing.finish()
+                except (JournalError,OSError,TimeoutError):
+                    return JSONResponse(dict(paired=False))
+                schedule()
+                return JSONResponse(dict(paired=True))
+            await pairing.finish()
+            schedule()
+        else:
+            raise JournalError("Unknown device action")
+        return RedirectResponse("/devices",status_code=303)
 
     @app.get("/edit/{record}", response_class=HTMLResponse)
     async def edit(request: Request, record: str):

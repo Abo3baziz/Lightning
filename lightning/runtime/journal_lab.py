@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import getpass
 import hmac
+import json
 import os
 import secrets
 import time
@@ -31,7 +32,7 @@ from lightning.sync.journal.codec import JournalError
 from lightning.sync.journal.device import JournalDevice
 from lightning.sync.journal.finance import attach, initialize
 from lightning.sync.journal.home import JournalHome
-from lightning.sync.journal.local import LocalChannel, PinnedLocalClient
+from lightning.sync.journal.local import LocalChannel
 from lightning.ui.journal import create_journal_app
 
 
@@ -91,10 +92,17 @@ def open_lab(root, password):
             write_slot(marker, config)
         transport_key = bytes.fromhex(stores[0].db.scalar("SELECT value FROM journal_local WHERE name='transport'"))
         devices = [JournalDevice(stores[0], identities[0], home), JournalDevice(stores[1], identities[1])]
+        for device, name in zip(devices, ("Home", "PC")):
+            if device.store.db.scalar("SELECT value FROM journal_local WHERE name='authority_enrolled'"):
+                from lightning.sync.journal.authority import AuthorityMemory
+                authority = AuthorityMemory(root / f"authority-{name}.db", profile=config["profile"])
+                authority.bind(device.store)
         devices[0].flush_home()
         return devices, transport_key
     except BaseException:
         for store in stores:
+            if store.authority:
+                store.authority.close()
             store.close()
         raise
 
@@ -126,20 +134,44 @@ class LabServer(uvicorn.Server):
         yield
 
 
-async def serve(devices, transport_key, port, *, browser=True):
+async def serve(devices, transport_key, port, *, browser=True, mailbox_origin=None, internet_only=False):
     home, pc = devices
     home_channel = LocalChannel(home, transport_key=transport_key, peers={pc.identity.device_id: pc.identity.public_key})
     pc_channel = LocalChannel(pc, transport_key=transport_key, peers={home.identity.device_id: home.identity.public_key})
-    request = PinnedLocalClient(f"https://127.0.0.1:{port + 2}/exchange", home.identity.cert_path.read_text())
+    from lightning.sync.journal.membership import Membership
+    members = {device.identity.device_id:dict(key=device.identity.public_key,incarnation=device.store.config["incarnation"]) for device in devices}
+    for device, channel in ((home, home_channel), (pc, pc_channel)):
+        membership = Membership(device)
+        if not device.store.db.scalar("SELECT value FROM journal_local WHERE name='membership'"):
+            membership.initialize(members,transport_key)
+        membership.bind(channel)
+        with device.store.db.transaction():
+            device.store.db.execute("INSERT OR REPLACE INTO journal_local VALUES('paired_names',?)",
+                (json.dumps({item.identity.device_id:item.identity.name for item in devices}),))
+    internet = []
+    if mailbox_origin:
+        from lightning.runtime.journal_internet import JournalInternet
+        internet = [JournalInternet(device, mailbox_origin) for device in devices]
+    if internet_only and not internet:
+        raise JournalError("Configure the mailbox before choosing internet-only transport")
+    from lightning.runtime.journal_routes import LocalFirstSync
+    router = LocalFirstSync(pc, pc_channel, home_id=home.identity.device_id,
+        certificate=home.identity.cert_path.read_text(), endpoints=[f"https://127.0.0.1:{port + 2}/exchange"],
+        internet=internet[1] if internet else None)
+    from lightning.runtime.journal_pairing import NearbyPairing
+    pairings = [NearbyPairing(home,key_document=lambda:read_slot(Path(home.store.db.path).parent/'keys.json')), NearbyPairing(pc)]
     async def sync():
-        await pc_channel.synchronize(request, home_id=home.identity.device_id)
+        if not internet_only:
+            return await router.synchronize()
+        await internet[0].catch_up(foreground=True)
+        await internet[1].catch_up(foreground=True)
     token = secrets.token_urlsafe(32)
-    apps = [LaunchGate(create_journal_app(home, session_token=token, channel=home_channel), token),
-            LaunchGate(create_journal_app(pc, session_token=token, synchronize=sync), token)]
-    protocol = create_journal_app(home, session_token=token, channel=home_channel)
+    apps = [LaunchGate(create_journal_app(home, session_token=token, channel=home_channel, pairing=pairings[0]), token),
+            LaunchGate(create_journal_app(pc, session_token=token, synchronize=sync, pairing=pairings[1]), token)]
+    protocol = create_journal_app(home, session_token=token, channel=home_channel, pairing=pairings[0])
     servers = [LabServer(uvicorn.Config(app, host="127.0.0.1", port=port + index, access_log=False, log_level="error", timeout_graceful_shutdown=5))
                for index, app in enumerate(apps)]
-    servers.append(LabServer(uvicorn.Config(protocol, host="127.0.0.1", port=port + 2,
+    servers.append(LabServer(uvicorn.Config(protocol, host="0.0.0.0", port=port + 2,
         ssl_keyfile=str(home.identity.key_path), ssl_certfile=str(home.identity.cert_path),
         access_log=False, log_level="error", timeout_graceful_shutdown=5)))
     async def launch():
@@ -155,20 +187,34 @@ async def serve(devices, transport_key, port, *, browser=True):
         while True:
             await asyncio.sleep(30)
             try:
-                await sync()
+                if internet and not internet_only:
+                    await asyncio.gather(sync(), internet[0].catch_up())
+                else:
+                    await sync()
             except (OSError, TimeoutError, JournalError):
                 pass
+    from lightning.sync.journal.discovery import LanResponder, DISCOVERY_PORT
+    discovery_transport = None
+    try:
+        discovery_transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
+            lambda:LanResponder(home_channel,tls_port=port+2,nearby=pairings[0].advertise),local_addr=("0.0.0.0",DISCOVERY_PORT))
+    except OSError:
+        pass  # Pinned cached addresses and the optional cloud route still work.
     running = asyncio.gather(*(server.serve() for server in servers), launch())
     periodic = asyncio.create_task(reconnect())
     try:
         await asyncio.shield(running)
     finally:
+        if discovery_transport:
+            discovery_transport.close()
         for server in servers:
             server.should_exit = True
         periodic.cancel()
         await asyncio.gather(periodic, return_exceptions=True)
         # Let ASGI lifespans drain/cancel sync before profile keys/connections close.
         await running
+        for runtime in internet:
+            await runtime.close()
 
 
 def main():
@@ -176,6 +222,8 @@ def main():
     parser.add_argument("--dummy", action="store_true", required=True)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--port", type=int, default=47540)
+    parser.add_argument("--mailbox-origin")
+    parser.add_argument("--internet-only", action="store_true")
     args = parser.parse_args()
     if not 1024 <= args.port <= 65533:
         parser.error("Choose a port between 1024 and 65533")
@@ -187,11 +235,13 @@ def main():
         devices, key = open_lab(args.root, password)
         try:
             print("Opening the persistent dummy home and PC. Press Ctrl-C to close both.")
-            asyncio.run(serve(devices, key, args.port))
+            asyncio.run(serve(devices, key, args.port, mailbox_origin=args.mailbox_origin, internet_only=args.internet_only))
         except KeyboardInterrupt:
             pass
         finally:
             for device in devices:
+                if device.store.authority:
+                    device.store.authority.close()
                 device.store.close()
 
 

@@ -28,6 +28,11 @@ setInterval(async () => {
   acknowledgeVisible();
   if (dirty || !initialVersion) return;
   try {
+    if (document.querySelector('[data-pairing-pending]') && token) {
+      const paired = await fetch('/devices/check', {method:'POST', credentials:'same-origin',
+        body:new URLSearchParams({__session:token, automatic:'1'})});
+      if (paired.ok && (await paired.json()).paired) { location.href='/devices'; return; }
+    }
     const response = await fetch('/status', {credentials: 'same-origin', cache: 'no-store'});
     if (response.ok && (await response.json()).version !== initialVersion && !dirty) location.reload();
   } catch (_) { /* An unavailable local app leaves the current view intact. */ }

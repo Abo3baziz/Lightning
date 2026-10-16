@@ -20,6 +20,14 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from .codec import JournalError, authenticate, canonical, fields, origin, origin_id, number, uuid, seal, unpack
 
 
+class CatchupPaused(JournalError):
+    """This bounded wake-up ended; resume from its already durable cursor."""
+
+
+class MembershipUpdateRequired(JournalError):
+    """Fetch the signed individual key wrap using saved device credentials."""
+
+
 def encode(data):
     text = base64.b64encode(data).decode("ascii")
     return [text[index:index + 12000] for index in range(0, len(text), 12000)]
@@ -43,6 +51,8 @@ class LocalChannel:
         self.device, self.key, self.peers, self.epoch = device, transport_key, dict(peers), epoch
 
     def protect(self, payload, recipient):
+        if hasattr(self, "membership"):
+            self.membership.refresh(self)
         if recipient not in self.peers:
             raise JournalError("Recipient is not paired")
         config = self.device.store.config
@@ -53,6 +63,8 @@ class LocalChannel:
         return seal(header | dict(nonce=nonce.hex(), ciphertext=encode(ciphertext)), self.device.identity.sign)
 
     def open(self, wire):
+        if hasattr(self, "membership"):
+            self.membership.refresh(self)
         envelope = unpack(wire)
         body = envelope["body"]
         fields(body, ("version", "type", "profile", "generation", "sender", "recipient", "epoch", "nonce", "ciphertext"))
@@ -67,9 +79,11 @@ class LocalChannel:
             "SELECT 1 FROM journal_origins WHERE device=? AND public_key=? AND revoked=0", (body["sender"], public_key)):
             raise JournalError("Sender is no longer trusted")
         self.device.store._scope(body)
-        if (body["version"] != 2 or body["type"] != "journal-envelope" or body["epoch"] != self.epoch
+        if (body["version"] != 2 or body["type"] != "journal-envelope"
                 or body["recipient"] != self.device.store.config["device"]):
             raise JournalError("Invalid routing or transport-key epoch")
+        if body["epoch"] != self.epoch:
+            raise MembershipUpdateRequired("Membership update required")
         try:
             nonce = bytes.fromhex(body["nonce"])
             if len(nonce) != 12:
@@ -98,7 +112,7 @@ class LocalChannel:
             if inner["origin"]["device"] != sender:
                 raise JournalError("A local sender cannot impersonate another origin")
             result = dict(status=home.receive(proposal))
-            home.process()
+            home.process(limit=50)
         elif payload["operation"] == "changes":
             commits = home.store.commits_after(payload["value"], limit=1)
             result = dict(commits=[encode(commit) for commit in commits], cursor=home.store.cursor())
@@ -107,14 +121,25 @@ class LocalChannel:
             if type(ids) is not list or len(ids) > 50 or any(type(value) is not str or not value.startswith(sender + "/") for value in ids):
                 raise JournalError("Invalid status request")
             result = {identifier: home.status(identifier) for identifier in ids}
+        elif payload["operation"] == "capabilities":
+            from .compatibility import capabilities
+            result = capabilities(home.store)
         else:
             raise JournalError("Unsupported local operation")
         return self.protect(dict(request_nonce=unpack(wire)["body"]["nonce"], result=result), sender)
 
-    async def synchronize(self, request, *, home_id):
+    async def synchronize(self, request, *, home_id, max_requests=1000):
         """`request` sends bytes over a certificate-pinned TLS connection."""
+        if type(max_requests) is not int or not 1 <= max_requests <= 1000:
+            raise JournalError("Invalid sync work budget")
+        exchanges = 0
         async def exchange(operation, value):
-            outgoing = self.protect(dict(operation=operation, value=value), home_id)
+            nonlocal exchanges
+            if exchanges >= max_requests:
+                raise CatchupPaused("Catch-up paused at its durable cursor; more work remains")
+            exchanges += 1
+            payload = dict(operation=operation, value=value)
+            outgoing = request.prepare(payload, home_id) if hasattr(request, "prepare") else self.protect(payload, home_id)
             response = await request(outgoing)
             sender, result = self.open(response)
             if sender != home_id:
@@ -124,6 +149,9 @@ class LocalChannel:
                 raise JournalError("Response belongs to an earlier request")
             return result["result"]
         pending = self.device.store.pending()
+        from .compatibility import capabilities, check
+        local = capabilities(self.device.store)
+        check(local, await exchange("capabilities", local), pending)
         for proposal in pending:
             await exchange("proposal", encode(proposal))
         for offset in range(0, len(pending), 50):
@@ -148,11 +176,14 @@ class LocalChannel:
 
 class PinnedLocalClient:
     """TLS 1.3 to one paired device; its pinned certificate is the only trust root."""
-    def __init__(self, url, certificate_pem):
+    def __init__(self, url, certificate_pem, *, timeout=5):
         parsed = urlsplit(url)
         if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise JournalError("Use the paired device's HTTPS address")
         self.host, self.port, self.path = parsed.hostname, parsed.port or 47513, parsed.path or "/exchange"
+        if type(timeout) not in (int, float) or not 0.1 <= timeout <= 10:
+            raise JournalError("Invalid local connection timeout")
+        self.timeout = timeout
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         self.context.check_hostname = False  # Identity is the exact paired self-signed certificate.
         self.context.verify_mode = ssl.CERT_REQUIRED
@@ -165,10 +196,12 @@ class PinnedLocalClient:
     def _send(self, wire):
         if len(wire) > 64 * 1024:
             raise JournalError("Local envelope limit exceeded")
-        connection = HTTPSConnection(self.host, self.port, context=self.context, timeout=5)
+        connection = HTTPSConnection(self.host, self.port, context=self.context, timeout=self.timeout)
         try:
             connection.request("POST", self.path, body=wire, headers={"Content-Type": "application/octet-stream"})
             response = connection.getresponse()
+            if response.status == 409 and response.getheader("X-Journal-Action") == "membership":
+                raise MembershipUpdateRequired("Membership update required")
             if response.status != 200:
                 raise JournalError("The local home refused this sync request")
             result = response.read(64 * 1024 + 1)

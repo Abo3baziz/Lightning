@@ -1,12 +1,22 @@
 """Single-home confirmation and a separate idempotent review lane for dummy data."""
 from __future__ import annotations
 
+from functools import wraps
+
 from .codec import (JournalError, authenticate, canonical, digest, origin_id,
                     proposal, seal, unpack, uuid)
 from .store import JournalStore, _commit
 
 MAX_GAP = 256
 MAX_STAGED = 1024
+
+
+def _confirmation(method):
+    @wraps(method)
+    def protected(self, *args, **kwargs):
+        with self.store.confirming():
+            return method(self, *args, **kwargs)
+    return protected
 
 
 class JournalHome:
@@ -39,7 +49,9 @@ class JournalHome:
         with self.db.transaction():
             self.db.execute("UPDATE journal_origins SET revoked=1 WHERE device=? AND incarnation=?", (device, incarnation))
 
+    @_confirmation
     def receive(self, wire):
+        self.store.require_confirmation_authority()
         envelope = unpack(wire)
         body = envelope["body"]
         # Only inspect bounded routing identity before authenticating financial contents.
@@ -60,8 +72,11 @@ class JournalHome:
                 raise JournalError("Unsupported financial entry kind")
             if self.store.adapter is not None and not body["kind"].endswith(".delete"):
                 self.store.adapter.validate_groups(body["groups"], complete=body["kind"].endswith(".add"))
-            self.store._scope(body)
-            self.store._check_cursor(body["cursor"])
+            retired = (body["generation"] != self.store.config["generation"] and self.store.authority is not None
+                       and self.store.authority.admits_original(body))
+            if not retired:
+                self.store._scope(body)
+                self.store._check_cursor(body["cursor"])
             payload_hash = digest(body)
             known = self.db.one("SELECT hash,status FROM journal_inbox WHERE proposal_id=?", (identifier,))
             if known:
@@ -80,8 +95,12 @@ class JournalHome:
         self.fault("inbox_committed")
         return "staged"
 
-    def process(self):
+    @_confirmation
+    def process(self, *, limit=None):
         """Drain eligible work; a review blocks its origin, never other origins."""
+        self.store.require_confirmation_authority()
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= MAX_STAGED):
+            raise JournalError("Invalid confirmation work budget")
         committed = []
         while True:
             progressed = False
@@ -104,6 +123,8 @@ class JournalHome:
                 # Nothing escapes the transaction before it is durably committed.
                 self.fault("decision_committed")
                 committed.append(wire)
+                if limit is not None and len(committed) >= limit:
+                    return committed
                 progressed = True
             if not progressed:
                 return committed
@@ -255,6 +276,7 @@ class JournalHome:
                         current=self.store.record(body["record"]), base=base,
                         matches=self.store.adapter.matches(body) if self.store.adapter is not None else [])
 
+    @_confirmation
     def review(self, *, command_id, proposal_id, token, choice, existing=None):
         """Called only by the local home in the lab; not a network control endpoint."""
         uuid(command_id)

@@ -16,7 +16,7 @@ from test_journal_finance import devices as device_fixture
 
 
 @pytest.fixture
-def journal_server(tmp_path):
+def journal_server(tmp_path,request):
     executable = shutil.which("chromium") or "/opt/pw-browsers/chromium"
     if not Path(executable).exists():
         pytest.skip("Chromium is unavailable")
@@ -37,7 +37,31 @@ def journal_server(tmp_path):
             home, pc = next(fixture)
             async def sync():
                 pc.sync_with(home.home)
-            app = create_journal_app(pc, session_token=token, synchronize=sync)
+            from lightning.runtime.journal_pairing import NearbyPairing
+            from lightning.sync.journal.membership import Membership
+            from lightning.security.keys import create_key_file
+            from lightning.sync.journal.codec import unpack
+            import os
+            members = {d.identity.device_id:dict(key=d.identity.public_key,incarnation=d.store.config["incarnation"]) for d in (home,pc)}
+            if request.node.name.startswith("test_named_device"):
+                members.pop(pc.identity.device_id)
+                home.c.db.execute("DELETE FROM journal_origins WHERE device=?",(pc.identity.device_id,))
+            secret = os.urandom(32)
+            for device in (home,pc):
+                Membership(device).initialize(members,secret)
+            keys = create_key_file(home.c.db.copy_key(),"Pairing password","1234-5678-9012","School?","Cairo")
+            hs = NearbyPairing(home,key_document=lambda:keys)
+            hs.begin("Pairing password")
+            state["code"] = hs.screen()["code"]
+            candidate = unpack(hs.advertise("0"*64,47513))["body"] | dict(endpoint="https://127.0.0.1:47513/pairing/exchange")
+            async def search(identity):
+                return [candidate]
+            def factory(endpoint,certificate,timeout):
+                async def exchange(wire):
+                    return hs.exchange(wire)
+                return exchange
+            pairing = NearbyPairing(pc,search=search,client_factory=factory)
+            app = create_journal_app(pc, session_token=token, synchronize=sync,pairing=pairing)
             server = LabServer(uvicorn.Config(app, host="127.0.0.1", port=port, access_log=False, log_level="error"))
             state["server"] = server
             server.run()
@@ -58,7 +82,7 @@ def journal_server(tmp_path):
             time.sleep(0.025)
         assert not errors, errors
         assert state.get("server") and state["server"].started
-        yield f"http://127.0.0.1:{port}", token, executable
+        yield f"http://127.0.0.1:{port}", token, executable, state
     finally:
         if state.get("server"):
             state["server"].should_exit = True
@@ -69,7 +93,7 @@ def journal_server(tmp_path):
 
 @pytest.mark.parametrize("width,phone", [(1366, False), (360, True), (320, True)])
 def test_capture_pending_balance_and_touch_layout(journal_server, width, phone):
-    url, token, executable = journal_server
+    url, token, executable, _ = journal_server
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path=executable)
         context = browser.new_context(viewport={"width": width, "height": 800},
@@ -97,4 +121,32 @@ def test_capture_pending_balance_and_touch_layout(journal_server, width, phone):
         if phone:
             page.get_by_role("link", name="Register", exact=True).last.click()
             assert all(height >= 56 for height in page.locator(".phone-row").evaluate_all("nodes=>nodes.map(n=>n.getBoundingClientRect().height)"))
+        browser.close()
+
+
+@pytest.mark.parametrize("width,phone", [(1366,False),(360,True),(320,True)])
+def test_named_device_numeric_pairing_layout(journal_server,width,phone):
+    url,token,executable,state = journal_server
+    with sync_playwright() as p:
+        browser = p.chromium.launch(executable_path=executable)
+        context = browser.new_context(viewport={"width":width,"height":800},user_agent="Android Mobile" if phone else None)
+        context.add_cookies([dict(name="journal_session",value=token,url=url,httpOnly=True,sameSite="Strict")])
+        page = context.new_page()
+        page.goto(url + "/devices")
+        page.get_by_role("button",name="Find nearby devices").click()
+        code = page.get_by_label("Number shown on the home")
+        code.wait_for()
+        assert code.get_attribute("inputmode") == "numeric"
+        assert not page.locator('input[name="address"],input[name="port"]').count()
+        assert code.evaluate("n => getComputedStyle(n).backgroundColor") != "rgb(255, 255, 255)"
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if phone:
+            assert code.bounding_box()["height"] >= 48
+        code.fill(state["code"])
+        page.get_by_label("Profile password").fill("Pairing password")
+        page.get_by_role("button",name="Pair with",exact=False).click()
+        page.get_by_text("Confirm on the home. This screen will continue automatically.",exact=True).wait_for()
+        assert page.locator("[data-pairing-pending] strong").inner_text().replace(" ","").isdigit()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=f"/workspace/journal-devices-{width}.png",full_page=True)
         browser.close()

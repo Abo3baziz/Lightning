@@ -1,0 +1,20 @@
+name = "lightning-journal"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[vars]
+DEPLOYMENT_POLICY = "free-only"
+
+[[durable_objects.bindings]]
+name = "PROFILES"
+class_name = "ProfileMailbox"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ProfileMailbox"]
+
+# Supply a private custom-domain route and set PROVISIONING_TOKEN with wrangler
+# secret put. Deploy through deploy_free.py: only Workers Free and SQLite
+# Durable Objects are permitted. No R2 or paid subscription is required.
+# No credentials or account IDs belong in this file.

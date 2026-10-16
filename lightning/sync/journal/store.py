@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -88,6 +89,7 @@ class JournalStore:
     def __init__(self, db):
         self.db = db
         self.adapter = None
+        self.authority = None
         try:
             row = db.one("SELECT config,next_seq FROM journal_meta WHERE id=1")
             if row is None:
@@ -112,6 +114,22 @@ class JournalStore:
 
     def close(self):
         self.db.close()
+
+    def require_confirmation_authority(self):
+        enrolled = self.db.scalar("SELECT value FROM journal_local WHERE name='authority_enrolled'")
+        if enrolled and (self.authority is None or not self.authority.can_confirm(self)):
+            raise JournalError("Confirmation is frozen or authority repair is required")
+
+    @contextmanager
+    def confirming(self):
+        enrolled = self.db.scalar("SELECT value FROM journal_local WHERE name='authority_enrolled'")
+        if not enrolled:
+            yield
+        elif self.authority is None:
+            raise JournalError("Authority memory is required for confirmation")
+        else:
+            with self.authority.confirming(self):
+                yield
 
     def cursor(self):
         row = self.db.one("SELECT revision,hash FROM journal_commits ORDER BY revision DESC LIMIT 1")
