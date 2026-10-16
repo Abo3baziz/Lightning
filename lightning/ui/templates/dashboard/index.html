@@ -112,21 +112,6 @@
     </article>{% endif %}
   </section>
 
-  <section class="overview-section" aria-labelledby="investments-heading">
-    <header class="overview-section-head"><h2 id="investments-heading">{{ 'Investments'|tr(locale) }}</h2><span>{{ date_from }} to {{ date_to }}</span></header>
-    {# Owner decision 2026-10-03: one row of figures here; the detail lives on the Investments tab. #}
-    <article class="overview-block wide-card overview-investment-row" aria-label="Investments in this period">
-      <div class="overview-figure-row">
-        {# Position figures come from the one Position (Architecture › Data ownership): the same Holdings value as "Your position" above. #}
-        <div class="overview-investment-value"><span>{{ fig.portfolio_value.label }}</span><b>{{ pos.portfolio_value|money }}</b></div>
-        <div><span>{{ "Net gain or loss"|tr(locale) }}</span><b class="{{ investment_report.period_result|tone if investment_report.period_result_available else '' }}">{% if investment_report.period_result_available %}{{ investment_report.period_result|money(True) }}{% else %}Unavailable{% endif %}</b></div>
-        <div><span>{{ "Income collected"|tr(locale) }}</span><b>{{ investment_report.income_collected|money }}</b></div>
-        <a class="quiet-link" data-popup-open href="/investments?{{ period_query }}">{{ "Open investments"|tr(locale) }}</a>
-      </div>
-      {% if investment_report.missing %}<p class="overview-context">{{ "A required valuation is missing, so the result is unavailable."|tr(locale) }}</p>{% elif investment_report.at_cost %}<p class="overview-context">{{ investment_report.at_cost|length }} holding(s) valued at cost until a price is entered.</p>{% endif %}
-    </article>
-  </section>
-
   {# Feedback tickets 79 and 86: the Overview keeps net cash flow by month, drawn as a calendar; the daily
      expenses calendar lives on Spending. #}
   {% set mc = month_calendar %}{% if mc.years %}<section class="overview-section" aria-labelledby="months-heading">

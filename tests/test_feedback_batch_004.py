@@ -98,3 +98,17 @@ def test_answering_the_bulk_edit_question_is_not_leaving_the_row():
     leaving = js[js.index('document.addEventListener("pointerdown"'):]
     leaving = leaving[:leaving.index("}, true);")]
     assert 'event.target.closest("dialog") || document.querySelector("dialog[open]")' in leaving
+
+
+def test_a_foreign_account_register_reads_in_its_own_currency(c, setup):
+    """Ticket 106: the register of a USD account shows Amount and Balance in USD, the pound value as the small line."""
+    from lightning.database.currencies import CurrencyRegistry
+    accounts, cats = setup
+    CurrencyRegistry(c.db).register("USD")
+    c.fx.save("USD", "2026-09-01", "48.20")
+    usd = c.account_flows.open_account("Dollar savings", "BANK", "2026-09-01", "200", currency="USD",
+                                       opening_balance_date="2026-09-01")
+    c.transactions.record_inflow("2026-09-05", usd.id, "50", cats["EXP.WORK.SALARY"].id, "gift")
+    page = TestClient(create_app(c)).get(f"/accounts/{usd.id}").text
+    assert "Amount (USD)" in page and "≈ +2,410.00 EGP" in page and "250.00 USD" in page
+    assert "Amount (EGP)" in TestClient(create_app(c)).get(f"/accounts/{accounts['cib'].id}").text

@@ -37,8 +37,7 @@ def test_period_returns_keep_holdings_sold_out_in_the_period(c):
     comi = c.assets.get_asset_by_code("STK:COMI")
     client.post(f"/accounts/{thndr.id}/investment-entry", data={**entry, "date": "2026-09-20",
                 "instrument_key": f"asset:{comi.id}", "units": "100", "total": "8000", "trade_action": "sell"})
-    page = client.get("/?period=month&month=2026-09").text
-    # The Overview shows the period's result in one row (owner decision 2026-10-03); by class is on Investments.
-    returns = page[page.index('aria-label="Investments in this period"'):page.index("Open investments")]
+    # The Overview's one-line Investments row was removed (feedback 100); the period's result is on Investments.
+    returns = client.get("/investments?period=month&month=2026-09").text
     assert "+1,000" in returns
 

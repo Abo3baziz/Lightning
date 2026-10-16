@@ -27,5 +27,5 @@ def test_the_overview_investments_row_reads_the_position(c, setup, monkeypatch):
     monkeypatch.setenv("LIGHTNING_TODAY", "2026-09-30")
     c.account_flows.open_account("Family flat", "OTHER_ASSET", "2026-09-15", "400,000")
     page = TestClient(create_app(c)).get("/?period=month&month=2026-09").text
-    row = page[page.index('aria-label="Investments in this period"'):page.index("Open investments")]
-    assert "405,000" in row and "Brokerage cash" not in row
+    assert 'aria-label="Investments in this period"' not in page  # feedback 100: the Overview has no Investments row
+    assert "405,000" in page
