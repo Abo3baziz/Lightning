@@ -123,11 +123,15 @@ class Database:
                 self.undo.finish(conn)
         except BaseException as error:
             self._local.depth = depth
-            if depth == 0:
-                conn.execute("ROLLBACK")
-            else:
-                conn.execute(f"ROLLBACK TO {savepoint}")
-                conn.execute(f"RELEASE {savepoint}")
+            # SQLITE_FULL/IOERR may already have rolled back the whole transaction,
+            # including savepoints. Preserve the original storage failure rather
+            # than replacing it with "no transaction is active" during cleanup.
+            if conn.in_transaction:
+                if depth == 0:
+                    conn.execute("ROLLBACK")
+                else:
+                    conn.execute(f"ROLLBACK TO {savepoint}")
+                    conn.execute(f"RELEASE {savepoint}")
 
             if isinstance(error, self.IntegrityError) and "This month was checked against the bank" in str(error):
                 from lightning.core.errors import ValidationError

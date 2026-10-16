@@ -1,4 +1,7 @@
+import pytest
+
 from lightning.bootstrap import build
+from lightning.database.connection import Database
 from lightning.database.migrator import migrate
 from lightning.database.seed import seed
 
@@ -73,6 +76,30 @@ def test_rollback_keeps_database_clean(c):
     except RuntimeError:
         pass
     assert c.db.scalar("SELECT 1 FROM settings WHERE key = 'tmp'") is None
+
+
+@pytest.mark.parametrize("nested", [False, True])
+def test_disk_full_preserves_original_error_after_sqlite_automatically_rolls_back(tmp_path, nested):
+    db = Database(tmp_path / "full.db")
+    try:
+        db.execute("CREATE TABLE payloads(value TEXT)")
+        pages = db.scalar("PRAGMA page_count")
+        db.execute(f"PRAGMA max_page_count={pages}")
+        with pytest.raises(db.OperationalError, match="full"):
+            with db.transaction():
+                db.execute("INSERT INTO payloads VALUES('before failure')")
+                if nested:
+                    with db.transaction():
+                        db.execute("INSERT INTO payloads VALUES(?)", ("x" * 100000,))
+                else:
+                    db.execute("INSERT INTO payloads VALUES(?)", ("x" * 100000,))
+        assert not db.conn.in_transaction
+        assert db.scalar("SELECT COUNT(*) FROM payloads") == 0
+        with db.transaction():
+            db.execute("INSERT INTO payloads VALUES('after failure')")
+        assert db.scalar("SELECT value FROM payloads") == "after failure"
+    finally:
+        db.close()
 
 
 def test_a_new_profile_stores_only_settings_the_app_reads(c):
