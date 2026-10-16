@@ -5,6 +5,7 @@
 {% block content %}
 {% from "partials/charts.html" import key_notes, meter, bullet_row, saved_split %}
 {{ key_notes(notes) }}
+{% if raise_offer %}<p class="notice raise-prompt" role="status"><span><b>{{ 'Your income went up'|tr(locale) }}</b> · {{ 'Recurring expects {recurring}, {raise} more than your average.'|tr(locale, recurring=raise_offer.recurring|money(False, 0) ~ ' ' ~ base, raise=raise_offer.raise|money(False, 0)) }}</span> <a class="btn small primary" data-popup-open href="/budget/raise?month={{ raise_offer.month }}">{{ 'Raise the plan'|tr(locale) }}</a> <a class="btn small" href="/plan/reserves">{{ 'Save the difference'|tr(locale) }}</a></p>{% endif %}
 
 {% if error %}<p class="notice error" role="alert">{{ error|tr(locale) }}</p>{% endif %}
 {% if bulk_undo %}<form method="post" action="/budget/bulk/undo" class="notice"><input type="hidden" name="token" value="{{ bulk_undo }}">{{ "Bulk rules applied."|tr(locale) }}<button class="btn small">{{ 'Undo'|tr(locale) }}</button><input type="hidden" name="__session" value="{{ request.state.session_token|default('') }}"></form>{% endif %}

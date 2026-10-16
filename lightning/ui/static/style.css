@@ -3416,3 +3416,18 @@ html[dir="rtl"] td[dir="ltr"], html[dir="rtl"] li.code { text-align: right; }
 .locked-row small { display:block; }
 .locked-row b { color:var(--muted); font-weight:400; }
 .plan-status-late { background:var(--rose-soft, #FCEEF3); color:var(--rose-strong, #C93D72); }
+
+/* Saved views as one menu (register) */
+.views-menu>div{min-width:240px}
+.views-menu>div>a[aria-current=true]{font-weight:700}
+.views-menu .views-save{display:grid;gap:6px;padding:8px 10px;border-top:1px solid var(--border);margin-top:4px}
+.views-menu .views-save .field{font-size:12px}
+.phone-views-menu>summary{cursor:pointer;font-weight:600;padding:6px 0}
+.phone-views-menu{display:grid;gap:6px}
+.register-val-toggle{margin:4px 0}
+/* Holdings table: units, share and horizon sit under the figure they belong to */
+.main .holdings-wide .hold-sub { display:block; margin-top:2px; font:500 var(--fs-meta)/1.2 var(--body); color:var(--muted); }
+.main .holdings-wide th .hold-sub { display:inline; margin:0; font-weight:600; }
+.main .holdings-wide .horizon-word { display:inline-block; margin-top:3px; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font:600 var(--fs-meta)/1.3 var(--body); }
+.main .holdings-wide .horizon-word.is-unset { border-style:dashed; }
+.main .holdings-wide td.gain .gain-split { white-space:normal; max-width:150px; margin-left:auto; }

@@ -10,6 +10,9 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: visual round 2: register folds value updates (`?val=1`) and keeps saved views in one Views menu; holdings table fits 1366 px (units, share, horizon under their figures);
+  Budget shows the raise prompt (Raise the plan / Save the difference); fewer explaining lines (Accounts, Add account, New investment, prices sources, Cash planning, Held for others when zero);
+  7 more brokers (Al Rajhi, SNB Capital, Derayah, Sahm, Emirates NBD Securities, Schwab International, Trading 212) and IBKR lists the Gulf.
 - 2026-10-16 · Claude: currencies said out loud: a foreign holding's price, average cost and trades in its own currency (holdings table, holding page), a USD account's header in USD and ≈ EGP, Prices with currency and no trailing zeros; Foreign money counts foreign investments;
   held markets are followed automatically; exchanges without a rate source (ISK) are not offered and MIC codes are gone from pickers; a listing may trade in another currency than its exchange (USD fund, USD line in London); KWD/BHD/OMR/JOD keep 3 decimals.
 - 2026-10-16 · Claude: **Kept apart**: brokerage and foreign-currency cash no longer count in Free cash, Safe to spend or the payday pool (still in what you own and If you sold today); ⋯ › Count its cash as spendable overrides it per account (`0065_account_spendable.sql`, `Position.kept_apart`). Mohab's Safe to spend 40,937 → 40,537 (THNDR's 400).

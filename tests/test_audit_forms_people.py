@@ -108,13 +108,18 @@ def test_matching_settings_sit_behind_a_closed_disclosure_unless_changed(c):
 # -- institution list ----------------------------------------------------------------------------------------
 def test_brokers_carry_their_markets_and_home_currency():
     by_code = {i.code: i for i in institutions.builtin()}
-    assert by_code["interactive-brokers"].markets == ("us", "europe") and by_code["interactive-brokers"].home_currency == "USD"
+    assert by_code["interactive-brokers"].markets == ("us", "europe", "gcc") and by_code["interactive-brokers"].home_currency == "USD"
     assert by_code["efg-hermes"].markets == ("egx", "eg-funds", "gcc")
     assert by_code["beltone"].markets == ("egx", "eg-funds") and by_code["beltone"].home_currency == "EGP"
     assert by_code["cib"].markets == () and by_code["cib"].home_currency == ""
     for code in ("mubasher-trade", "beltone", "naeem", "hc-securities", "pharos", "arqaam-capital", "prime-securities",
                  "interactive-brokers", "etoro", "saxo", "swissquote"):
         assert by_code[code].kind == "broker" and by_code[code].arabic_name and by_code[code].website
+    for code, markets, currency in (("al-rajhi-capital", ("gcc",), "SAR"), ("derayah", ("gcc", "us"), "SAR"),
+                                    ("emirates-nbd-securities", ("gcc",), "AED"), ("trading-212", ("us", "europe"), "USD"),
+                                    ("charles-schwab-intl", ("us",), "USD")):
+        assert by_code[code].kind == "broker" and by_code[code].arabic_name
+        assert by_code[code].markets == markets and by_code[code].home_currency == currency
     from lightning.market.packs import PACKS
     assert {m for i in by_code.values() for m in i.markets} <= set(PACKS)
     assert institutions.match_builtin("ibkr").code == "interactive-brokers"

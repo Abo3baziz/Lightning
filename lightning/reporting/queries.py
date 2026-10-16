@@ -196,6 +196,13 @@ class ReportQueries:
         grouped, params = self._statement_groups(account_id, date_from, date_to)
         return int(self.db.scalar(f"SELECT COUNT(*) FROM ({grouped})", tuple(params)))
 
+    def statement_value_updates(self, account_id: int | None, date_from: str, date_to: str) -> int:
+        """How many register rows are system revaluations (type VAL)."""
+        where, params = self._statement_filter(account_id, date_from, date_to)
+        return int(self.db.scalar(
+            f"SELECT COUNT(*) FROM (SELECT 1 FROM ledger_entries le {POSTED} WHERE {where} AND t.type='VAL'"
+            f"{self._STATEMENT_GROUP})", tuple(params)))
+
     def statement_movement(self, account_id: int | None, date_from: str, date_to: str, first: int) -> int:
         """The summed movement (_e6) of the oldest ``first`` register rows."""
         grouped, params = self._statement_groups(account_id, date_from, date_to)

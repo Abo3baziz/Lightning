@@ -131,7 +131,7 @@ def _plan_stats(f, plan, day, has_income: bool = True) -> list[dict]:
                  else "Promised payments are larger than your free cash" if f.safe_to_spend < 0 else "Nothing left to spend safely"),
          "href": "#plan-build"},
         {"key": "free", "surface": "hold", "label": label("free_cash"), "value": f.free_cash, "kind": "money",
-         "sub": "Cash you own after reserves and bills due · today", "href": "/"},
+         "sub": "", "href": "/"},
         {"key": "before", "surface": "out", "label": label("payments_before_next_income"), "value": plan["before_total"], "kind": "money",
          "badge": {"tone": "flat", "text": f"{len(plan['before_income'])} payment{'s' if len(plan['before_income']) != 1 else ''}"},
          "sub": f"Next: {nxt.item.name} · {nxt.due_date}" if nxt else "Nothing is due before then",
@@ -139,7 +139,7 @@ def _plan_stats(f, plan, day, has_income: bool = True) -> list[dict]:
         {"key": "low", "surface": "over" if low and low.closing < 0 else "hold", "label": "Lowest point ahead", "value": low.closing if low else None, "kind": "money",
          "empty": "—", "badge": {"tone": "over" if low and low.closing < 0 else "flat", "text": low.month if low else "—"},
          "sub": (f"Runs short in {short.month}: the month ends below your reserves" if short
-                 else "Cash at its lowest month end in the forecast" if low else "Add your bills and income to see it"),
+                 else "" if low else "Add your bills and income to see it"),
          "spark": plan["forecast_spark"], "spark_tone": "over" if low and low.closing < 0 else "hold", "href": "#plan-forecast"},
     ]
 

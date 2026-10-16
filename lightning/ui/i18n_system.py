@@ -493,10 +493,8 @@ SENTENCES = {
     "Budget actual equals categorized spending": "فعلي الميزانية يساوي المصروف المصنّف",
     "Budget actuals should reconcile to posted money-out categories.": "المفروض فعلي الميزانية يطابق فئات الفلوس الخارجة المسجلة.",
     "Budget limits are intentionally excluded; reserves assign real cash and bills due are owed now.": "حدود الميزانية مستبعدة قصدًا؛ المبالغ المحجوزة بتخصص نقدية فعلية، والفواتير المستحقة عليك دلوقتي.",
-    "Cash at its lowest month end in the forecast": "النقدية في أقل آخر شهر في التوقع",
     "Runs short in {month}: the month ends below your reserves": "هتقل عن المطلوب في {month}: الشهر هينتهي تحت احتياطياتك",
     "Cash in {name} increases by {amount}": "النقدية في {name} هتزيد بـ {amount}",
-    "Cash you own after reserves and bills due · today": "النقدية اللي تملكها بعد المبالغ المحجوزة والفواتير المستحقة · النهارده",
     "Categorized expenses equal reported spending": "المصروفات المصنّفة تساوي المصروف المعروض",
     "Current target total: {x}": "إجمالي الأهداف الحالي: {x}",
     "{a} to {b} · {n} transactions · {m} investment records": "{a} لحد {b} · {n} معاملات · {m} سجلات استثمار",
@@ -2280,6 +2278,15 @@ INSIGHTS = {
 }
 
 PAGES = {
+    "Views": "طرق العرض",
+    "Save this view": "احفظ طريقة العرض دي",
+    "Show value updates ({n})": "اعرض تحديثات القيمة ({n})",
+    "Hide value updates": "اخفي تحديثات القيمة",
+    "Recurring expects {recurring}, {raise} more than your average.": "المتكرر متوقع {recurring}، يعني {raise} أكتر من متوسطك.",
+    "Raise the plan": "ارفع الخطة",
+    "Lightning updates the prices of what you hold by itself, the first time you open it after a month ends.": "Lightning بيحدّث أسعار اللي تملكه لوحده، أول مرة تفتح التطبيق بعد نهاية الشهر.",
+    "Where prices come from": "الأسعار بتيجي منين",
+    "Sources: TradingView and Yahoo Finance for stocks, Mubasher for funds, and for gold an estimate from the world price and the dollar’s rate (Yahoo Finance). Month-end prices make your monthly returns.": "المصادر: TradingView وYahoo Finance للأسهم، ومباشر للصناديق، وتقدير الذهب من سعره العالمي وسعر الدولار (Yahoo Finance). أسعار نهاية الشهر هي اللي بتحسب عائدك الشهري.",
     "Saved as {ref}. The original transaction is kept in history.": "اتحفظ باسم {ref}. المعاملة الأصلية محفوظة في التاريخ.",
     "Saved {ref}.": "اتحفظ {ref}.",
     "Choose valid values for this transaction.": "اختار قيم صحيحة للمعاملة دي.",

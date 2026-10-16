@@ -230,6 +230,10 @@ def _trade_choices(c, account, positions) -> list[dict]:
     return sorted(choices, key=lambda item: (item["name"].casefold(), item["ticker"].casefold()))
 
 
+def base_url_for(account_id: int | None) -> str:
+    return f"/accounts/{account_id}" if account_id else "/transactions"
+
+
 def page(request: Request, account_id: int | None, entry: dict | None = None, edit_values: dict | None = None,
          error: str = "", error_field: str = "", status_code: int = 200,
          edit_id: int | None = None, edit_acct: int | None = None,
@@ -306,11 +310,16 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         category_txns = c.reporting.category_transaction_ids(category_ids)
         matched_ids = category_txns if matched_ids is None else matched_ids & category_txns
     page_size = 50
-    if matched_ids is None:  # read only the page shown; its running balance comes from SQL
+    show_val = qp.get("val") == "1"
+    val_count = c.reporting.register_value_updates(account_id, date_from, date_to)
+    if matched_ids is None and not (val_count and not show_val):
+        # read only the page shown; its running balance comes from SQL
         rows, total_rows, page_number = c.reporting.register_page(
             account_id, date_from, date_to, _int(qp.get("page")) or 1, page_size)
-    else:  # a search or category filter: no running balance, so filter the rows in Python
+    else:  # a search or category filter, or value updates folded: filter in Python; balances stay per row
         all_rows = c.reporting.register(account_id, date_from, date_to, matched_ids)
+        if val_count and not show_val:
+            all_rows = [row for row in all_rows if row.type != DocType.VAL]
         total_rows = len(all_rows)
         page_number = min(max(_int(qp.get("page")) or 1, 1), max(1, -(-total_rows // page_size)))
         rows = all_rows[(page_number - 1) * page_size:page_number * page_size]
@@ -355,11 +364,14 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
             investment_entry["instrument_label"] = f"{picked['name']} · {picked['ticker']}" + (f" · {picked['exchange']}" if picked.get("exchange") else "")
     keep = {k: v for k, v in (("q", q), ("tag", "" if q.startswith("#") else filter_tag), ("month", month),
                               ("preset", preset), ("date_from", from_query), ("date_to", to_query),
-                              ("category_id", str(raw_category_id) if raw_category_id else "")) if v}
+                              ("category_id", str(raw_category_id) if raw_category_id else ""),
+                              ("val", "1" if show_val else "")) if v}
     page_base_qs = urlencode(keep)
+    val_toggle_url = base_url_for(account_id) + "?" + urlencode({**{k: v for k, v in keep.items() if k != "val"},
+                                                                 **({} if show_val else {"val": "1"})})
     if page_number > 1:
         keep["page"] = page_number
-    base_url = (f"/accounts/{account_id}" if account_id else "/transactions")
+    base_url = base_url_for(account_id)
     reserve_rows = [row.txn_id for row in rows if row.type == DocType.OUT]
     reserve_suggestions = c.reserves.suggested_reserves_for_transactions(reserve_rows)
     return render(
@@ -386,7 +398,7 @@ def page(request: Request, account_id: int | None, entry: dict | None = None, ed
         custody_present=any(custody_owners.values()),
         entry=entry or {"date": qp.get("date") or fmt_date(today()), "account_id": qp.get("new_acct", "")},
         edit_id=edit_id if edit_values is not None else None, edit_acct=edit_acct, edit=edit_values or {}, edit_original=edit_original,
-        q=q, month=month, preset=preset, active_view=active_view,
+        q=q, month=month, preset=preset, active_view=active_view, show_val=show_val, val_count=val_count, val_toggle_url=val_toggle_url,
         saved_views=c.saved_views.list(account_id), view_account_id=account_id or "",
         filter_category=filter_category, filter_tag=filter_tag, tag_flows=tag_flows,
         date_from=from_query, date_to=to_query, base_url=base_url, keep_qs=urlencode(keep),

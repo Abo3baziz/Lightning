@@ -46,10 +46,17 @@ hc-securities,HC Securities & Investment,HC Securities,إتش سي للأورا�
 pharos,Pharos Holding,Pharos,فاروس القابضة,broker,pharosholding.com,,egx eg-funds,EGP
 arqaam-capital,Arqaam Capital,Arqaam,أرقام كابيتال,broker,arqaamcapital.com,,egx eg-funds,EGP
 prime-securities,Prime Securities,Prime,برايم للأوراق المالية,broker,primegroup.org,,egx eg-funds,EGP
-interactive-brokers,Interactive Brokers,IBKR,إنتراكتيف بروكرز,broker,interactivebrokers.com,,us europe,USD
+interactive-brokers,Interactive Brokers,IBKR,إنتراكتيف بروكرز,broker,interactivebrokers.com,,us europe gcc,USD
 etoro,eToro,eToro,إيتورو,broker,etoro.com,,us europe,USD
 saxo,Saxo Bank,Saxo,ساكسو بنك,broker,home.saxo,,us europe,USD
 swissquote,Swissquote,Swissquote,سويس كوت,broker,swissquote.com,,us europe,USD
+al-rajhi-capital,Al Rajhi Capital,Al Rajhi Capital,الراجحي المالية,broker,alrajhi-capital.com,,gcc,SAR
+snb-capital,SNB Capital,SNB Capital,الأهلي المالية,broker,,,gcc,SAR
+derayah,Derayah Financial,Derayah,دراية المالية,broker,derayah.com,,gcc us,SAR
+sahm-capital,Sahm Capital,Sahm,سهم كابيتال,broker,,,gcc us,SAR
+emirates-nbd-securities,Emirates NBD Securities,ENBD Securities,الإمارات دبي الوطني للأوراق المالية,broker,,,gcc,AED
+charles-schwab-intl,Charles Schwab International,Schwab International,تشارلز شواب الدولية,broker,,,us,USD
+trading-212,Trading 212,Trading 212,تريدينج 212,broker,trading212.com,,us europe,USD
 vodafone-cash,Vodafone Cash,Vodafone Cash,فودافون كاش,wallet,vodafone.com.eg,,,
 orange-cash,Orange Cash,Orange Cash,أورنج كاش,wallet,orange.eg,,,
 etisalat-cash,e& Cash,e& Cash,اتصالات كاش,wallet,etisalat.eg,,,
