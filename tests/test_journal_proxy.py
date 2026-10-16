@@ -33,3 +33,21 @@ def test_uncovered_options_and_writes_are_refused_not_written(devices):
     with pytest.raises(hd.c.db.driver.DatabaseError):
         services.settings.set("uncovered", "write")
     assert services.accounts.get(next(a.id for a in hd.c.accounts.list() if a.name == "Bank")).name == "Bank"
+
+
+def test_register_writes_from_the_screens_travel_as_commands(devices):
+    hd, pc = devices
+    replica, home = JournalServices(pc), JournalServices(hd)
+    bank = next(a.id for a in hd.c.accounts.list() if a.name == "Bank")
+    food = hd.c.categories.get_by_code("EXP.PERSONAL.FOOD").id
+    health = hd.c.categories.get_by_code("EXP.PERSONAL.HEALTH").id
+    txn = home.transactions.record_in_account(bank, "2026-09-01", "-30", category_id=food, counterparty="Cafe")
+    home.transactions.update_expense_split(txn.id, [(food, "20"), (health, "10")])
+    home.transactions.update_metadata(txn.id, "2026-09-02", "Cafe", "lunch")
+    pc.sync_with(hd.home)
+    local = pc.adapter.local("transactions", hd.adapter.uid("transactions", txn.id))
+    with pytest.raises(PendingOnHome):
+        replica.transactions.delete_many([local])
+    pc.sync_with(hd.home)
+    assert pc.c.transactions.get(local).is_void
+    assert hd.store.fingerprint() == pc.store.fingerprint() == pc.adapter.fingerprint(full=True)

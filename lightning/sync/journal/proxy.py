@@ -72,8 +72,11 @@ class _Service:
 
 def _wire(adapter, spec, value):
     """A service argument as the command carries it (UUIDs, exact text)."""
-    if type(spec) is tuple:
-        return [{name: _wire(adapter, inner, item[name]) for name, inner in spec[1].items()} for item in value or []]
+    if type(spec) is tuple and spec[0] == "list":
+        return [_wire(adapter, spec[1], item) for item in value or []]
+    if type(spec) is tuple:  # Records may arrive as tuples in the field order.
+        return [{name: _wire(adapter, inner, item[name] if isinstance(item, dict) else item[index])
+                 for index, (name, inner) in enumerate(spec[1].items())} for item in value or []]
     bare = spec.lstrip("?")
     if value is None:
         return None

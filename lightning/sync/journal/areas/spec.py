@@ -24,6 +24,11 @@ def choice(*values):
     return "choice:" + "|".join(values)
 
 
+def listof(spec):
+    """A list (at most 200) of single values, e.g. selected rows."""
+    return ("list", spec)
+
+
 def items(**fields):
     """A list (at most 50) of records with these fields, e.g. split lines."""
     return ("items", fields)

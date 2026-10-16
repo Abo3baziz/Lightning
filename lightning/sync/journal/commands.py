@@ -17,7 +17,7 @@ from lightning.core.errors import ValidationError
 from .codec import JournalError, canonical, fields, uuid
 
 
-from .areas.spec import AMOUNT, DATE, FLAG, INT, LONG, MONTH, RATE, TEXT, Command, choice, items, optional, ref  # noqa: F401
+from .areas.spec import AMOUNT, DATE, FLAG, INT, LONG, MONTH, RATE, TEXT, Command, choice, items, listof, optional, ref  # noqa: F401
 
 
 def _registry():
@@ -56,11 +56,11 @@ def _check(specs, args):
 
 
 def _value(name, spec, value):
-    if type(spec) is tuple:  # ("items", {field: spec}): a bounded list of records.
-        if type(value) is not list or len(value) > 50:
+    if type(spec) is tuple:  # ("items", {field: spec}) records, or ("list", spec) values.
+        if type(value) is not list or len(value) > (50 if spec[0] == "items" else 200):
             raise ValidationError("Too many lines")
         for item in value:
-            _check(spec[1], item)
+            _check(spec[1], item) if spec[0] == "items" else _value(name, spec[1], item)
         return
     if spec.startswith("?"):
         if value is None:
@@ -110,6 +110,8 @@ def target_slot(kind, groups):
 
 
 def _local(adapter, spec, value):
+    if type(spec) is tuple and spec[0] == "list":
+        return [_local(adapter, spec[1], item) for item in value]
     if type(spec) is tuple:
         return [{name: _local(adapter, inner, item[name]) for name, inner in spec[1].items()} for item in value]
     bare = spec.lstrip("?")
