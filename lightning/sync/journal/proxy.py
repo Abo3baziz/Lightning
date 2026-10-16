@@ -9,6 +9,7 @@ not covered still reach the connection guard and are refused.
 from __future__ import annotations
 
 import inspect
+from contextlib import contextmanager
 from datetime import date
 from enum import Enum
 
@@ -38,6 +39,8 @@ class JournalServices:
         service = getattr(self._device.c, name)
         if name in self._calls:  # A container-level action, e.g. set_profile_currency.
             return lambda *args, **kwargs: self._run(name, service, args, kwargs)
+        if name == "db":
+            return _Database(service)
         if any(call.split(".")[0] == name for call in self._calls):
             return _Service(self, name, service)
         return service
@@ -47,12 +50,19 @@ class JournalServices:
         entry = COMMANDS[action]
         signature = inspect.signature(method)
         bound = signature.bind(*args, **kwargs)
-        for name, value in bound.arguments.items():
-            if name not in entry.args and value is not signature.parameters[name].default:
-                raise ValidationError("This option is not available on a synchronized profile yet.")
         bound.apply_defaults()
+        arguments = {}
+        for name, value in bound.arguments.items():  # A **values parameter (a trade edit) carries its own names.
+            if signature.parameters[name].kind is inspect.Parameter.VAR_KEYWORD:
+                arguments.update(value)
+            else:
+                arguments[name] = value
+        for name, value in arguments.items():
+            parameter = signature.parameters.get(name)
+            if name not in entry.args and (parameter is None or value is not parameter.default):
+                raise ValidationError("This option is not available on a synchronized profile yet.")
         adapter = self._device.adapter
-        values = {name: _wire(adapter, spec, bound.arguments.get(name)) for name, spec in entry.args.items()}
+        values = {name: _wire(adapter, spec, arguments.get(name)) for name, spec in entry.args.items()}
         if self._device.home is None:
             self._rehearse(method, args, kwargs)
         wire = self._device.command(action, **values)
@@ -82,6 +92,28 @@ class _Rehearsed(Exception):
     pass
 
 
+class _Database:
+    """The database as a screen sees it. A screen wraps its save in a transaction; a command saved on this device
+    must survive the PendingOnHome that leaves that block, so the block commits and then re-raises it."""
+
+    def __init__(self, db):
+        self._db = db
+
+    def __getattr__(self, name):
+        return getattr(self._db, name)
+
+    @contextmanager
+    def transaction(self, *args, **kwargs):
+        waiting = None
+        with self._db.transaction(*args, **kwargs) as conn:
+            try:
+                yield conn
+            except PendingOnHome as error:
+                waiting = error
+        if waiting is not None:
+            raise waiting
+
+
 class _Service:
     def __init__(self, outer, name, service):
         self._outer, self._name, self._service = outer, name, service
@@ -100,7 +132,8 @@ def _wire(adapter, spec, value):
     """A service argument as the command carries it (UUIDs, exact text)."""
     if type(spec) is tuple and spec[0] == "list":
         return [_wire(adapter, spec[1], item) for item in value or []]
-    if type(spec) is tuple:  # Records may arrive as tuples in the field order.
+    if type(spec) is tuple:  # Records may arrive as tuples in the field order; a mapping as its (key, value) pairs.
+        value = list(value.items()) if isinstance(value, dict) else value
         return [{name: _wire(adapter, inner, item[name] if isinstance(item, dict) else item[index])
                  for index, (name, inner) in enumerate(spec[1].items())} for item in value or []]
     bare = spec.lstrip("?")
@@ -111,6 +144,8 @@ def _wire(adapter, spec, value):
     if bare.startswith("ref:"):
         return adapter.uid(bare[len("ref:"):], int(value))
     if bare in ("amount", "rate"):
+        if spec.startswith("?") and not str(value).strip():
+            return None  # An optional amount left blank (a fee) is not given.
         return format(to_decimal(value), "f")
     if bare == "date" and type(value) is str:
         from lightning.core.dates import parse_date
