@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from datetime import date
 
+from lightning.accounts.domain import AccountType
 from lightning.core.dates import fmt_date, month_of
 from lightning.core.money import ZERO, fmt as _fmt
 from lightning.transactions.domain import TxnFilter
@@ -112,13 +113,26 @@ class ReviewInbox:
                                     f"planned {fmt(from_e6(changed['amount_e6']))}. Review future payments.",
                           "href": f"/plan/items/{changed['id']}/edit", "priority": 2})
         if getattr(c, "deposit_receipts", None) is not None:
-            for issue in c.deposit_receipts.attention(on):
-                certificate = c.deposits.certificate(issue["certificate_id"])
-                account = c.accounts.get(certificate.terms.account_id)
-                items.append({"label": "Certificate interest needs review",
-                              "detail": f"{certificate.terms.name} · {issue['event_date']} · "
-                                        f"{fmt(issue['remaining'])} {account.currency} still unmatched.",
-                              "href": f"/deposits/{account.id}#interest-receipts", "priority": 1})
+            # One item per certificate, not per month: the bank's fixed payout rarely equals the day-count figure.
+            for account in c.accounts.list(active_only=True):
+                if account.account_type != AccountType.DEPOSIT:
+                    continue
+                by_certificate: dict[int, list[dict]] = {}
+                for occurrence in c.deposit_receipts.match_plan(account.id, on):
+                    if c.deposit_receipts.needs_match(occurrence):
+                        by_certificate.setdefault(occurrence["certificate_id"], []).append(occurrence)
+                for certificate_id, issues in by_certificate.items():
+                    name = c.deposits.certificate(certificate_id).terms.name
+                    suggested = sum(1 for issue in issues if issue["suggested"])
+                    item = {"label": f"{name}: {len(issues)} interest payments to match" if len(issues) != 1
+                                     else f"{name}: 1 interest payment to match",
+                            "detail": f"{fmt(sum(i['remaining'] for i in issues))} {account.currency} still unmatched"
+                                      + (f"; {suggested} have a suggested bank receipt." if suggested else "."),
+                            "href": f"/deposits/{account.id}#interest-receipts", "priority": 1, "action": "Review"}
+                    if suggested:
+                        item["post"] = {"href": f"/deposits/{account.id}/certificates/{certificate_id}/interest/match-all",
+                                        "label": "Match all suggested"}
+                    items.append(item)
         if getattr(c, "reimbursements", None) is not None:
             for claim in c.reimbursements.list_claims():
                 if claim["issues"] or (claim["outstanding"] and claim["due_date"] and claim["due_date"] <= on.isoformat()):

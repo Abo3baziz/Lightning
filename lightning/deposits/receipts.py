@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from lightning.accounts.domain import AccountType
 from lightning.core.dates import fmt_date, parse_date, today, now_iso
+from lightning.counterparties import normalize
 from lightning.core.errors import ConflictError, NotFoundError, ValidationError
 from lightning.core.money import from_e6, to_e6
 from lightning.core.refs import DocType
@@ -18,6 +19,10 @@ from lightning.core.ledger import Effect
 from lightning.transactions.domain import TxnStatus
 
 MAX_CONFIRMATIONS = 50
+AMOUNT_TOLERANCE = Decimal("0.05")       # a receipt this close to the expected interest is plausible by amount alone
+PAYER_AMOUNT_TOLERANCE = Decimal("0.15")  # from the certificate's own bank the fixed monthly payout may differ more
+                                           # than 5% from day-count interest (28-day month vs 31-day month is ~8%)
+MATCH_WINDOW_DAYS = 31
 
 
 class DepositReceiptService:
@@ -130,6 +135,80 @@ class DepositReceiptService:
             (event.account_id, account.currency, fmt_date(parse_date(as_of or today(), "as_of"))))
         return [{"id": row["id"], "ref": row["ref"], "date": row["date"],
                  "description": row["description"], "amount": from_e6(row["amount_e6"])} for row in rows]
+
+    def _payer_names(self, transaction_id: int) -> set[str]:
+        """Every normalised name the payer of a bank row goes by: typed counterparty, canonical name, aliases."""
+        rows = self.db.all(
+            "SELECT t.counterparty AS n FROM transactions t WHERE t.id=? "
+            "UNION SELECT cp.name FROM transactions t JOIN counterparties cp ON cp.id=t.counterparty_id WHERE t.id=? "
+            "UNION SELECT a.alias FROM transactions t JOIN counterparty_aliases a ON a.counterparty_id=t.counterparty_id "
+            "WHERE t.id=?", (transaction_id,) * 3)
+        return {normalize(row["n"]) for row in rows if normalize(row["n"])}
+
+    def match_plan(self, account_id: int, as_of=None) -> list[dict]:
+        """expected_past() for a portfolio, each unmatched occurrence with ranked candidates and one suggestion.
+
+        A candidate carries payer_ok (the payer is the portfolio's institution), amount_ok, days (receipt minus
+        expected date) and plausible (payer_ok or amount_ok). A receipt is suggested only inside the 31-day window and
+        when the amount is close (5%; 15% if the payer is the certificate's bank; a row with no payer may also match
+        by amount). Suggestions are one-to-one across the whole portfolio, closest date after the expected date first,
+        then closest amount. Nothing is confirmed here."""
+        occurrences = self.expected_past(account_id, as_of)
+        institution = normalize(self.accounts.get(account_id).institution)
+        cache: dict[int, list[dict]] = {}
+        pairs = []
+        for index, occurrence in enumerate(occurrences):
+            occurrence["candidates"], occurrence["suggested"] = [], None
+            if occurrence["remaining"] <= 0:
+                continue
+            destination = occurrence["destination_account_id"]
+            if destination not in cache:
+                cache[destination] = self.candidates(occurrence["certificate_id"], occurrence["event_date"], as_of)
+                for row in cache[destination]:
+                    row["payers"] = self._payer_names(row["id"])
+            expected, event_day = occurrence["expected"], parse_date(occurrence["event_date"])
+            for row in cache[destination]:
+                days = (parse_date(row["date"]) - event_day).days
+                gap = abs(row["amount"] - expected) / expected if expected > 0 else Decimal("1")
+                payer_ok = bool(institution) and institution in row["payers"]
+                amount_ok = gap <= AMOUNT_TOLERANCE
+                candidate = {k: v for k, v in row.items() if k != "payers"} | {
+                    "days": days, "payer_ok": payer_ok, "amount_ok": amount_ok, "gap": gap,
+                    "plausible": payer_ok or amount_ok, "suggested": False}
+                occurrence["candidates"].append(candidate)
+                near = abs(days) <= MATCH_WINDOW_DAYS
+                fits = (gap <= PAYER_AMOUNT_TOLERANCE if payer_ok else amount_ok and not row["payers"])
+                if near and fits and occurrence["received"] <= 0:  # a partly matched payout is the user's call
+                    pairs.append((days < 0, abs(days), gap, index, candidate))
+            occurrence["candidates"].sort(key=lambda c: (not c["payer_ok"], not c["plausible"], abs(c["days"]), c["gap"]))
+        taken_rows, taken_events = set(), set()
+        for _, _, _, index, candidate in sorted(pairs, key=lambda p: p[:3] + (p[3],)):
+            if index in taken_events or candidate["id"] in taken_rows:
+                continue
+            taken_events.add(index)
+            taken_rows.add(candidate["id"])
+            candidate["suggested"] = True
+            occurrences[index]["suggested"] = candidate["id"]
+        return occurrences
+
+    @staticmethod
+    def needs_match(occurrence: dict) -> bool:
+        """Whether Needs you should still ask about an occurrence. A confirmed receipt within 15% of the day-count
+        estimate settles the question: a bank that pays a fixed monthly amount never equals it to the piastre."""
+        if occurrence["attention"] or occurrence["received"] <= 0:
+            return bool(occurrence["attention"]) or occurrence["remaining"] > 0
+        return occurrence["remaining"] > occurrence["expected"] * PAYER_AMOUNT_TOLERANCE
+
+    def confirm_suggested(self, account_id: int, certificate_id: int | None = None, as_of=None) -> dict:
+        """Confirm every suggested receipt (of one certificate, or the whole portfolio) in one database
+        transaction through confirm(); a failure leaves every occurrence as it was. Posts no ledger entry."""
+        day = as_of or today()
+        plan = [o for o in self.match_plan(account_id, day) if o["suggested"]
+                and (certificate_id is None or o["certificate_id"] == certificate_id)]
+        with self.db.transaction():
+            for occurrence in plan:
+                self.confirm(occurrence["certificate_id"], occurrence["event_date"], [occurrence["suggested"]], day)
+        return {"matched": len(plan), "transaction_ids": [o["suggested"] for o in plan]}
 
     def confirm(self, certificate_id: int, event_date: str, transaction_ids, as_of=None) -> dict:
         certificate, event = self._interest_occurrence(certificate_id, event_date, as_of or today())

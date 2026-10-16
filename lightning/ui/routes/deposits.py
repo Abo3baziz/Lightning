@@ -50,22 +50,13 @@ def _page(request: Request, account_id: int, values=None, error="", status_code=
         legacy = c.deposits.get(account_id)
     except NotFoundError:
         legacy = None
-    interest_receipts = c.deposit_receipts.expected_past(account_id)
-    candidate_cache = {}
-    for occurrence in interest_receipts:
-        destination_id = occurrence["destination_account_id"]
-        if occurrence["remaining"] > 0:
-            if destination_id not in candidate_cache:
-                candidate_cache[destination_id] = c.deposit_receipts.candidates(
-                    occurrence["certificate_id"], occurrence["event_date"])
-            occurrence["candidates"] = candidate_cache[destination_id]
-        else:
-            occurrence["candidates"] = []
+    interest_receipts = c.deposit_receipts.match_plan(account_id)
+    suggestions = sum(1 for item in interest_receipts if item["suggested"])
     return render(request, "deposits/detail.html", status_code=status_code, account=account,
                   certificates=certificates, values=values or _values(), error=error,
                   liquid_accounts=liquid, liquid_by_id=liquid_by_id, sale_factor=factor, legacy=legacy,
                   legacy_cash=c.deposits.legacy_cash_balance(account_id), today_iso=fmt_date(today()),
-                  interest_receipts=interest_receipts)
+                  interest_receipts=interest_receipts, suggestions=suggestions)
 
 
 @router.get("/{account_id:int}")
@@ -132,6 +123,24 @@ async def redeem(request: Request, account_id: int, certificate_id: int):
         message = exc.message if isinstance(exc, LightningError) else "Choose a valid destination account."
         return _page(request, account_id, error=message, status_code=400)
     return redirect(f"/deposits/{account_id}", f"Recorded actual CD redemption · {txn.ref}.")
+
+
+@router.post("/{account_id:int}/interest/match-all")
+@router.post("/{account_id:int}/certificates/{certificate_id:int}/interest/match-all")
+async def match_all_suggested_receipts(request: Request, account_id: int, certificate_id: int | None = None):
+    """Confirm every suggested receipt at once (one action, undoable); never posts a ledger entry."""
+    c = container(request)
+    form = await request.form()
+    back = str(form.get("back", ""))
+    back = back if back.startswith("/") and not back.startswith("//") else f"/deposits/{account_id}"
+    try:
+        if certificate_id is not None and c.deposits.certificate(certificate_id).terms.account_id != account_id:
+            raise NotFoundError("Certificate not found in this portfolio.")
+        result = c.deposit_receipts.confirm_suggested(account_id, certificate_id, today())
+    except (LightningError, ValueError) as exc:
+        message = exc.message if isinstance(exc, LightningError) else "Choose valid bank receipts."
+        return _page(request, account_id, error=message, status_code=400)
+    return redirect(back, f"Matched {result['matched']} interest payment(s) to bank receipts.")
 
 
 @router.post("/{account_id:int}/certificates/{certificate_id:int}/interest/{event_date}/confirm")

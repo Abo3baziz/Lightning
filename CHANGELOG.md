@@ -17,6 +17,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - 2026-10-16 · Claude: Audit wording and display: locked certificates read "not counted until <date>" (muted, spaced); "Planned" replaces "Bill linked"; "Late · N days" chip, late first; Weekly review heading once; savings-rate period beside the figure.
   "Budget until payday" and "Bills due, loans apart" renamed; Health shows months in cash you own; the planner splits by your current mix without targets and takes the Overview's free cash; no "Aliases · 0".
 
+- 2026-10-16 · Claude: certificate interest now matches the bank's fixed payout (payer = the portfolio's institution, amount within 5-15%, 31 days): one pre-ticked suggestion per expected payout, "Match all suggested" once, and Needs you shows one item per certificate, not per month (`deposits/receipts.py`, deposit and review templates).
 - 2026-10-15 · Claude: two owner-requested reports, nothing fixed: an outside review of every tab (figures, wording, links, wiring, next steps) and a design for brokerages across exchanges and currencies (pockets, listings, workflows, analysis); `report/`.
 
 - 2026-10-15 · Claude: Page jump stays bottom right and appears only near the corner or while scrolling; the PC loading note matches the phone (muted square, bottom right, 300 ms);
