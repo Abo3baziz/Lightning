@@ -697,6 +697,17 @@ MARKETS = {
     "اللي تملكه {a} · مملوك لـ others {b}": "اللي تملكه {a} · مملوك لغيرك {b}",
 }
 TEMPLATES = {
+    "By class": "حسب الفئة",
+    "By account": "حسب الحساب",
+    "By currency": "حسب العملة",
+    "By market": "حسب السوق",
+    "By security": "حسب الورقة",
+    "Show figures in": "اعرض الأرقام بـ",
+    "Group holdings": "تجميع المقتنيات",
+    "Holdings and brokerage cash, by the currency they are in": "المقتنيات ونقدية شركة الوساطة، حسب العملة اللي هي بيها",
+    "Not in {currency}: {share}% of your investments": "مش بـ{currency}: {share}% من استثماراتك",
+    "Of your total gain {gain}, {fx} came from exchange rates": "من إجمالي مكسبك {gain}، {fx} جه من أسعار الصرف",
+    "at 1 USD = {rate} {base}, as of {date}": "بسعر 1 دولار = {rate} {base}، في {date}",
     "Current {value} · {weight}%": "الحالي {value} · {weight}%",
     "Current {value} · {weight}% · Target {target}%": "الحالي {value} · {weight}% · المستهدف {target}%",
     "Aliases": "الأسماء البديلة",

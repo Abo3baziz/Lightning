@@ -15,7 +15,11 @@ from lightning.core.errors import LightningError, NotFoundError
 from lightning.core.refs import DocType
 from lightning.core.money import ZERO, from_e6, to_decimal
 
-from ..web import container, redirect, render
+from urllib.parse import urlencode
+
+from ..web import container, redirect, render, ui_locale
+from ..i18n import translate
+from ...investments import views as holding_views
 from ...assets.catalog import instruments
 from ..periods import parse_period
 from ...investments.report import (PLANNER_MODES, build_investment_report, investing_rate, investment_period, saved_and_invested,
@@ -201,6 +205,7 @@ async def portfolio(request: Request):
     notes = [n for n in (keynotes.best_class([{"label": k, "result": v} for k, v in class_results.items()]),
                          keynotes.at_cost(investment_report.get("at_cost", []))) if n]
     extras = _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, investment_report)
+    extras.update(_view_extras(c, request, extras, investment_report, day))
     # Everything sold in the period: nothing is held, but the period still has a gain or loss to show.
     period_activity = bool(investment_report.get("result") or p.realized - prior.realized or period_distributions)
     return render(request, "investments/index.html", p=p, asset_class_rows=asset_class_rows, **extras,
@@ -217,6 +222,52 @@ async def portfolio(request: Request):
                   allocation_classes=allocation_classes, own_units_by_holding=own_units_by_holding,
                   starting_owned_value=starting_owned_value, period_value_change=owned_value-starting_owned_value,
                   investment_report=investment_report, base=c.reporting.base_currency)
+
+
+def _link(request: Request, **changes) -> str:
+    """This page's address with some query parameters changed (None drops one); the period and the rest stay."""
+    query = {**dict(request.query_params), **changes}
+    query = {k: v for k, v in query.items() if v not in (None, "")}
+    return "/investments" + ("?" + urlencode(query) if query else "")
+
+
+def _lens(value, divisor: Decimal):
+    return None if value is None else value / divisor
+
+
+def _view_extras(c, request: Request, extras: dict, report: dict, day: str) -> dict:
+    """How the holdings table is grouped (?view=), the By currency breakdown, the exchange-rate share of the gain
+    and the USD lens (?lens=usd). All arithmetic is here; the lens only divides by the dated USD rate."""
+    base = c.reporting.base_currency
+    view = holding_views.parse_view(request.query_params.get("view"))
+    class_groups = extras["holding_groups"]
+    other = translate("Other", ui_locale())
+    kwargs = {"accounts": {a.id: a for a in c.accounts.list()}, "assets": {a.id: a for a in c.assets.list_assets()},
+              "base": base, "other_label": other}
+    total = extras["holdings_total"]
+    currency_groups = holding_views.regroup("currency", class_groups, total, **kwargs)
+    breakdown = holding_views.by_currency({g["name"]: g["value"] for g in currency_groups},
+                                          report.get("investment_cash_by_currency") or {}, base, other)
+    rows = [r for g in class_groups for r in g["rows"]]
+    gain = sum((g["gain"] for g in class_groups), ZERO)
+    fx_gain = holding_views.fx_total(rows)
+    groups = holding_views.regroup(view, class_groups, total, **kwargs)
+    rate = c.reporting.valuer.fx("USD", day) if base != "USD" else None
+    lens_usd = rate is not None and request.query_params.get("lens") == "usd"
+    divisor = rate.rate if lens_usd else Decimal(1)
+    if lens_usd:
+        groups = holding_views.in_lens(groups, divisor)
+        breakdown = {**breakdown, "total": breakdown["total"] / divisor, "abroad": breakdown["abroad"] / divisor,
+                     "rows": [{**r, "value": r["value"] / divisor} for r in breakdown["rows"]]}
+    return {"holding_groups": groups, "view": view, "views": holding_views.VIEW_LABELS,
+            "view_links": {v: _link(request, view=None if v == "class" else v) for v in holding_views.VIEWS},
+            "currency_card": breakdown, "fx_gain": fx_gain / divisor, "total_gain": gain / divisor,
+            "lens": {"usd": lens_usd, "code": "USD" if lens_usd else base, "available": rate is not None,
+                     "rate": rate.rate if rate else None, "as_of": rate.date if rate else None,
+                     "divisor": divisor, "egp_link": _link(request, lens=None), "usd_link": _link(request, lens="usd")},
+            "hero_result": _lens(report.get("result"), divisor),
+            "hero_value": _lens(extras["value_spark"]["latest"], divisor),
+            "hero_change": _lens(extras["value_spark"]["change"], divisor)}
 
 
 def _owned_split(split, units, quantity, gain) -> dict:
@@ -314,6 +365,7 @@ def _page_extras(c, period, p, prior, owned_rows, prior_custody, before_day, rep
         g["cost"] += item.value
         g["invested"] += item.value  # balance-only holdings still belong in the combined return's base
         g["rows"].append({"h": None, "balance": True, "name": item.account, "account_id": item.account_id,
+                          "asset_id": item.asset_id,
                           "value": item.value, "cost": item.value, "gain": ZERO,
                           "weight": item.value / holdings_total * 100 if holdings_total else ZERO})
     for g in groups.values():

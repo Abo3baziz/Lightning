@@ -20,14 +20,14 @@
 {% else %}
 {% set result = investment_report.result %}
 {% set tiles = [
-  {"surface": 'over' if result is not none and result < 0 else 'in', "label": fig.result.label, "value": result, "signed": true, "empty": 'Unavailable',
+  {"surface": 'over' if result is not none and result < 0 else 'in', "label": fig.result.label, "value": hero_result, "signed": true, "empty": 'Unavailable',
    "badge": {"tone": 'up' if result and result > 0 else ('down' if result and result < 0 else 'flat'), "text": chip},
    "sub": (growth|signed_pct ~ '% ' ~ fig.period_growth.label|lower) if growth is not none else ''},
-  {"surface": 'hold', "label": fig.portfolio_value.label, "value": value_spark.latest, "empty": 'Unavailable', "href": '#holdings-heading',
+  {"surface": 'hold', "label": fig.portfolio_value.label, "value": hero_value, "empty": 'Unavailable', "href": '#holdings-heading',
    "badge": {"tone": 'flat', "text": 'Today'},
    "sub": ((('XIRR' if since_return.annualized else 'Return')|tr(locale)) ~ ' ' ~ since_return.percent|signed_pct ~ (('% a year' if since_return.annualized else '%')|tr(locale)) ~ ' · ' ~ ((('Held {n} day' if since_return.days_held==1 else 'Held {n} days')|tr(locale, n=since_return.days_held)))) if since_return and since_return.percent is not none else ''},
 ] %}
-{{ kpi_tiles(tiles, base) }}
+{{ kpi_tiles(tiles, lens.code) }}
 {% if investment_report.missing %}<p class="flash">Prices missing: {% for issue in investment_report.missing %}{{ issue.asset }}{% if not loop.last %}, {% endif %}{% endfor %}. Their value may be out of date.</p>{% endif %}
 {% if investment_report.unrealized_change is none %}<p class="flash">{{ "A dated market price is missing at a period boundary, so the result is unavailable."|tr(locale) }}</p>{% endif %}
 
@@ -50,6 +50,7 @@
 {% for item in pos.locked_holdings %}<div class="phone-row locked-row"><span>{{ "Locked certificate"|tr(locale) }} · {{ item.asset }} <small>{{ "not counted until {date}"|tr(locale, date=item.locked_until) }}</small></span><b class="muted">{{ item.value|money }}</b></div>{% endfor %}
 <section class="phone-section" aria-labelledby="holdings-heading">
   <header class="phone-section-head"><h2 id="holdings-heading">{{ 'Holdings'|tr(locale) }}</h2><span>As of {{ period.end_text }}</span></header>
+  <div class="period-buttons holdings-views" role="group" aria-label="{{ 'Group holdings'|tr(locale) }}">{% for key, text in views.items() %}<a class="period-button{{ ' selected' if key == view }}" href="{{ view_links[key] }}">{{ text|tr(locale) }}</a>{% endfor %}</div>
   {% for g in holding_groups %}
   <article class="card phone-card phone-flat-rows" aria-label="{{ g.name }}">
     <div class="phone-group-head"><span class="phone-group-name"><b>{{ g.name }}</b><small>{{ '%.0f'|format(g.weight) }}% of holdings · gain {{ g.gain|money(True) }}</small></span><b class="phone-group-left">{{ g.value|money }}</b></div>
