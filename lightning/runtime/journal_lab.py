@@ -132,6 +132,26 @@ class LaunchGate:
         return await self.app(scope, receive, send)
 
 
+class AppGate:
+    """The app's own screens in a lab window: only the launched session may use
+    them, and a saved change starts a sync at once instead of waiting a round."""
+    def __init__(self, app, session_token, after_write=None):
+        self.app, self.token, self.after_write = app, session_token, after_write
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and not scope["path"].startswith("/static/"):
+            cookies = dict(item.strip().split("=", 1) for item in _header(scope, b"cookie").split(";") if "=" in item)
+            if not hmac.compare_digest(cookies.get("journal_session", "").encode("utf-8"), self.token.encode("utf-8")):
+                return await PlainTextResponse("Unlock this experimental profile first.", status_code=401)(scope, receive, send)
+        await self.app(scope, receive, send)
+        if scope["type"] == "http" and scope["method"] == "POST" and self.after_write is not None:
+            self.after_write()
+
+
+def _header(scope, name):
+    return next((value.decode("latin-1") for key, value in scope.get("headers", []) if key == name), "")
+
+
 class LabServer(uvicorn.Server):
     @contextmanager
     def capture_signals(self):
@@ -139,7 +159,7 @@ class LabServer(uvicorn.Server):
         yield
 
 
-async def serve(devices, transport_key, port, *, browser=True, mailbox_origin=None, internet_only=False):
+async def serve(devices, transport_key, port, *, browser=True, mailbox_origin=None, internet_only=False, full_app=False):
     home, pc = devices
     home_channel = LocalChannel(home, transport_key=transport_key, peers={pc.identity.device_id: pc.identity.public_key})
     pc_channel = LocalChannel(pc, transport_key=transport_key, peers={home.identity.device_id: home.identity.public_key})
@@ -172,8 +192,20 @@ async def serve(devices, transport_key, port, *, browser=True, mailbox_origin=No
         await internet[0].catch_up(foreground=True)
         await internet[1].catch_up(foreground=True)
     token = secrets.token_urlsafe(32)
-    apps = [LaunchGate(create_journal_app(home, session_token=token, channel=home_channel, pairing=pairings[0]), token),
-            LaunchGate(create_journal_app(pc, session_token=token, synchronize=sync, pairing=pairings[1]), token)]
+    if full_app:
+        # The app's own screens; covered writes travel as journal commands (`proxy.JournalServices`).
+        from lightning.sync.journal.proxy import JournalServices
+        from lightning.ui.web import create_app
+        pending = set()
+        def after_write():
+            task = asyncio.get_running_loop().create_task(sync())
+            pending.add(task)
+            task.add_done_callback(lambda done: (pending.discard(done), done.cancelled() or done.exception()))
+        apps = [LaunchGate(AppGate(create_app(JournalServices(home)), token), token),
+                LaunchGate(AppGate(create_app(JournalServices(pc)), token, after_write), token)]
+    else:
+        apps = [LaunchGate(create_journal_app(home, session_token=token, channel=home_channel, pairing=pairings[0]), token),
+                LaunchGate(create_journal_app(pc, session_token=token, synchronize=sync, pairing=pairings[1]), token)]
     protocol = create_journal_app(home, session_token=token, channel=home_channel, pairing=pairings[0])
     servers = [LabServer(uvicorn.Config(app, host="127.0.0.1", port=port + index, access_log=False, log_level="error", timeout_graceful_shutdown=5))
                for index, app in enumerate(apps)]
@@ -230,6 +262,7 @@ def main():
     parser.add_argument("--port", type=int, default=47540)
     parser.add_argument("--mailbox-origin")
     parser.add_argument("--internet-only", action="store_true")
+    parser.add_argument("--app", action="store_true", help="Open the app's own screens instead of the journal preview")
     args = parser.parse_args()
     if not 1024 <= args.port <= 65533:
         parser.error("Choose a port between 1024 and 65533")
@@ -241,7 +274,8 @@ def main():
         devices, key = open_lab(args.root, password)
         try:
             print("Opening the persistent dummy home and PC. Press Ctrl-C to close both.")
-            asyncio.run(serve(devices, key, args.port, mailbox_origin=args.mailbox_origin, internet_only=args.internet_only))
+            asyncio.run(serve(devices, key, args.port, mailbox_origin=args.mailbox_origin, internet_only=args.internet_only,
+                              full_app=args.app))
         except KeyboardInterrupt:
             pass
         finally:
