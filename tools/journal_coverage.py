@@ -30,6 +30,11 @@ WRITE_VERBS = (
 )
 
 
+# Calls the verbs mistake for writes. `auto_link_transaction` only reports ambiguous reserve suggestions and
+# `from_transaction` only prefills a plan form; `forget` deletes shared-price files downloaded to this device.
+NOT_WRITES = {"reserves.auto_link_transaction", "planning.from_transaction", "workflow.forget"}
+
+
 # Writes that run only for new free text: the route works without them, and with them the app's guard answers
 # "not available yet". They are listed in the Notes column and do not change a route's state.
 CONDITIONAL = {"institutions.add": "a new institution name"}
@@ -42,7 +47,7 @@ def covered_calls() -> set[str]:
 
 def is_write(call: str, covered=()) -> bool:
     name = call.split(".")[-1]
-    return call in covered or (not name.endswith("_preview") and any(name == v or name.startswith(v + "_") for v in WRITE_VERBS))
+    return call in covered or (call not in NOT_WRITES and not name.endswith("_preview") and any(name == v or name.startswith(v + "_") for v in WRITE_VERBS))
 
 
 class _Module:

@@ -81,7 +81,7 @@ def test_create_and_pay_a_bill_links_a_transaction_exactly(devices):
 
 def test_payee_plan_and_payment_chain_in_one_sync_without_conflict(devices):
     hd, pc = devices
-    payee = pc.command("plans.add_payee", name="Landlord")
+    payee = pc.command("plans.add_payee", name="Landlord", default_category_id=None, alias=None, kind=None)
     party = unpack(payee)["body"]["record"]
     created = add_rent(pc, counterparty_id=party)
     record = unpack(created)["body"]["record"]
@@ -202,7 +202,7 @@ def test_service_refusal_is_rejected_without_writing(devices):
     assert hd.c.db.scalar("SELECT COUNT(*) FROM budgets") == 0
     same(hd, pc)
     with pytest.raises(Exception, match="not covered"):
-        pc.command("planning.not_recurring", counterparty_id=uid(pc, "accounts", account(pc, "Bank").id))
+        pc.command("sms_imports.assign", ending="1234", account_id=uid(pc, "accounts", account(pc, "Bank").id))
 
 
 def test_delete_an_unpaid_instalment_plan_and_link_an_existing_payment(devices):

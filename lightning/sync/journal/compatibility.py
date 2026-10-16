@@ -11,12 +11,19 @@ class UpdateRequired(JournalError):
                          "Update this device before applying confirmed changes")
 
 
+def short(kind):
+    """A command kind as six hex digits: the capability list stays small as commands are added."""
+    import hashlib
+    return hashlib.sha256(kind.encode()).hexdigest()[:6]
+
+
 def capabilities(store):
     from lightning import __version__
     from .commands import KINDS
     from .snapshots import catalog
     return dict(protocol=2, app=__version__, ledger_schema=store.db.scalar("SELECT MAX(version) FROM schema_migrations"),
-                effects=[2], entry_kinds={"transaction.add":1,"transaction.edit":1,"transaction.delete":1} | KINDS,
+                effects=[2], entry_kinds={"transaction.add":1,"transaction.edit":1,"transaction.delete":1,
+                                 "commands": sorted(short(kind) for kind in KINDS)},
                 catalog=catalog(store.adapter))
 
 
@@ -31,5 +38,7 @@ def check(local, home, pending):
     from .codec import unpack
     for wire in pending:
         body = unpack(wire)["body"]
-        if home["entry_kinds"].get(body["kind"]) != body["kind_version"]:
+        known = home["entry_kinds"]
+        if (body["kind_version"] != 1 or short(body["kind"]) not in known.get("commands", ())) if body["kind"].startswith("command.") \
+                else known.get(body["kind"]) != body["kind_version"]:
             raise UpdateRequired("home")

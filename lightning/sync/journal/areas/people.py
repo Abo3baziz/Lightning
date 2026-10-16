@@ -1,7 +1,10 @@
 """People: counterparty names and aliases, money held for others."""
-from .spec import AMOUNT, DATE, LONG, TEXT, Command, optional, ref
+from decimal import Decimal
+
+from .spec import AMOUNT, DATE, FLAG, LONG, RATE, TEXT, Command, optional, ref
 
 TABLES = ("counterparty_aliases", "money_from_others")
+PERSON = ("counterparties", "counterparty_id")
 CUSTODY = dict(transaction_id=ref("transactions"), day=DATE, owner=optional(TEXT), amount=AMOUNT, notes=LONG)
 COMMANDS = {
     "counterparties.add_alias": Command("counterparties.add_alias", dict(counterparty_id=ref("counterparties"), alias=TEXT),
@@ -12,4 +15,26 @@ COMMANDS = {
                                                   CUSTODY | dict(account_id=ref("accounts"))),
     "money_from_others.sync_transfer": Command("money_from_others.sync_transfer",
                                                CUSTODY | dict(source_id=ref("accounts"), target_id=ref("accounts"))),
+    "counterparties.rename": Command("counterparties.rename", dict(
+        counterparty_id=ref("counterparties"), name=TEXT, default_category_id=optional(ref("categories"))), target=PERSON),
+    "counterparties.set_kind": Command("counterparties.set_kind", dict(
+        counterparty_id=ref("counterparties"), kind=optional(TEXT)), target=PERSON),
+    "counterparties.set_active": Command("counterparties.set_active", dict(
+        counterparty_id=ref("counterparties"), active=FLAG), target=PERSON),
+    "counterparties.set_default_category": Command("counterparties.set_default_category", dict(
+        counterparty_id=ref("counterparties"), category_id=optional(ref("categories"))), target=PERSON),
+    "counterparties.delete_or_archive": Command("counterparties.delete_or_archive", dict(
+        counterparty_id=ref("counterparties")), target=PERSON),
+    "counterparties.rename_alias": Command("counterparties.rename_alias", dict(
+        counterparty_id=ref("counterparties"), alias_id=ref("counterparty_aliases"), alias=TEXT), target=PERSON),
+    "counterparties.remove_alias": Command("counterparties.remove_alias", dict(
+        counterparty_id=ref("counterparties"), alias_id=ref("counterparty_aliases")), target=PERSON),
+    # Money held for others: the entry form (a person's name; the service finds or saves the person) and the
+    # custody of investment units. Neither is preconditioned on one row.
+    "money_from_others.record": Command("money_from_others.record", dict(
+        day=DATE, owner=TEXT, account_id=ref("accounts"), amount=AMOUNT, notes=LONG)),
+    "money_from_others.sync_investment": Command("money_from_others.sync_investment", dict(
+        transaction_id=ref("transactions"), day=DATE, owner=optional(TEXT), account_id=ref("accounts"),
+        asset_id=ref("financial_assets"), units=RATE),
+        adapt=lambda values: values | dict(units=Decimal(values["units"]))),
 }

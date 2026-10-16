@@ -134,6 +134,18 @@ def _wire(adapter, spec, value):
     """A service argument as the command carries it (UUIDs, exact text)."""
     if type(spec) is tuple and spec[0] == "list":
         return [_wire(adapter, spec[1], item) for item in value or []]
+    if type(spec) is tuple and spec[0] == "map":
+        out = {}
+        for key, item in dict(value or {}).items():
+            inner = spec[1].get(key)
+            if inner is None:
+                if spec[2] and item not in (None, ""):  # A strict record refuses what it cannot carry.
+                    raise ValidationError("This option is not available on a synchronized profile yet.")
+                continue
+            if item is None or (item == "" and inner.lstrip("?") not in ("text", "long")):
+                continue  # Left blank: not given.
+            out[key] = _wire(adapter, inner, item)
+        return out
     if type(spec) is tuple:  # Records may arrive as tuples in the field order; a mapping as its (key, value) pairs.
         value = list(value.items()) if isinstance(value, dict) else value
         return [{name: _wire(adapter, inner, item[name] if isinstance(item, dict) else item[index])

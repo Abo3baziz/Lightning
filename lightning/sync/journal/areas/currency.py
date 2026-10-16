@@ -13,8 +13,8 @@ RESERVE = dict(name=TEXT, target=AMOUNT, due_date=optional(DATE), recurrence=cho
                account_id=optional(ref("accounts")))
 CONVERSION = dict(date=DATE, from_account_id=ref("accounts"), to_account_id=ref("accounts"), sent=AMOUNT, received=AMOUNT,
                   fee=optional(AMOUNT), description=TEXT, notes=LONG)
-# Not covered: removing a currency (no service), the emergency fund shortcut (it creates or edits, so no single
-# target), deleting a reserve (its history would name a removed reserve) and the profile currency (a setting).
+# The emergency fund shortcut creates or edits, so it has no single target. Not covered: removing a currency (no
+# service), deleting a reserve (its history would name a removed reserve) and the profile currency (a setting).
 COMMANDS = {
     "currencies.register": Command("currencies.register", dict(code=TEXT, name=optional(TEXT))),
     "currencies.save_rate": Command("fx.save", dict(currency=TEXT, day=DATE, rate=RATE)),
@@ -33,4 +33,5 @@ COMMANDS = {
         target=("cash_reserves", "reserve_id")),
     "reserves.unlink_payment": Command("reserves.unlink_expense", dict(
         reserve_id=ref("cash_reserves"), transaction_id=ref("transactions")), target=("cash_reserves", "reserve_id")),
+    "reserves.set_emergency_fund": Command("reserves.set_emergency_fund", dict(amount=AMOUNT, salary_target=AMOUNT)),
 }

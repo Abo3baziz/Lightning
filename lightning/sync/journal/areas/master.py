@@ -29,4 +29,11 @@ COMMANDS = {
     "categories.update": Command("categories.update", dict(
         category_id=ref("categories"), name=TEXT, active=FLAG, default_reimbursable=optional(FLAG)),
         target=("categories", "category_id")),
+    "categories.set_direction": Command("categories.set_direction", dict(
+        category_id=ref("categories"), direction=choice("IN", "OUT", "BOTH")), target=("categories", "category_id")),
+    # Deletes an unused category, else archives it (and what is under it): the result says which.
+    "categories.delete_or_archive": Command("categories.delete_or_archive", dict(category_id=ref("categories")),
+                                            target=("categories", "category_id")),
+    "accounts.set_spendable": Command("accounts.set_spendable", dict(account_id=ref("accounts"), choice=optional(FLAG)),
+                                      target=("accounts", "account_id")),
 }
