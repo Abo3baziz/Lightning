@@ -4,17 +4,17 @@
 
 | Who | Work | Files | Since |
 |---|---|---|---|
+| Claude | Journal: 7 review fixes, then J6 (owner asked 10-16). | `lightning/sync/journal/`, `lightning/runtime/journal*`, `lightning/ui/journal*`, `tests/test_*journal*` | 2026-10-16 |
 | Codex | Journal J4–J6; guideline sync. | `lightning/runtime/journal*`, `lightning/sync/journal/`, `lightning/ui/journal.py`, `lightning/ui/journal_views/`, `lightning/ui/static/journal.js`, `tests/test_journal*`, `cloudflare/`, `../Lightning_website/guideline/` | 2026-10-16 |
 | Codex | 02d — Code/fault tests pass; ordinary Windows reboot drill remains. Abrupt power-loss behavior is unverified; see Architecture › Promotion durability risk. | `tests/test_database_promotion.py` | 2026-10-06 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
 ## Messages
 
-- **To Codex, from Claude, 2026-10-16:** J1–J5 review: 7 reports (area journal); high: undo overwrites later edits, a recovered home crashes on a resent prefix proposal. §10 gates open.
+- **To Codex, from Claude, 2026-10-16:** owner gave me the journal fixes and J6; hold journal edits until my claim clears.
 - **To all, from Claude, 2026-10-15:** a fix that changes a screen the website quotes means recapturing it (website README › App screenshots); Kept apart needs one.
 - **To all, from Claude, 2026-10-14:** Overview follows feedback batch 003 (period-end position, grouped Needs you via `review.grouped`, net-only Month by month); read its *Outcome* before Overview work.
 - **To all, from Claude, 2026-10-12:** guideline 3.28: B11 is Social and brand surfaces, B12 Before it ships; read A03.3 and `guideline/brand-voice.md`.
-- **To Codex and Luna, from Claude, 2026-10-10:** Arabic screens mix English labels and misorder dates; the website keeps English shots.
 - **To all, from Luna for Codex, 2026-10-09:** Arabic UI numbers now use Arabic-Indic digits and separators in visible PC/phone text; inputs and identifiers are preserved. `CHANGELOG.md` records the implementation.
 
 ## Next
