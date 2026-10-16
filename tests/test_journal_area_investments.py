@@ -37,7 +37,7 @@ def settle(hd, pc, *wires):
 
 def setup(hd, pc, broker="Broker"):
     """A broker with cash and one stock, opened by the replica and confirmed."""
-    opened = pc.command("accounts.open", name=broker, account_type="BROKERAGE", opening_date="2026-01-01",
+    opened = pc.command("accounts.open", currency=None, opening_balance_date=None, owner_id=None, name=broker, account_type="BROKERAGE", opening_date="2026-01-01",
                         opening_balance="5000.00", institution="HC", last4=None, notes="")
     stock = pc.command("assets.create_investment", name="Alpha Corp", class_code="STOCK", symbol="ALPH", karat=None,
                        isin="", notes="", mic="", currency="")
@@ -110,7 +110,7 @@ def test_dividend_with_tax_fee_interest_and_edit(devices):
 def test_move_shares_between_brokers(devices):
     hd, pc = devices
     broker, stock = setup(hd, pc)
-    other = pc.command("accounts.open", name="Second", account_type="BROKERAGE", opening_date="2026-01-01",
+    other = pc.command("accounts.open", currency=None, opening_balance_date=None, owner_id=None, name="Second", account_type="BROKERAGE", opening_date="2026-01-01",
                        opening_balance="0", institution="", last4=None, notes="")
     bought = buy(pc, broker, stock)
     settle(hd, pc, other, bought)
@@ -254,7 +254,7 @@ def test_dividend_price_target_and_pocket_forms_on_both_devices(devices):
 
 def open_account(pc, name, kind, **changes):
     values = dict(name=name, account_type=kind, opening_date="2026-01-01", opening_balance="0", institution="NBE",
-                  last4=None, notes="")
+                  last4=None, notes="", currency=None, opening_balance_date=None, owner_id=None)
     return pc.command("accounts.open", **(values | changes))
 
 
