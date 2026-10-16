@@ -27,7 +27,7 @@ def test_full_sample_household_balances_survive_encrypted_backup(tmp_path, monke
     assert expected.held_for_others == 10000
     assert expected.loans_still_to_pay == 52500
     assert expected.net_worth == expected.what_you_own - expected.what_you_owe
-    assert expected.free_cash == expected.cash_you_own - expected.reserves - expected.bills_due
+    assert expected.free_cash == expected.cash_you_own - expected.kept_apart - expected.reserves - expected.bills_due
     saved = c.backup_now()
     c.db.close()
     restored = build(saved, key=KEY)
