@@ -5,6 +5,7 @@ Native first-profile snapshot enrollment remains a separate cutover gate.
 """
 from __future__ import annotations
 
+import hmac
 import json
 import time
 
@@ -12,7 +13,7 @@ from lightning.sync.journal.codec import JournalError, authenticate, canonical, 
 from lightning.sync.journal.discovery import nearby_devices
 from lightning.sync.journal.local import PinnedLocalClient
 from lightning.sync.journal.membership import Membership
-from lightning.sync.journal.pairing import PairingDesk, request_pairing
+from lightning.sync.journal.pairing import PairingDesk, prove_pairing, request_pairing
 
 
 class NearbyPairing:
@@ -20,7 +21,7 @@ class NearbyPairing:
         self.device, self.db = device, device.store.db
         self.membership = Membership(device)
         self.keys, self.search, self.client_factory = key_document, search, client_factory
-        self.desk = PairingDesk(device,self.membership) if device.home else None
+        self.desk = PairingDesk(device,self.membership,on_admit=self._admitted) if device.home else None
         from lightning.sync.journal.enrollment import EnrollmentSource
         self.enrollment = EnrollmentSource(device,key_document=key_document,owner_document=owner_document,
             approval=lambda identifier:self._value("pairing_result:"+identifier,{})) if device.home and key_document else None
@@ -39,12 +40,14 @@ class NearbyPairing:
             state = {}
         request = unpack(state["request"].encode())["body"] if state.get("request") else None
         from lightning.sync.identity import check_digits
+        client = self._value("pairing_client",{})
         return dict(enabled=True, paired=self.device.identity.device_id in self.membership.state()["members"], code=state.get("code"), request_name=request["name"] if request else None,
                     digits=check_digits(canonical(dict(offer=unpack(state["offer"].encode())["body"],request=request))) if request else None,
+                    confirmed=bool(state.get("confirmed")),
                     members=[names.get(identifier,"Paired device") for identifier in self.membership.state()["members"]
                              if identifier != self.device.identity.device_id],
                     nearby=[dict(id=identifier,name=value["name"]) for identifier,value in self._value("nearby",{}).items()],
-                    pending=self._value("pairing_client",{}).get("digits"))
+                    pending=client.get("digits"), stage=client.get("stage"))
 
     def begin(self, password):
         if self.desk is None or self.keys is None:
@@ -56,7 +59,7 @@ class NearbyPairing:
 
     def advertise(self, nonce, port):
         state = self._value("pairing",{})
-        if not state or state["attempts"] >= 3 or unpack(state["offer"].encode())["body"]["expires"] <= time.time():
+        if not state or state["attempts"] >= 3 or state["proof_attempts"] >= 3 or unpack(state["offer"].encode())["body"]["expires"] <= time.time():
             return None
         return seal(dict(type="journal-nearby-home", nonce=nonce, name=self.device.identity.name,
                          home=self.device.identity.device_id, offer=state["offer"], port=port,
@@ -71,7 +74,7 @@ class NearbyPairing:
             self._save("nearby",candidates)
         return len(candidates)
 
-    async def join(self, identifier, code, password):
+    async def join(self, identifier, code):
         candidate = self._value("nearby",{}).get(identifier)
         if candidate is None:
             raise JournalError("Search for nearby devices again")
@@ -84,26 +87,60 @@ class NearbyPairing:
             raise JournalError("This preview joins compatible dummy replicas; a new profile requires snapshot enrollment")
         if self.device.store.pending():
             raise JournalError("Sync existing pending work before pairing another connection")
-        wire,digits = request_pairing(candidate["offer"].encode(),code,password,self.device.identity,config["incarnation"],home_key=offer["home_key"])
+        wire,digits = request_pairing(candidate["offer"].encode(),code,self.device.identity,config["incarnation"],home_key=offer["home_key"])
         request = self.client_factory(candidate["endpoint"],candidate["certificate"],timeout=5)
         answer = unpack(await request(wire))
         authenticate(answer,config["home_key"])
         if answer["body"] != dict(type="pairing-wait",request=digest(unpack(wire)["body"])):
             raise JournalError("Pairing reply changed; reopen pairing on the home")
         with self.db.transaction():
-            self._save("pairing_client",dict(candidate=candidate,request=wire.decode(),digits=digits))
+            self._save("pairing_client",dict(candidate=candidate,request=wire.decode(),digits=digits,stage="compare"))
+
+    def _client(self, stage):
+        state = self._value("pairing_client",{})
+        if not state:
+            raise JournalError("Choose a nearby device and enter its number first")
+        if state["stage"] != stage:
+            raise JournalError("Compare the numbers with the home first" if stage == "password" else "This step is already done")
+        return state
+
+    def compare(self, digits):
+        """The joining user's confirmation that the home shows the same digits. Nothing leaves the device here."""
+        state = self._client("compare")
+        if type(digits) is not str or not hmac.compare_digest(digits, state["digits"]):
+            raise JournalError("Check that both devices show the same six digits")
+        state["stage"] = "password"
+        with self.db.transaction():
+            self._save("pairing_client",state)
+
+    async def prove(self, password):
+        state = self._client("password")
+        candidate = state["candidate"]
+        offer = unpack(candidate["offer"].encode())["body"]
+        wire = prove_pairing(candidate["offer"].encode(),state["request"].encode(),password,self.device.identity,home_key=offer["home_key"])
+        answer = unpack(await self.client_factory(candidate["endpoint"],candidate["certificate"],timeout=5)(wire))
+        authenticate(answer,self.device.store.config["home_key"])
+        if answer["body"] != dict(type="pairing-wait",request=digest(unpack(state["request"].encode())["body"])):
+            raise JournalError("Pairing reply changed; reopen pairing on the home")
+        state["stage"] = "waiting"
+        with self.db.transaction():
+            self._save("pairing_client",state)
+
+    def cancel(self):
+        self.db.execute("DELETE FROM journal_local WHERE name='pairing_client'")
+
+    def _admitted(self, wire, membership):
+        request = unpack(wire.encode())["body"]
+        self._save("pairing_result:" + digest(request), dict(request=wire,membership=membership.decode(),expires=int(time.time())+600))
+        names = self._value("paired_names",{})
+        names[request["device"]] = request["name"]
+        self._save("paired_names",names)
 
     def confirm(self, digits):
         state = self._value("pairing",{})
         if self.desk is None or not state.get("request"):
             raise JournalError("No device is waiting for approval")
-        request = unpack(state["request"].encode())["body"]
-        with self.db.transaction():
-            membership = self.desk.confirm(digits)
-            self._save("pairing_result:" + digest(request), dict(request=state["request"],membership=membership.decode(),expires=int(time.time())+600))
-            names = self._value("paired_names",{})
-            names[request["device"]] = request["name"]
-            self._save("paired_names",names)
+        self.desk.confirm(digits)
 
     def exchange(self, wire):
         if self.desk is None or len(wire) > 4096:
@@ -115,6 +152,9 @@ class NearbyPairing:
         if body.get("type") == "journal-pairing-request":
             self.desk.accept(wire)
             return seal(dict(type="pairing-wait",request=digest(body)),self.device.identity.sign)
+        if body.get("type") == "journal-pairing-proof":
+            self.desk.prove(wire)
+            return seal(dict(type="pairing-wait",request=body["request"]),self.device.identity.sign)
         fields(body,("type","request","device"))
         hash_value(body["request"])
         uuid(body["device"])
@@ -131,6 +171,8 @@ class NearbyPairing:
         state = self._value("pairing_client",{})
         if not state:
             raise JournalError("Choose a nearby device and enter its number first")
+        if state["stage"] != "waiting":
+            raise JournalError("Compare the numbers and enter your password first")
         identifier = digest(unpack(state["request"].encode())["body"])
         wire = seal(dict(type="journal-pairing-status",request=identifier,device=self.device.identity.device_id),self.device.identity.sign)
         candidate = state["candidate"]

@@ -215,7 +215,13 @@ def create_journal_app(device, *, session_token, channel=None, synchronize=None,
         elif action == "find":
             await pairing.find()
         elif action == "join":
-            await pairing.join(str(data.get("candidate","")),str(data.get("code","")),str(data.get("password","")))
+            await pairing.join(str(data.get("candidate","")),str(data.get("code","")))
+        elif action == "compare":
+            pairing.compare(str(data.get("digits","")))
+        elif action == "prove":
+            await pairing.prove(str(data.get("password","")))
+        elif action == "cancel":
+            pairing.cancel()
         elif action == "confirm":
             pairing.confirm(str(data.get("digits","")))
         elif action == "check":

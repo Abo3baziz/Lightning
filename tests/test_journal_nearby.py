@@ -57,10 +57,15 @@ def test_nearby_number_and_confirmation_admit_once_then_sync_without_another_pro
     async def run():
         assert await ps.find() == 1
         identifier = ps.screen()["nearby"][0]["id"]
-        await ps.join(identifier,code,"Pairing password")
+        await ps.join(identifier,code)
         assert home.c.db.scalar("SELECT COUNT(*) FROM journal_origins WHERE device=?",(pc.identity.device_id,)) == 0
         assert hs.screen()["digits"] == ps.screen()["pending"]
+        ps.compare(ps.screen()["pending"])
         hs.confirm(hs.screen()["digits"])
+        assert hs.screen()["confirmed"] and hs.screen()["code"]
+        with pytest.raises(JournalError):
+            await ps.finish()
+        await ps.prove("Pairing password")
         await ps.finish()
         assert ps.screen()["paired"]
         assert home.c.db.scalar("SELECT revoked FROM journal_origins WHERE device=?",(pc.identity.device_id,)) == 0

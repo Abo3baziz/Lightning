@@ -183,7 +183,7 @@ def test_revoked_device_cannot_derive_rotated_transport_secret_from_old_key_or_d
 
 def test_pairing_requires_code_password_both_keys_and_explicit_matching_digits(devices):
     from lightning.security.keys import create_key_file
-    from lightning.sync.journal.pairing import PairingDesk, request_pairing
+    from lightning.sync.journal.pairing import PairingDesk, prove_pairing, request_pairing
     home, pc = devices
     hm, pm = Membership(home), Membership(pc)
     home_only = {home.identity.device_id:dict(key=home.identity.public_key,incarnation=home.store.config["incarnation"])}
@@ -192,15 +192,22 @@ def test_pairing_requires_code_password_both_keys_and_explicit_matching_digits(d
     key_file = create_key_file(home.c.db.copy_key(), password, "1234-5678-9012", "First school?", "Cairo")
     desk = PairingDesk(home, hm)
     offer, code = desk.begin(key_file, password)
-    bad, _ = request_pairing(offer, code, "wrong password", pc.identity, pc.store.config["incarnation"], home_key=home.identity.public_key)
+    incarnation, key = pc.store.config["incarnation"], home.identity.public_key
+    bad, _ = request_pairing(offer, "000000" if code != "000000" else "000001", pc.identity, incarnation, home_key=key)
     with pytest.raises(JournalError, match="wrong"):
         desk.accept(bad)
-    request, digits = request_pairing(offer, code, password, pc.identity, pc.store.config["incarnation"], home_key=home.identity.public_key)
+    request, digits = request_pairing(offer, code, pc.identity, incarnation, home_key=key)
     assert desk.accept(request) == digits
     assert pc.identity.device_id not in hm.state()["members"]
+    # The home's confirmation alone admits nobody; the password proof is also required.
     with pytest.raises(JournalError, match="same six"):
         desk.confirm("000000" if digits != "000000" else "000001")
-    update = desk.confirm(digits)
+    assert desk.confirm(digits) is None and pc.identity.device_id not in hm.state()["members"]
+    wrong = prove_pairing(offer, request, "wrong password", pc.identity, home_key=key)
+    with pytest.raises(JournalError, match="password"):
+        desk.prove(wrong)
+    assert pc.identity.device_id not in hm.state()["members"]
+    update = desk.prove(prove_pairing(offer, request, password, pc.identity, home_key=key))
     pm.accept(update, initial=True)
     assert hm.state() == pm.state()
     assert home.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'") == pc.c.db.scalar("SELECT value FROM journal_local WHERE name='transport'")

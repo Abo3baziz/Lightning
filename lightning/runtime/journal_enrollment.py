@@ -6,6 +6,7 @@ native picker must publish a completed directory before offering it as a profile
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -17,7 +18,7 @@ from lightning.sync.journal.codec import JournalError, authenticate, digest, sea
 from lightning.sync.journal.discovery import nearby_devices
 from lightning.sync.journal.enrollment import install_replica
 from lightning.sync.journal.local import PinnedLocalClient
-from lightning.sync.journal.pairing import request_pairing
+from lightning.sync.journal.pairing import prove_pairing, request_pairing
 from .session import read_slot, write_slot
 
 
@@ -51,7 +52,7 @@ class NewJournalReplica:
         self.candidates = {digest(dict(home=item["home"],offer=item["offer"])):item for item in await self.search(self.identity)}
         return [dict(id=identifier,name=item["name"]) for identifier,item in self.candidates.items()]
 
-    async def join(self, candidate_id, code, password):
+    async def join(self, candidate_id, code):
         if self.state() is not None or (self.root/"ledger.db").exists():
             raise JournalError("Resume the existing pairing instead of pairing again")
         candidate = self.candidates.get(candidate_id)
@@ -59,21 +60,52 @@ class NewJournalReplica:
             raise JournalError("Find the nearby device again")
         offer = unpack(candidate["offer"].encode())["body"]
         incarnation = str(uuid4())
-        wire,digits = request_pairing(candidate["offer"].encode(),code,password,self.identity,incarnation,home_key=offer["home_key"])
+        wire,digits = request_pairing(candidate["offer"].encode(),code,self.identity,incarnation,home_key=offer["home_key"])
         request = self.client_factory(candidate["endpoint"],candidate["certificate"],timeout=5)
         response = unpack(await request(wire))
         authenticate(response,offer["home_key"])
         identifier = digest(unpack(wire)["body"])
         if response["body"] != dict(type="pairing-wait",request=identifier):
             raise JournalError("Pairing response does not match this device")
-        write_slot(self.root/"enrollment.json",dict(candidate=candidate,request=identifier,digits=digits,incarnation=incarnation,
-                   profile=offer["profile"],generation=offer["generation"],home_key=offer["home_key"]))
+        write_slot(self.root/"enrollment.json",dict(candidate=candidate,request=identifier,wire=wire.decode(),digits=digits,incarnation=incarnation,
+                   profile=offer["profile"],generation=offer["generation"],home_key=offer["home_key"],stage="compare"))
         return digits
+
+    def compare(self, digits):
+        """The joining user's confirmation that the home shows the same digits. Nothing leaves the device here."""
+        state = self.state()
+        if state is None or state.get("stage") != "compare":
+            raise JournalError("Find a home and enter its number first")
+        if type(digits) is not str or not hmac.compare_digest(digits,state["digits"]):
+            raise JournalError("Check that both devices show the same six digits")
+        write_slot(self.root/"enrollment.json",dict(state,stage="password"),replace=True)
+
+    async def prove(self, password):
+        """Send the password proof, only after compare(). The password is never stored."""
+        state = self.state()
+        if state is None or state.get("stage") != "password":
+            raise JournalError("Compare the numbers with the home first")
+        candidate = state["candidate"]
+        wire = prove_pairing(candidate["offer"].encode(),state["wire"].encode(),password,self.identity,home_key=state["home_key"])
+        request = self.client_factory(candidate["endpoint"],candidate["certificate"],timeout=5)
+        response = unpack(await request(wire))
+        authenticate(response,state["home_key"])
+        if response["body"] != dict(type="pairing-wait",request=state["request"]):
+            raise JournalError("Pairing response does not match this device")
+        write_slot(self.root/"enrollment.json",dict(state,stage="waiting"),replace=True)
+
+    def cancel(self):
+        """Forget a pairing that has not sent a password proof; the saved identity stays."""
+        state = self.state()
+        if state is not None and state.get("stage") in ("compare","password") and not (self.root/"ledger.db").exists():
+            (self.root/"enrollment.json").unlink()
 
     async def finish(self, password, *, budget=50):
         state = self.state()
         if state is None:
             raise JournalError("Find a home and enter its number first")
+        if state.get("stage","waiting") != "waiting":
+            raise JournalError("Compare the numbers and enter your password first")
         if (self.root/"complete.json").exists():
             complete = read_slot(self.root/"complete.json")
             if any(complete.get(name) != value for name,value in dict(profile=state["profile"],generation=state["generation"],device=self.identity.device_id).items()):
