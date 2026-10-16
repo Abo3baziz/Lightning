@@ -24,8 +24,9 @@ SYNCED = ("counterparties", "transactions", "ledger_entries")
 GUARDED = ("reserve_transaction_links",)
 # Baseline catalog rows are referenced by UUID but not replicated yet.
 CATALOG = ("accounts", "financial_assets", "categories", "asset_classes")
-# Rows existing in independently built dummy baselines must agree without a
-# checkpoint; their identity derives from a natural key (J6b retires this).
+# Replicas start from the home's checkpoint (J6b), so identities are copied. A
+# natural key still keeps an identity stable when a service rewrites a row
+# (a reposted line keeps its UUID); other new rows get random UUIDs.
 NATURAL = {"transactions": ("ref",), "counterparties": ("normalized_name",), "accounts": ("code",),
            "financial_assets": ("code",), "categories": ("code",), "asset_classes": ("code",)}
 MAX_ROWS = 64

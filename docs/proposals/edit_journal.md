@@ -221,7 +221,7 @@ No production protocol switch before complete write coverage. Early stages use i
 | Step | Deliverable |
 |---|---|
 | J6a — Generic exact effects (built) | One replicator for every synchronized table: UUID row identity (integer ids via `journal_ids`, other keys as key columns with references mapped), touched-row triggers, typed row upserts/deletes in reference order, per-row fingerprint. Cash becomes the first area on it. |
-| J6b — Checkpoint baselines | Every replica, including the lab and tests, starts from the home's verified checkpoint; independent baselines are retired. |
+| J6b — Checkpoint baselines (built) | Every replica, including the lab and tests, starts from the home's verified checkpoint; independent baselines are retired. |
 | J6c — Areas | Command families with field groups and service preconditions: master data (accounts, categories, counterparties, rules), foreign currency and conversions, plans/bills/loans/reserves/budgets, investments, shared settings. |
 | J6d — Home automation | Rules, price fills, bill matching and revaluation run only on the home and commit as effects. |
 | J6e — Upgrades and backups | Migration barrier, per-release compatibility table, journal-profile backup and restore. |

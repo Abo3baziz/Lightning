@@ -10,6 +10,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-16 · Claude: journal J6b: replicas (lab, tests) start from the home's verified checkpoint (`snapshots.checkpoint_replica`); `initialize` creates homes only.
 - 2026-10-16 · Claude: journal J6a: generic exact row effects (`sync/journal/effects.py`) replace the cash-only schema: touched rows of synchronized tables replay
   exactly with UUID references, per-row fingerprints, generic checkpoint repair; a cash edit is 7,952 bytes in one round (was 12,284 in five).
 - 2026-10-16 · Claude: journal transport and pairing: one combined sync round (20 offline edits: 64 → 3 mailbox wake cycles), downloads continue when upload is held;

@@ -65,14 +65,19 @@ def open_lab(root, password):
     try:
         for index, identity in enumerate(identities):
             path = root / f"device-{index}.db"
-            c = build(path, key=key, experimental_journal=not fresh)
+            if fresh and index:
+                # The PC starts from the home's verified checkpoint, as a real replica does.
+                from lightning.sync.journal.snapshots import checkpoint_replica
+                checkpoint_replica(stores[0], path, identities[0].sign, device=identity.device_id,
+                                   incarnation=str(uuid4()), origin_key=identity.public_key)
+            c = build(path, key=key, experimental_journal=not fresh or bool(index))
             try:
-                if fresh:
+                if fresh and not index:
                     c.account_flows.open_account("Bank", "BANK", today().isoformat(), "1000")
                     c.account_flows.open_account("Wallet", "CASH", today().isoformat(), "100")
                     store = initialize(c, profile=config["profile"], generation=config["generation"],
                         device=identity.device_id, incarnation=str(uuid4()), home_key=identities[0].public_key,
-                        origin_key=identity.public_key, role="home" if index == 0 else "replica", dummy_profile=True)
+                        origin_key=identity.public_key, role="home", dummy_profile=True)
                 else:
                     store = attach(c)
                     if (store.config["device"] != identity.device_id or store.config["origin_key"] != identity.public_key

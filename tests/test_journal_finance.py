@@ -17,24 +17,29 @@ from lightning.sync.journal.home import JournalHome
 
 @pytest.fixture
 def devices(tmp_path):
+    from lightning.sync.journal.snapshots import checkpoint_replica
     profile, generation = str(uuid4()), str(uuid4())
     identities = [load_or_create(tmp_path / f"id-{i}", f"Device {i}") for i in range(2)]
-    containers, stores = [], []
-    for i, identity in enumerate(identities):
-        c = build(tmp_path / f"ledger-{i}.db", key=os.urandom(32))
-        c.account_flows.open_account("Bank", "BANK", "2026-01-01", "1000")
-        c.account_flows.open_account("Wallet", "CASH", "2026-01-01", "100")
-        if i:
-            c.db.conn.execute("PRAGMA foreign_keys=OFF")
-            with c.db.transaction():
-                c.db.execute("UPDATE accounts SET id=id+100")
-                c.db.execute("UPDATE ledger_entries SET account_id=account_id+100")
-            c.db.conn.execute("PRAGMA foreign_keys=ON")
-        store = initialize(c, profile=profile, generation=generation, device=identity.device_id,
-            incarnation=str(uuid4()), home_key=identities[0].public_key, origin_key=identity.public_key,
-            role="home" if i == 0 else "replica", dummy_profile=True)
-        containers.append(c)
-        stores.append(store)
+    c = build(tmp_path / "ledger-0.db", key=os.urandom(32))
+    c.account_flows.open_account("Bank", "BANK", "2026-01-01", "1000")
+    c.account_flows.open_account("Wallet", "CASH", "2026-01-01", "100")
+    stores = [initialize(c, profile=profile, generation=generation, device=identities[0].device_id,
+        incarnation=str(uuid4()), home_key=identities[0].public_key, origin_key=identities[0].public_key,
+        role="home", dummy_profile=True)]
+    containers = [c]
+    # The replica starts from the home's checkpoint, then gets different local
+    # account ids, so replay must go through UUIDs, never physical row ids.
+    checkpoint_replica(stores[0], tmp_path / "ledger-1.db", identities[0].sign, device=identities[1].device_id,
+                       incarnation=str(uuid4()), origin_key=identities[1].public_key)
+    replica = build(tmp_path / "ledger-1.db", key=c.db.copy_key(), experimental_journal=True)
+    replica.db.conn.execute("PRAGMA foreign_keys=OFF")
+    with replica.db.transaction():
+        replica.db.execute("UPDATE accounts SET id=id+100")
+        replica.db.execute("UPDATE ledger_entries SET account_id=account_id+100")
+        replica.db.execute("UPDATE journal_ids SET local_id=local_id+100 WHERE entity='accounts'")
+    replica.db.conn.execute("PRAGMA foreign_keys=ON")
+    containers.append(replica)
+    stores.append(attach(replica))
     home = JournalHome(stores[0], identities[0].sign)
     for store, identity in zip(stores, identities):
         home.approve_origin(identity.device_id, store.config["incarnation"], identity.public_key)

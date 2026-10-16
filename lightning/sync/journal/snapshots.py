@@ -12,7 +12,7 @@ from uuid import uuid4
 from lightning.database.connection import Database
 from lightning.database.snapshot import snapshot, verify_connection
 
-from .codec import JournalError, ZERO_HASH, authenticate, canonical, cursor as validate_cursor, fields, hash_value, number, seal, unpack
+from .codec import JournalError, ZERO_HASH, authenticate, canonical, cursor as validate_cursor, fields, hash_value, number, seal, unpack, uuid
 from .effects import SCHEMA, Replicator
 from .finance import CashAdapter
 from .store import JournalStore
@@ -168,3 +168,26 @@ def repair(store, source, manifest, *, source_key, fault=lambda phase: None):
     finally:
         db.close()
         path.unlink(missing_ok=True)
+
+
+def checkpoint_replica(store, target, signer, *, device, incarnation, origin_key):
+    """A new replica's starting copy is the home's verified checkpoint (J6b).
+
+    Row identities, receipts and the commit chain come from the home; the copy
+    takes this device's identity and a fresh origin counter.
+    """
+    for value in (device, incarnation):
+        uuid(value)
+    manifest = export(store, target, signer)
+    db = Database(target, key=store.db.copy_key())
+    try:
+        config = json.loads(db.scalar("SELECT config FROM journal_meta WHERE id=1"))
+        if config["role"] != "snapshot":
+            raise JournalError("Not a verified checkpoint")
+        config.update(device=device, incarnation=incarnation, origin_key=origin_key, role="replica")
+        with db.transaction():
+            db.execute("UPDATE journal_meta SET config=?,next_seq=1 WHERE id=1", (canonical(config).decode(),))
+        verify_connection(db.conn, encrypted=True)
+    finally:
+        db.close()
+    return manifest

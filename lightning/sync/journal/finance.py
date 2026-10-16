@@ -46,8 +46,8 @@ def initialize(container, *, profile, generation, device, incarnation, home_key,
         raise JournalError("This baseline exceeds the experimental wire amount limit")
     for value in (profile, generation, device, incarnation):
         uuid(value)
-    if role not in ("home", "replica"):
-        raise JournalError("Invalid journal role")
+    if role != "home":
+        raise JournalError("A replica starts from the home's verified checkpoint")
     with db.transaction():
         for statement in STORE_SCHEMA:
             db.execute(statement)
