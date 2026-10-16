@@ -51,6 +51,11 @@ class Position:
     dividend_tax: Decimal = ZERO  # tax withheld from the dividends above (they are gross)
 
     @property
+    def short_name(self) -> str:
+        """What the holdings table calls it: a share by its ticker (COMI), anything else by its name."""
+        return self.asset_code.split(":", 1)[1] if self.asset_code.startswith("STK:") else self.asset_name
+
+    @property
     def net_dividends(self) -> Decimal:
         """What the dividends paid after tax withheld: the part that counts as return."""
         return self.dividends - self.dividend_tax

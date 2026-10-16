@@ -34,3 +34,26 @@ def test_a_crash_shows_a_calm_page_not_the_server_text(c, setup):
     assert "Internal Server Error" not in crashed.text and 'href="/"' in crashed.text
     missing = client.get("/no-such-page")
     assert missing.status_code == 404 and "Back to the dashboard" in missing.text
+
+
+def test_shares_show_their_ticker_and_funds_are_not_an_exchange(c, setup):
+    """Tickets 104, 110: the holdings table names a share by its ticker; By market keeps funds apart from EGX."""
+    from lightning.investments.domain import Position
+    from lightning.investments.views import regroup
+
+    share = Position(1, "Broker", 1, "STK:COMI", "Commercial International Bank", "Stocks", "Equity", "share",
+                     1, 1, 0, 0, None, None, "", None)
+    fund = Position(1, "Broker", 2, "FND:AZ-GOLD", "Azimut Gold Fund", "Funds › Gold", "Gold", "unit",
+                    1, 1, 0, 0, None, None, "", None)
+    assert share.short_name == "COMI" and fund.short_name == "Azimut Gold Fund"
+
+    class Asset:
+        def __init__(self, code):
+            self.code, self.mic, self.currency = code, "XCAI", "EGP"
+
+    from decimal import Decimal
+    rows = [{"h": share, "value": Decimal(10), "cost": Decimal(1), "asset_id": 1},
+            {"h": fund, "value": Decimal(5), "cost": Decimal(1), "asset_id": 2}]
+    groups = regroup("market", [{"name": "Stocks", "rows": rows}], Decimal(15), accounts={}, base="EGP",
+                     assets={1: Asset("STK:COMI"), 2: Asset("FND:AZ-GOLD")})
+    assert {g["name"] for g in groups} == {"EGX", "Funds"}

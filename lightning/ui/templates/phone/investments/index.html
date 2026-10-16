@@ -56,7 +56,7 @@
     <div class="phone-group-head"><span class="phone-group-name"><b>{{ g.name }}</b><small>{{ '%.0f'|format(g.weight) }}% of holdings · gain {{ g.gain|money(True) }}</small></span><b class="phone-group-left">{{ g.value|money }}</b></div>
     <div class="phone-rows">{% for r in g.rows %}
       {% if r.balance %}<a class="phone-row" href="/accounts/{{ r.account_id }}"><span>{{ r.name }}<small>{{ "Cash in the account"|tr(locale) }}</small></span><b>{{ r.value|money }}</b></a>
-      {% else %}{% set h = r.h %}<a class="phone-row" href="/investments/holding/{{ h.asset_id }}?account={{ h.account_id }}&amp;date={{ period.end_text }}&amp;start={{ period.start_text }}"><span>{{ h.asset_name }}<small>{{ r.units|units_of(h.unit) }}{% if r.gain_pct is not none %} · {{ r.gain_pct|signed_pct }}%{% endif %}{% if r.horizon != 'Unassigned' %} · {{ r.horizon }}{% endif %}</small></span><b>{{ r.value|money if r.value is not none else 'Unavailable' }}</b></a>{% endif %}
+      {% else %}{% set h = r.h %}<a class="phone-row" href="/investments/holding/{{ h.asset_id }}?account={{ h.account_id }}&amp;date={{ period.end_text }}&amp;start={{ period.start_text }}"><span>{{ h.short_name }}<small>{{ r.units|units_of(h.unit) }}{% if r.gain_pct is not none %} · {{ r.gain_pct|signed_pct }}%{% endif %}{% if r.horizon != 'Unassigned' %} · {{ r.horizon }}{% endif %}</small></span><b>{{ r.value|money if r.value is not none else 'Unavailable' }}</b></a>{% endif %}
     {% endfor %}</div>
   </article>
   {% else %}<p class="empty">{{ "No owned holdings to show."|tr(locale) }}</p>{% endfor %}

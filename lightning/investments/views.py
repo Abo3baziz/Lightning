@@ -52,9 +52,10 @@ def regroup(view: str, class_groups: list[dict], holdings_total: Decimal, *, acc
                 name = (asset.currency if asset is not None else None) or base
             elif view == "market":
                 mic = getattr(asset, "mic", None)
-                name = venue_name(mic) if mic else g["name"]  # unlisted: its kind (Certificates, Gold, ...)
+                is_fund = str(getattr(asset, "code", "")).startswith("FND:")  # a fund is not a share on that exchange
+                name = "Funds" if is_fund else venue_name(mic) if mic else g["name"]  # unlisted: its kind (Certificates, Gold, ...)
             else:  # security: one row per asset, the accounts that hold it beneath
-                name = h.asset_name if h else r["name"]
+                name = h.short_name if h else r["name"]
             keyed.setdefault(name, []).append(r)
     groups = sorted((make_group(n, rows, holdings_total) for n, rows in keyed.items()),
                     key=lambda g: (-g["value"], g["name"].casefold()))
