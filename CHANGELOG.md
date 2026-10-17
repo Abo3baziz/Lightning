@@ -10,6 +10,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 - When a version is tagged, rename `Unreleased` to that version and start a new `Unreleased` above it.
 
 ## [Unreleased]
+- 2026-10-17 · Codex: regenerate the Arabic stylesheet mirror and update stale investment and overview acceptance checks.
 
 ## [1.3.0] — 2026-10-17
 - 2026-10-17 · Codex: remove the stale 2026-10-09 handoff note after owner approval.
