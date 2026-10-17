@@ -96,7 +96,7 @@ def test_currency_view_lists_each_currency_separately(c, book, monkeypatch):
 
 def test_security_view_merges_one_asset_held_in_two_accounts(c, book, monkeypatch):
     groups = {g["name"]: g for g in _page(c, monkeypatch, "view=security")["holding_groups"]}
-    comi = groups["Commercial International Bank"]
+    comi = groups["COMI"]
     assert len(comi["rows"]) == 2 and {r["h"].account_label for r in comi["rows"]} == {"THNDR", "Second broker"}
     assert comi["value"] == D("150") * D("110")
 
@@ -116,7 +116,7 @@ def test_account_view_is_one_group_per_account_and_a_pocket_rolls_into_its_broke
 
 def test_market_view_names_the_venue_or_the_kind_and_caps_at_four_and_other(c, book, monkeypatch):
     names = [g["name"] for g in _page(c, monkeypatch, "view=market")["holding_groups"]]
-    assert {"EGX", "Nasdaq", "Saudi Exchange"} <= set(names)
+    assert {"EGX", "Funds", "Saudi Exchange"} <= set(names)
     rows = [{"h": SimpleNamespace(asset_id=i, account_id=1, asset_name=f"S{i}", account_label="A"),
              "value": D(10 + i), "cost": D(10), "gain": D(1)} for i in range(7)]
     mics = ["XCAI", "XNAS", "XNYS", "XLON", "XETR", "XPAR", "XSAU"]

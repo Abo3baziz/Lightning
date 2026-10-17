@@ -1283,8 +1283,7 @@ def test_the_savings_rate_for_all_time(mohab):
 
 def test_the_overview_says_which_parts_follow_the_period(mohab):
     answer = mohab.answers["past_month"]
-    assert answer.shows("Cash flow 2026-10-01 to 2026-10-31", "Investments 2026-10-01 to 2026-10-31",
-                        "Month by month 2026-07 to today")
+    assert answer.shows("Cash flow 2026-10-01 to 2026-10-31", "Month by month 2026-07 to today")
 
 
 def test_your_position_follows_the_period_end(mohab):
@@ -1482,11 +1481,7 @@ def test_a_figure_reads_the_same_on_every_tab(mohab, period):
     investment_cash = _figure(flat(investments), r"Brokerage cash ([\d,]+)")
     assert investment_cash is not None
     assert money(investment_cash) == period_cash
-    if "2027-03-31" not in period and "2026-12" not in period:   # the Investments tile is as of today
-        # Deposits are their own figure: the CD used to count in Portfolio value on Investments only.
-        portfolio = {"Overview": _figure(flat(overview), r"Portfolio value ([\d,]+)"),
-                     "Investments": _figure(flat(investments), r"Portfolio value Last 6 months ([\d,]+)")}
-        assert None not in portfolio.values() and len(set(portfolio.values())) == 1, portfolio
+    # The Overview no longer has an Investments summary row; holdings and their period figures live on Investments.
 
 
 
