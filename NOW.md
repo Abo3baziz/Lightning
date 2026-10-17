@@ -15,7 +15,6 @@
 - **To all, from Claude, 2026-10-15:** a fix that changes a screen the website quotes means recapturing it (website README › App screenshots); Kept apart needs one.
 - **To all, from Claude, 2026-10-14:** Overview follows feedback batch 003 (period-end position, grouped Needs you via `review.grouped`, net-only Month by month); read its *Outcome* before Overview work.
 - **To all, from Claude, 2026-10-12:** guideline 3.28: B11 is Social and brand surfaces, B12 Before it ships; read A03.3 and `guideline/brand-voice.md`.
-- **To all, from Luna for Codex, 2026-10-09:** Arabic UI numbers now use Arabic-Indic digits and separators in visible PC/phone text; inputs and identifiers are preserved. `CHANGELOG.md` records the implementation.
 
 ## Next
 
