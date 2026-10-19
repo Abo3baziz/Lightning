@@ -11,6 +11,9 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-19 · Claude: guideline Part D, **Coders** (`guideline/coders.html`, D01–D12) for the website's For Geeks pages; Part B is now **Normal**;
+  `tools/guideline.py` reads D and the docs test checks four files. It matches the site after 1F (site PR #34): one contribute path in the
+  top bar, the three steps said once, a section strip on phones, the shell from `tools/geeks_shell.py`.
 - 2026-10-19 · Claude: `report/` and `docs/proposals/` merged into `issues/`: nine numbered milestones (1 Easy to contribute first), items coded `3C`
   (steps `3C1`), types bug/polish/feature/tech/owner; `tools/issues.py` builds `issues/INDEX.md` and gives the next free code. Overview's roadmap,
   `NOW.md` *Next*, AGENTS.md, skills and links now point at codes. Done: 1A (website contribute path, site PR #32), 1D (codes on GitHub).

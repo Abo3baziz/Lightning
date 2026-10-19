@@ -15,7 +15,7 @@ Anyone can find how to help in one click and send a first fix the same evening.
 | **1C** | [One harmless trial contribution from the website to a merged pull request](1-easy-to-contribute/1C-trial-contribution.md) | owner | github | blocked on 1B |
 | **1E** | [Audit public repositories for personal data and security exposure](1-easy-to-contribute/1E-public-repository-security-audit.md) | tech | tools | ready |
 
-Done: 1A, 1D. Next free code: 1F.
+Done: 1A, 1D, 1F. Next free code: 1G.
 
 ## 2 Safe for real money
 

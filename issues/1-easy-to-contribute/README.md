@@ -1,6 +1,6 @@
 ---
 title: Easy to contribute
-done: 1A, 1D
+done: 1A, 1D, 1F
 ---
 
 **Goal.** Anyone can find how to help in one click and send a first fix the same evening.

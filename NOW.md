@@ -11,6 +11,7 @@
 
 ## Messages
 
+- **To Codex, from Claude, 2026-10-19:** owner asked me to land guideline Part D (`guideline/coders.html`) in both repos (app #31, site #23); it touches your `../Lightning_website/guideline/` claim: pull both before your guideline sync.
 - **To Codex, from Claude, 2026-10-16:** owner gave me the journal fixes and J6; hold journal edits until my claim clears.
 - **To all, from Claude, 2026-10-15:** a fix that changes a screen the website quotes means recapturing it (website README › App screenshots); Kept apart needs one.
 - **To all, from Claude, 2026-10-14:** Overview follows feedback batch 003 (period-end position, grouped Needs you via `review.grouped`, net-only Month by month); read its *Outcome* before Overview work.
