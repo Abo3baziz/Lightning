@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-21 · Claude: 3R: phone sheets show only their form (no undo pill or section tabs); Save without a category says so on the visible field
+  and a counterparty fills its learned category; the raise offer is a Budget card that stays; the tab bar hides for the keyboard and sheets.
 - 2026-10-21 · Claude: bill matching you can trust (7K). Review of a payment searches every cash account, not only the item's; last month's payment is no longer
   offered for this month; salary or a bill paid early is not counted twice in the forecast and Needs you offers Link (`PlanningService.early_payments`).
 
