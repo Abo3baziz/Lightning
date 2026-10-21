@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-21 · Claude: Mohab comprehensive: the sample gains goals, a gam'eya, zakat, a rule, a claim, Mom's money, a dollar account, a flat, a laptop on
+  instalments, targets, a saved report and a waiting statement; the year test gains steps 33–36. Arabic gaps it exposed fixed. `samples/`, `test_mohab_sample.py`.
 - 2026-10-21 · Claude: 3W8 phone: each section's title carries its status sentence and the seam (C04.1); Needs you bullets are the mark;
   Accounts leads with What you own ("Total balance" retired); Investments drops Biggest holdings; no Needs you row when nothing waits.
 - 2026-10-21 · Claude: 3W5-3W7 answer first: Investments leads with Portfolio value (the waffle and Biggest holdings left; By currency only
