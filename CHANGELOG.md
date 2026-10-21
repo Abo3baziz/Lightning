@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-21 · Claude: 3S 1–2, 3C, 3A: Sale factors wraps its locked-holding note (no sideways scroll); trend and Budget pace end labels part instead of
+  overlapping (`charts.end_labels`, `spread_labels`); Currencies rates show two decimals in one left-to-right run (Arabic-safe).
 - 2026-10-21 · Claude: 3R: phone sheets show only their form (no undo pill or section tabs); Save without a category says so on the visible field
   and a counterparty fills its learned category; the raise offer is a Budget card that stays; the tab bar hides for the keyboard and sheets.
 - 2026-10-21 · Claude: bill matching you can trust (7K). Review of a payment searches every cash account, not only the item's; last month's payment is no longer
