@@ -11,6 +11,9 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-21 · Claude: bill matching you can trust (7K). Review of a payment searches every cash account, not only the item's; last month's payment is no longer
+  offered for this month; salary or a bill paid early is not counted twice in the forecast and Needs you offers Link (`PlanningService.early_payments`).
+
 - 2026-10-21 · Claude: demo and sample stop showing false alarms (3V, 7L1). The demo certificate pays what its 22% says, on its payout day, so Match all clears
   its item; the demo adds an untracked gym for Looks recurring; `--sample` opens on 2026-10-02 (no late bill); "Your income went up" ignores yearly, quarterly and Bonus income.
 

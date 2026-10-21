@@ -18,7 +18,7 @@ none of them. Wiring, not new engines. Builds on 3G §4.5 (Weekly review into Ne
 
 ## 7L2 Needs you carries the suggestions
 In `workflows/review.py::ReviewInbox.items` add: "N payments look recurring · Track" (`planning.suggestions`, links to `/plan/recurring#recurring-suggest`);
-an early income or bill the matcher found · Link (posts to `/plan/items/{id}/pay`, after 7K); `WeeklyReview.rule_offers` · Make a rule; reserve used →
+`WeeklyReview.rule_offers` · Make a rule; reserve used →
 Refill (3H RS-2, `reserves.links_for_reserve`); a category over plan this month (today only on Budget and in the save message); Health's "Needs you"
 bands (emergency fund 0.8 months is flagged on Health but not in the list).
 
