@@ -11,6 +11,9 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-22 · Claude: phone overhaul (3AC, owner PDF; guideline 3.34 Part C): tab bar Overview, Budget, Add, Transactions, More with words;
+  every tab opens on one hero figure; month stepper with a Choose period sheet; worded tabs; arrow chips, day nets, no ".00";
+  More with live figures; Budget ring, Cash planning due before payday, Investments, Accounts by type, Transactions filters. 3Z done.
 - 2026-10-22 · Codex: 4A connects edit synchronization to normal profiles: explicit conversion, enrollment, local handoff, command review and Arabic, home automation, upgrades and signed recovery.
   Android schedules catch-up while unlocked; financial routes use journal commands. Cloud delivery remains an explicit unconfigured placeholder; Windows/Android review packages build and verify in #97.
 
