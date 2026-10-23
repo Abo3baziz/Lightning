@@ -4,7 +4,6 @@
 
 | Who | Work | Files | Since |
 |---|---|---|---|
-| Claude | 3W answer first: guideline 3.33 (both repos), then the six tabs. | `guideline/`, `lightning/ui/templates/{dashboard,budget,planning,investments,accounts,financial_health}*`, `lightning/ui/status.py`, `lightning/ui/static/style.css` | 2026-10-21 |
 | Claude | Journal: 7 review fixes, then J6 (owner asked 10-16). | `lightning/sync/journal/`, `lightning/runtime/journal*`, `lightning/ui/journal*`, `tests/test_*journal*` | 2026-10-16 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
@@ -19,14 +18,21 @@
 
 ## Next
 
+- **PR cleanup:** cash/Save/bulk fixes integrated; 2M still needs the three form revision fields. **Read:** `reports/audit-4.md`; `reports/audit-4/form-revision-fields.patch`.
+
+- **Audit 5 left:** 9J, 9K, 9L. Older audit codes 2G–2K and 3AC are now 2P–2T and 3AF to avoid collisions. **Read:** `reports/audit-5.md`.
+
 The whole plan, by milestone and code, is `issues/INDEX.md`. In order:
+
+- **PR cleanup remaining:** 2M form fields, 9J–9L, and 1H dependency locks. Efficiency audit codes remapped to avoid reuse. **Read:** `reports/audit-6.md`; `reports/audit-5.md`.
+
 
 0. **Demo cut list from Audit 1** (owner, 10-20): built on seven `claude/` PRs (2E1–5, 5H, 3U1–4, 3V, 7L1, 7K, 3R, 3S1–2, 3C, 3A). Left: 3U 5–6, 2F (phone backup and import), then 7L2–7L4, 5K, 3S 3–20, 3T. Recapture the website once these merge: the sample now has ten accounts, goals, a gam'eya and more (it shows the sample on 10-04, with a late rent). **Read:** `reports/audit-1.md` › Demo cut list.
 1. **1B Owner runs the security setup**, then **1C** a trial contribution. **Read:** 1B.
 2. **2A/2B restore and durability:** restore mechanisms already implemented; run the dummy Windows reboot drill. Power-loss evidence remains open. **Read:** 2A, 2B.
 3. **4A Edit journal:** local integration and both review packages in PR #97; its checks record validation. Native PC/phone acceptance remains. Cloud deployment waits. **Read:** 4A §10 J6; Architecture › Command proposals.
 4. **3I Owner check, PC and phone:** first run and import review. **Read:** 3I.
-5. **3W Answer first** (Claude): guideline 3.33 and all six tabs built (PC and phone); left: Overview KPIs to A08, flows to Spending, holdings in five columns, site-recapture. **Read:** 3W *Steps*; A09.
+5. **Website recapture after 3W** (answer first is built on every tab): run site-recapture so the site shows the new screens. **Read:** `skills/site-recapture/SKILL.md`; Changelog 2026-10-21.
 6. **3H Tab-by-tab review:** §13 milestone 1 and the trust milestone built; next, optional reminders and grouped confirmations, then analytics; trust step 2, weekly friction. **Read:** 3H §13–14.
 7. **5G Brokers:** next, phase 4 import. **Read:** 5G *Fix*.
 8. **Website:** 8B on `codex/sync-app-guidelines`; 8F next (device captures ready: `reports/contributor-review.md`; 3AB blocks Budget); 8I owner. **Read:** 8B, 8F.
