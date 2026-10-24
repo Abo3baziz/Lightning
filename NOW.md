@@ -32,7 +32,7 @@ The whole plan, by milestone and code, is `issues/INDEX.md`. In order:
 2. **2A/2B restore and durability:** restore mechanisms already implemented; run the dummy Windows reboot drill. Power-loss evidence remains open. **Read:** 2A, 2B.
 3. **4A Edit journal:** local integration and both review packages in PR #97; its checks record validation. Native PC/phone acceptance remains. Cloud deployment waits. **Read:** 4A §10 J6; Architecture › Command proposals.
 4. **3I Owner check, PC and phone:** first run and import review. **Read:** 3I.
-5. **Website recapture after 3W** (answer first is built on every tab): run site-recapture so the site shows the new screens. **Read:** `skills/site-recapture/SKILL.md`; Changelog 2026-10-21.
+5. **Website recapture after 3W / 3AG / 7Q** (answer-first tabs, cleaner holdings and inbox progress): run site-recapture so the site shows the new screens. **Read:** `skills/site-recapture/SKILL.md`; Changelog 2026-10-21.
 6. **3H Tab-by-tab review:** §13 milestone 1 and the trust milestone built; next, optional reminders and grouped confirmations, then analytics; trust step 2, weekly friction. **Read:** 3H §13–14.
 7. **5G Brokers:** next, phase 4 import. **Read:** 5G *Fix*.
 8. **Website:** 8B on `codex/sync-app-guidelines`; 8F next (device captures ready: `reports/contributor-review.md`; 3AB blocks Budget); 8I owner. **Read:** 8B, 8F.
