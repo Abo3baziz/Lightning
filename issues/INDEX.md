@@ -131,7 +131,7 @@ Getting a month in takes minutes: any bank file, any old app, one search box.
 | 7L4 | ↳ Pair what belongs together | | | |
 | **7M** | [Paying a loan early empties the everyday budget, and an expense paid from a reserve still counts as overspending](7-planning-import-and-search/7M-early-loan-payment-and-reserve-spending-in-budget.md) | owner | planning | new |
 
-Done: 7Q, 7P, 7K, 7N, 7O. Next free code: 7R.
+Done: 7Q, 7P, 7K, 7N, 7O, 7J. Next free code: 7R.
 
 ## 8 Website
 

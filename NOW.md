@@ -5,7 +5,6 @@
 | Who | Work | Files | Since |
 |---|---|---|---|
 | Claude | Journal: 7 review fixes, then J6 (owner asked 10-16). | `lightning/sync/journal/`, `lightning/runtime/journal*`, `lightning/ui/journal*`, `tests/test_*journal*` | 2026-10-16 |
-| Claude | 7J: Arabic/Unicode search folding in `search.py` (`_fold_search_text`, digits, alef variants), TDD with `tests/test_search_arabic.py`; docs + changelog in the same PR (#51). | `lightning/ui/routes/search.py`, `tests/test_search_arabic.py`, `lightning/core/money.py` (docstring only if `ascii_digits` docs change), `docs/ARCHITECTURE.md`, `CHANGELOG.md`, `issues/7-planning-import-and-search/7J-search-arabic-variants.md`, `issues/INDEX.md`, `NOW.md` | 2026-10-25 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
 ## Messages
