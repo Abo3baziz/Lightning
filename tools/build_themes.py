@@ -72,6 +72,8 @@ def compile_theme(manifest, parts):
             values.update((name,p[parts[slot][field]]) for name in names.split())
     values["c-well"] = p["raised"]
     values["theme-on-accent"] = p[parts["controls"]["label"]]
+    # The manifest's own money colours, for tints on its dark surfaces (theme-surfaces.css); the default keeps its paint.
+    values.update({"theme-income": p["income"], "theme-expense": p["expense"]})
     values["theme-logo"] = "url(/static/lightning-mark-on-dark.svg)" if parts["brand"]["logoVariant"] == "on-dark" else "url(/static/lightning-mark.svg)"
     scheme = "dark" if contrast(p["background"], "#FFFFFF") > contrast(p["background"], "#000000") else "light"
     return ':root[data-theme="'+manifest["id"]+'"] {\n  '+"\n  ".join('--'+k+': '+v+';' for k,v in values.items())+'\n  color-scheme: '+scheme+';\n}\n'
@@ -93,7 +95,11 @@ def build(check=False):
             raise ValueError("Only lightning-default is the built-in default")
         if manifest.get("status") not in ("built-in-default", "test-preview"):
             raise ValueError("Paid themes require verified ownership integration before registration")
-        registry.append({"id": manifest["id"], "name": manifest["name"], "preview": manifest["status"] == "test-preview"})
+        entry = {"id": manifest["id"], "name": manifest["name"], "preview": manifest["status"] == "test-preview"}
+        decor = parts["decoration"]
+        if decor["pattern"] != "none": entry["pattern"] = decor["pattern"]
+        if decor["motion"] != "none": entry["motion"] = decor["motion"]
+        registry.append(entry)
         css += compile_theme(manifest,parts)
     outputs = {STATIC / "themes.generated.css": css,
                STATIC / "themes.generated.json": json.dumps(registry, indent=2) + "\n",
