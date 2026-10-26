@@ -55,6 +55,10 @@
           keepalive: true, body: new URLSearchParams({ theme: next, __session: token }) });
         if (response.status === 402) throw Object.assign(new Error('try'), { trying: true });
         if (!response.ok) throw new Error('Could not save theme');
+        if (version === writeVersion) {
+          const status = document.querySelector('[data-theme-status]');
+          if (status) status.textContent = tr('Theme saved.');
+        }
       }).catch(error => {
         if (version !== writeVersion) return;
         const status = document.querySelector('[data-theme-status]');

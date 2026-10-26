@@ -8,6 +8,7 @@
 {% if section in ('', 'general') %}
 <section class="card" aria-labelledby="theme-heading">
   <h2 id="theme-heading">{{ 'Appearance'|tr(locale) }}</h2>
+  <p class="muted">{{ 'Choose a theme to apply it immediately. Free and unlocked themes save automatically with this profile. Choose Lightning default to switch back.'|tr(locale) }}</p>
   <label for="app-theme">{{ 'Theme'|tr(locale) }}</label>
   <select id="app-theme" data-theme-select aria-describedby="theme-status"></select>
   <p id="theme-status" data-theme-status role="status"></p>

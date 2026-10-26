@@ -21,7 +21,7 @@ desktop build instructions (`packaging/` and `.github/workflows/`),
 and the desktop design and status in [Architecture](docs/ARCHITECTURE.md#desktop-app-and-encrypted-profiles). It does not contain
 anyone's financial databases, passwords, recovery keys or installed app.
 
-The source version is **v1.4.4**. The [PC and phone app workflow](https://github.com/elfekimuhammed/Lightning/actions/workflows/desktop-probe.yml)
+The source version is **v1.5.0**. The [PC and phone app workflow](https://github.com/elfekimuhammed/Lightning/actions/workflows/desktop-probe.yml)
 builds the tested Windows ZIP and matching signed Android APK from one commit (Architecture › Build
 and release). A manual run offers both as seven-day artifacts (GitHub sign-in required). A successful
 tag publishes both in [Lightning-downloads](https://github.com/elfekimuhammed/Lightning-downloads/releases). The tested [Version 1.1 beta 1 release](https://github.com/elfekimuhammed/Lightning-downloads/releases/tag/v1.1.0-beta.1)
@@ -40,6 +40,18 @@ computers.
 On Linux, run `python -m lightning --profiles` from a source checkout for the
 same password-protected finance UI in a browser. The original browser workflow
 is still available with `python -m lightning`.
+
+## Change the app theme
+
+On PC or Android, open **Settings → Appearance** and choose a theme. It applies immediately;
+free and unlocked themes save automatically with the current profile and return on your next launch.
+Choose **Lightning default** to switch back. A paid theme marked **try it** is a preview until unlocked.
+
+For a purchased theme, get its one-time app code from your account on **lightningeg.com**.
+In **Settings → Appearance → Unlock a theme you bought**, choose the theme, paste the code and
+press **Unlock**. The app verifies its licence, applies it and remembers it. Each device needs its own
+app code; after unlocking, the licence is checked offline. Theme purchases must be enabled by the store
+before codes can be redeemed. Themes change appearance; all finance features remain free.
 
 ## Start the original browser version
 

@@ -11,6 +11,12 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-10-26
+
+- 2026-10-26 · Codex · **8L:** Settings explains immediate theme switching, automatic saving, returning to default and paid previews; saved choices show a confirmation in English and Arabic.
+- 2026-10-26 · Codex · **4F:** Prepare v1.5.0; release validation checks the displayed version and accepts notes rotated under the matching release version.
+
+- 2026-10-26 · Codex: 4F release preparation: preserve the generated-key header assertion without a secret-shaped literal; no key material is committed.
 - 2026-10-26 · @yoreva-01: 7H bank CSV imports accept accounting negatives, currency wrappers and Arabic digits. Review fixes preserve fractional amounts and reject unknown wrappers or extra signs. Closes #49.
 - 2026-10-26 · Claude: website audit fixes: Net Worth hero and four Arabic heroes fit phones, Downloads builds as phone cards, invite waits for the cookie choice, Arabic runway/step digits, labels. Website PR `claude/site-audit-phone-and-arabic`.
 - 2026-10-26 · Claude: 8L guideline 3.35 (copy of the website's change): D08 and themes.md, each For Geeks theme draws its own scene instead of the lightning (ink, river, embers, snow, stars, meadow); Mono keeps the terrain. Website PR `claude/theme-weather`.

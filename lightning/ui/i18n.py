@@ -29,6 +29,8 @@ ARABIC_UI = {
     "Use {amount} from now on": "استخدم {amount} من دلوقتي",
 
     'Appearance': 'المظهر',
+    'Choose a theme to apply it immediately. Free and unlocked themes save automatically with this profile. Choose Lightning default to switch back.': 'اختار سمة عشان تطبّقها فورًا. السمات المجانية والمفتوحة بتتحفظ تلقائيًا مع الملف ده. اختار سمة Lightning الافتراضية عشان ترجع لها.',
+    'Theme saved.': 'السمة اتحفظت.',
     'Theme': 'السمة',
     'Lightning default': 'مظهر لايتنينج الأساسي',
     'Nile': 'النيل',
