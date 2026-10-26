@@ -11,10 +11,10 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
-- 2026-10-25 · Claude: 7J search folds both sides of every compare (`_fold_search_text` in `ui/routes/search.py`):
-  Arabic spelling variants and tashkeel, Arabic-Indic and Persian digits (which now score like their ASCII
-  forms), Latin case and accents. Folding is compare-only; labels, links and stored data keep the original.
-  Closes #51.
+- 2026-10-25 · Claude: 7J search compares Arabic spelling variants, tashkeel, Arabic/Persian digits and Latin case/accents consistently; labels, links and stored data keep their original spelling. Closes #51.
+- 2026-10-25 · Codex: 3AH visual flow: direct phone page picker, answer-first Overview, decision-first review and price tasks, quieter recurring rows and explicit accessible form labels.
+  Preserve brand/theme tokens, financial calculations and the five phone slots; page checks and acceptance gaps are in reports/audit-7.md.
+
 - 2026-10-25 · Claude: 8K supporter release (website repo): earned supporter and Founding badges, name styles, animated and seasonal banners, sets, gifts and a supporters' theme vote; 8K tracks app-theme sales, About credits and a beta channel. themes.md section 7.
 - 2026-10-25 · Claude: Nile Papyrus & Lapis Guilloché app theme (from #136, reviewed): papyrus texture, page-corner rosette and one 12 s header-seam motion, reduced motion still; dark-theme readability fixes use each theme's own money tints. themes.md and theme-kit allow approved decoration.
 - 2026-10-25 · Claude: 8J website leaderboard (website repo): a table of rank, display name, contributions and score over each member's banner; `leaderboard.html?sample` shows made-up people to preview it.
