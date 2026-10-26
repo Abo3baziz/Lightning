@@ -11,6 +11,7 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-26 · Codex: 1I organize repository docs: dated report/evidence folders, durable sanitized feedback, guideline and template maps; repair links and enforce catalogues and complete guideline mirrors.
 - 2026-10-26 · Claude: 8J simple InstaPay top-up (website #95): members copy our details and their email for the note, then confirm date, amount and sender, no receipt; the owner reconciles every open top-up on one screen.
 - 2026-10-26 · Claude: 8J owner console (website #94): one owner account only (a second refused; extra ones removed from Settings); top-up tickets open from a list with the receipt shown, and take amount, date, sender and reference; a reference pays one ticket only.
 - 2026-10-25 · Claude: 7J search compares Arabic spelling variants, tashkeel, Arabic/Persian digits and Latin case/accents consistently; labels, links and stored data keep their original spelling. Closes #51.
