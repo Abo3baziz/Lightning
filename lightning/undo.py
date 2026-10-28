@@ -9,7 +9,8 @@ from uuid import uuid4
 from lightning.core.errors import ValidationError
 
 _ACTION = ContextVar("lightning_undo_action", default=None)
-_EXCLUDED = {"schema_migrations", "audit_log", "profile_identity"}
+# Preferences never replay: a language, theme or privacy write is not a ledger edit the Undo button should bring back.
+_EXCLUDED = {"schema_migrations", "audit_log", "profile_identity", "settings"}
 
 
 def recording_action():
