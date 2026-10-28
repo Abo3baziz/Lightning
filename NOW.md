@@ -4,6 +4,8 @@
 
 | Who | Work | Files | Since |
 |---|---|---|---|
+| OpenCode | 3U Arabic leftovers: budget move preview arrow, Plan timeline overlap, chart-axis Latin "k", loan payment wrap (owner asked 10-28). | `lightning/ui/templates/budget_move.html`, `lightning/ui/i18n.py`, `lightning/ui/i18n_system.py` | 2026-10-28 |
+| OpenCode | 3AI language change is und­one: exclude the `settings` table from undo capture, with a regression test (#167, owner asked 10-28). | `lightning/undo.py`, `tests/test_settings_not_undoable.py`, `issues/3-polish-and-arabic/` | 2026-10-28 |
 | Claude | Journal: 7 review fixes, then J6 (owner asked 10-16). | `lightning/sync/journal/`, `lightning/runtime/journal*`, `lightning/ui/journal*`, `tests/test_*journal*` | 2026-10-16 |
 | Luna, for Codex | 03a restore safety: durable intent and source-copy manifest, Windows marker publication, then explicit deterministic repair. Codex reviews it and owns the restore UI and docs | `lightning/runtime/restore.py`, `lightning/database/promotion_windows.py`, `tests/test_profile_session.py`, `tests/test_database_promotion_windows.py` | 2026-10-05 |
 
