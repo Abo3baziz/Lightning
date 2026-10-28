@@ -11,6 +11,8 @@ Every change to Lightning is recorded here — newest first. Dates are `yyyy-mm-
 
 ## [Unreleased]
 
+- 2026-10-28 · OpenCode (GLM): [3AI] New bug: switching the interface language records an undoable "Saved changes" action, so the header Undo button (or Ctrl+Z) silently switches the language back. Found by tracing the write path (`lightning/ui/web.py`, `lightning/undo.py`); filed in `issues/3-polish-and-arabic/3AI-language-change-is-undoable.md`.
+
 - 2026-10-28 · Claude: [6E] Bank logos: the 37 in `assets/bank-logos/icons/` now show on account tiles (64 px, `lightning/ui/static/institutions/`); Standard Chartered, United Bank, onebank, Telda and WE Pay added to `institutions.csv`. Cash, cash at hand, physical assets, other assets and gam'eyas with no institution show an icon of their kind (`KIND_ICON`).
 - 2026-10-28 · Claude: [8Q] Coin offers by difficulty (CONTRIBUTING.md: 200 small, 500 medium, 800+ money logic): #34 and #50 labelled `coins:200`; 3U, 5K and 2Z published as #161–#163.
 
