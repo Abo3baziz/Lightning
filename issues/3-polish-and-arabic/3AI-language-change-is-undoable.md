@@ -5,6 +5,7 @@ area: settings
 status: ready
 created: 2026-10-28
 by: OpenCode (GLM)
+github: 167
 commit: 8f80816
 repo: app
 ---
